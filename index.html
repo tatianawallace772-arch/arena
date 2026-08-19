@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aurelia Zinc — Refinery Simulator</title>
+  <link rel="icon" href="assets/mark.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+  <div id="boot">
+    <div class="boot-card">
+      <img class="boot-mark" src="assets/mark.png" alt="Aurelia Zinc mark" />
+      <div class="boot-kicker">Aurelia Metals · Plant DCS</div>
+      <h1>Zinc refinery simulator</h1>
+      <p>Roast–leach–electrowin a 120 kt/y hydrometallurgical zinc plant. Tune the units, keep SHG on-spec, and listen to the cellhouse come alive.</p>
+      <div class="boot-actions">
+        <button class="btn btn-primary" id="enter">Enter control room</button>
+        <button class="btn" id="enter-mute">Enter muted</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="app">
+    <header>
+      <div class="brand">
+        <img src="assets/mark.png" alt="" />
+        <div>
+          <h1>Aurelia Zinc RLE-3</h1>
+          <small>Hydrometallurgical circuit</small>
+        </div>
+      </div>
+      <div class="hdr-clock" id="clock">SHIFT 1 · 06:00</div>
+      <div class="hdr-meta">
+        <span class="chip" id="status-chip">STANDBY</span>
+        <span class="chip" id="speed-chip">1×</span>
+        <span class="chip" id="audio-chip">AUDIO</span>
+      </div>
+      <div class="hdr-actions">
+        <button class="btn" id="btn-run">Start</button>
+        <button class="btn" id="btn-speed">Speed</button>
+        <button class="icon-btn" id="btn-mute" title="Mute" aria-pressed="false">♪</button>
+        <button class="icon-btn" id="btn-help" title="Help">?</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="plant">
+        <div class="plant-title">
+          <h2>Process overview</h2>
+          <span class="tag" id="feed-label" style="font-family:var(--mono);font-size:11px;color:var(--muted)">CONC 52.0% Zn</span>
+        </div>
+        <div class="flow" id="flow">
+          <article class="unit" id="u-feed" data-unit="feed">
+            <div class="row"><h3>Concentrate</h3><div class="led off" data-led></div></div>
+            <div class="tag">Sphalerite feed</div>
+            <div class="pv" data-pv>0.0<span>t/h</span></div>
+            <div class="subpv" data-sub>Zn grade —</div>
+          </article>
+
+          <article class="unit" id="u-roast" data-unit="roast">
+            <div class="row"><h3>Roaster</h3><div class="led off" data-led></div></div>
+            <div class="tag">Fluid-bed · ZnS → ZnO</div>
+            <div class="pv" data-pv>—<span>°C</span></div>
+            <div class="subpv" data-sub>Conversion —</div>
+          </article>
+
+          <article class="unit" id="u-acid" data-unit="acid">
+            <div class="row"><h3>Acid plant</h3><div class="led off" data-led></div></div>
+            <div class="tag">SO₂ contact · H₂SO₄</div>
+            <div class="pv" data-pv>—<span>t/h</span></div>
+            <div class="subpv" data-sub>Conversion —</div>
+          </article>
+
+          <article class="unit" id="u-leach" data-unit="leach">
+            <div class="row"><h3>Leach</h3><div class="led off" data-led></div></div>
+            <div class="tag">Neutral + weak acid</div>
+            <div class="pv" data-pv>—<span>g/L Zn</span></div>
+            <div class="subpv" data-sub>Extraction —</div>
+          </article>
+
+          <article class="unit" id="u-purify" data-unit="purify">
+            <div class="row"><h3>Purification</h3><div class="led off" data-led></div></div>
+            <div class="tag">Zn dust cementation</div>
+            <div class="pv" data-pv>—<span>mg/L Cd</span></div>
+            <div class="subpv" data-sub>Cu residual —</div>
+          </article>
+
+          <article class="unit" id="u-cells" data-unit="cells">
+            <div class="row"><h3>Cellhouse</h3><div class="led off" data-led></div></div>
+            <div class="tag">Electrowinning</div>
+            <div class="pv" data-pv>—<span>t/h Zn</span></div>
+            <div class="subpv" data-sub>CE —</div>
+          </article>
+
+          <article class="unit" id="u-cast" data-unit="cast">
+            <div class="row"><h3>Casting</h3><div class="led off" data-led></div></div>
+            <div class="tag">Induction melt</div>
+            <div class="pv" data-pv>—<span>t/h</span></div>
+            <div class="subpv" data-sub>Furnace —</div>
+          </article>
+
+          <article class="unit" id="u-yard" data-unit="yard">
+            <div class="row"><h3>Ingot yard</h3><div class="led off" data-led></div></div>
+            <div class="tag">SHG 99.995% Zn</div>
+            <div class="pv" data-pv>—<span>t shift</span></div>
+            <div class="subpv" data-sub>Purity —</div>
+          </article>
+
+          <article class="unit" id="u-utils" data-unit="utils">
+            <div class="row"><h3>Utilities</h3><div class="led off" data-led></div></div>
+            <div class="tag">Power · steam · air</div>
+            <div class="pv" data-pv>—<span>MW</span></div>
+            <div class="subpv" data-sub>kWh/t —</div>
+          </article>
+
+          <div class="event-toast" id="toast"></div>
+        </div>
+      </section>
+
+      <aside>
+        <div class="insp-head">
+          <h2 id="insp-title">Select a unit</h2>
+          <p id="insp-blurb">Click a process unit on the schematic to open setpoints, gauges, and chemistry.</p>
+        </div>
+        <div class="insp-body" id="insp-body"></div>
+        <div class="trend-wrap">
+          <h3>Trend · cathode Zn & purity</h3>
+          <canvas id="trend" width="720" height="184"></canvas>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      <div class="kpi"><label>Cathode zinc</label><b id="k-zn">0.00</b><small>t/h</small></div>
+      <div class="kpi"><label>SHG purity</label><b id="k-pur">—</b><small>%</small></div>
+      <div class="kpi"><label>Current efficiency</label><b id="k-ce">—</b><small>%</small></div>
+      <div class="kpi"><label>Energy</label><b id="k-kwh">—</b><small>kWh/t</small></div>
+      <div class="kpi"><label>Plant recovery</label><b id="k-rec">—</b><small>%</small></div>
+      <div class="kpi"><label>Shift output</label><b id="k-shift">0</b><small>t</small></div>
+    </footer>
+  </div>
+
+  <div class="modal" id="help">
+    <article>
+      <h2>How the plant works</h2>
+      <p>This is a roast–leach–electrowin (RLE) zinc refinery. Sphalerite concentrate is oxidized, dissolved in recycled sulfuric acid, purified with zinc dust, then plated as special-high-grade metal.</p>
+      <h3>Circuit</h3>
+      <ul>
+        <li><b>Roaster</b> — 900–950 °C fluid bed. Too cold leaves sulfide; too hot sinters calcine.</li>
+        <li><b>Acid plant</b> — SO₂ is converted to H₂SO₄ and returned to leach and cells.</li>
+        <li><b>Leach</b> — Neutral pH ~4.8 dissolves ZnO while holding iron in residue.</li>
+        <li><b>Purification</b> — Zinc dust cements Cu and Cd. Leftover metals wreck current efficiency.</li>
+        <li><b>Cellhouse</b> — ~500 A/m², 3.3 V. Faraday’s law plus hydrogen evolution sets production.</li>
+        <li><b>Casting</b> — Cathodes are melted and poured as SHG ingots.</li>
+      </ul>
+      <h3>Keys</h3>
+      <p>Space start/pause · 1–8 select units · M mute · H help · Esc close</p>
+      <div style="margin-top:16px;text-align:right">
+        <button class="btn btn-primary" id="help-close">Close</button>
+      </div>
+    </article>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
