@@ -485,7 +485,7 @@
           applyTheme();
           refreshList();
         }],
-        ["Create a Display Picture…", () => toast("Studio", "Pixel says: use a 96×96 jpeg and too much contrast.", "img/avatar-pixel.png")]
+        ["Create a Display Picture…", () => toast("Studio", "Pixel says: use a 96×96 jpeg and too much contrast.", "img/avatar-pixel.jpg")]
       ],
       help: [
         ["About ASN Messenger", openAbout]
