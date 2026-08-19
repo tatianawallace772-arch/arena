@@ -1,0 +1,12 @@
+{
+  "name": "apple-watch-3d-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Fully functional interactive 3D Apple Watch simulator built with Three.js",
+  "scripts": {
+    "start": "python3 -m http.server 8000 --bind 0.0.0.0",
+    "serve": "python3 -m http.server 8000 --bind 0.0.0.0",
+    "test": "node tools/smoke.mjs"
+  }
+}

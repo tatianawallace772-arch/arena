@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Apple Watch 3D — Interactive Simulator</title>
+  <meta name="description" content="A fully interactive 3D Apple Watch simulator: working watch faces, app grid, calculator, timer, wallet, control center and more." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='10' y='6' width='44' height='52' rx='12' fill='%23222'/%3E%3Crect x='14' y='10' width='36' height='44' rx='10' fill='%23000'/%3E%3Ccircle cx='32' cy='32' r='13' fill='none' stroke='%23ff9f0a' stroke-width='3'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <canvas id="scene"></canvas>
+
+  <div id="webgl-error" class="hidden">
+    <h2>WebGL is not available</h2>
+    <p>This simulator needs WebGL to render the 3D watch. Please try a modern browser with hardware acceleration enabled.</p>
+  </div>
+
+  <header id="topbar">
+    <div class="brand">
+      <div class="logo"></div>
+      <div>
+        <h1>Apple Watch <span>3D</span></h1>
+        <p>Interactive Simulator</p>
+      </div>
+    </div>
+    <div class="tb-buttons">
+      <button id="btnHelp" title="Help &amp; shortcuts">?</button>
+      <button id="btnPanel" title="Control panel">⚙</button>
+      <button id="btnFullscreen" title="Fullscreen">⛶</button>
+    </div>
+  </header>
+
+  <div id="statusbar">
+    <div class="chip" id="statusClock">--:--</div>
+    <div class="chip accent" id="statusFace">Face: Infograph</div>
+    <div class="chip" id="statusState">Infograph</div>
+    <div class="chip" id="statusBattery">86%</div>
+  </div>
+
+  <aside id="panel">
+    <div class="panel-head">
+      <h2>Control Panel</h2>
+      <button id="btnPanelClose" title="Close">×</button>
+    </div>
+
+    <section>
+      <h3>View</h3>
+      <label class="row">
+        <span>Auto-rotate</span>
+        <input type="checkbox" id="switchAuto" class="toggle" checked />
+      </label>
+      <button id="btnReset" class="btn wide">↺ Reset view</button>
+    </section>
+
+    <section>
+      <h3>Watch Face</h3>
+      <div class="face-row">
+        <button id="btnFacePrev" class="round">‹</button>
+        <div id="faceName">Infograph</div>
+        <button id="btnFaceNext" class="round">›</button>
+      </div>
+    </section>
+
+    <section>
+      <h3>Buttons</h3>
+      <div class="btn-row">
+        <button id="btnCrown" class="btn">👑 Digital Crown</button>
+        <button id="btnSide" class="btn">Side Button</button>
+      </div>
+    </section>
+
+    <section>
+      <h3>Case</h3>
+      <div class="swatches">
+        <button class="case-swatch" data-case="silver" title="Silver Aluminum" style="background:#e2e4e8"></button>
+        <button class="case-swatch" data-case="midnight" title="Midnight Aluminum" style="background:#2b2e34"></button>
+        <button class="case-swatch" data-case="graphite" title="Graphite Steel" style="background:#43454a"></button>
+        <button class="case-swatch" data-case="gold" title="Gold Steel" style="background:#d8b878"></button>
+        <button class="case-swatch" data-case="starlight" title="Starlight Aluminum" style="background:#dcd6c8"></button>
+      </div>
+    </section>
+
+    <section>
+      <h3>Band</h3>
+      <div class="swatches">
+        <button class="band-swatch" data-band="0" title="Midnight" style="background:#23262b"></button>
+        <button class="band-swatch" data-band="1" title="White" style="background:#e8e8ea"></button>
+        <button class="band-swatch" data-band="2" title="Pink Sand" style="background:#e8b9c6"></button>
+        <button class="band-swatch" data-band="3" title="Green" style="background:#9fc2ae"></button>
+        <button class="band-swatch" data-band="4" title="Blue" style="background:#4a6fa5"></button>
+        <button class="band-swatch" data-band="5" title="Orange" style="background:#ff6f3c"></button>
+        <button class="band-swatch" data-band="6" title="Red" style="background:#d9485e"></button>
+        <button class="band-swatch" data-band="7" title="Yellow" style="background:#e3cf63"></button>
+      </div>
+    </section>
+
+    <section>
+      <h3>Extras</h3>
+      <div class="btn-row">
+        <button id="btnNotify" class="btn">🔔 Notification</button>
+        <button id="btnCharge" class="btn">⚡ Recharge</button>
+      </div>
+      <label class="row">
+        <span>Sounds</span>
+        <input type="checkbox" id="switchSound" class="toggle" checked />
+      </label>
+    </section>
+
+    <div class="panel-foot">
+      <p><b>Keys:</b> F face · C crown · S side · A rotate · R reset · H help · M sound</p>
+    </div>
+  </aside>
+
+  <div id="tooltip" class="hidden"></div>
+  <div id="toast" class="hidden"></div>
+
+  <div id="helpModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Welcome to the Apple Watch <span>3D</span> Simulator</h2>
+      <p class="sub">Everything on the watch works — try it all.</p>
+      <div class="help-grid">
+        <div class="help-item"><div class="hi-icon">🖱</div><div><b>Drag / scroll</b><span>Rotate and zoom the watch</span></div></div>
+        <div class="help-item"><div class="hi-icon">👑</div><div><b>Digital Crown</b><span>Scroll over it (or press F) to change faces · click for the app grid</span></div></div>
+        <div class="help-item"><div class="hi-icon">▣</div><div><b>Side button</b><span>Click for the dock · double-click opens Wallet</span></div></div>
+        <div class="help-item"><div class="hi-icon">👆</div><div><b>Display</b><span>Tap apps &amp; buttons — the Calculator, Timer, Wallet, Music and more really work</span></div></div>
+        <div class="help-item"><div class="hi-icon">⇣</div><div><b>Swipe down</b><span>From the top edge: Notification Center</span></div></div>
+        <div class="help-item"><div class="hi-icon">⇡</div><div><b>Swipe up</b><span>From the bottom edge: Control Center</span></div></div>
+        <div class="help-item"><div class="hi-icon">⇄</div><div><b>Swipe sideways</b><span>On the face to switch faces</span></div></div>
+        <div class="help-item"><div class="hi-icon">🎨</div><div><b>Control panel</b><span>Swap case finish, band color, battery, notifications…</span></div></div>
+      </div>
+      <button id="helpClose" class="btn primary">Got it — let's go</button>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
