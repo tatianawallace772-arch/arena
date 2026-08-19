@@ -43,6 +43,43 @@ async function safeText(res: Response) {
   }
 }
 
+/** Fake streaming run so the UI can be explored without an API key / network access. */
+export async function runMockChat(p: {
+  model: string
+  prompt: string
+  signal: AbortSignal
+  onUpdate: (patch: Partial<RunMetrics>) => void
+}): Promise<void> {
+  const started = performance.now()
+  p.onUpdate({ status: 'running', startedAt: Date.now(), text: '', reasoning: '', chunks: 0 })
+  const words = `[demo mode] ${p.model} would answer here. Prompt received: "${p.prompt.slice(
+    0,
+    120
+  )}". Connect a real 302.AI API key to get live completions with real latency and token counts.`.split(
+    ' '
+  )
+  let text = ''
+  let firstTokenMs: number | undefined
+  const perWord = 25 + Math.random() * 60
+  for (let i = 0; i < words.length; i++) {
+    if (p.signal.aborted) throw new Error('Cancelled')
+    await new Promise((r) => setTimeout(r, perWord))
+    if (firstTokenMs === undefined) firstTokenMs = performance.now() - started
+    text += (i ? ' ' : '') + words[i]
+    p.onUpdate({ text, chunks: i + 1, firstTokenMs })
+  }
+  p.onUpdate({
+    status: 'done',
+    text,
+    chunks: words.length,
+    firstTokenMs,
+    totalMs: performance.now() - started,
+    promptTokens: Math.ceil(p.prompt.length / 4),
+    completionTokens: words.length,
+    totalTokens: Math.ceil(p.prompt.length / 4) + words.length,
+  })
+}
+
 export type ChatParams = {
   apiKey: string
   model: string

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { emptyMetrics, listModels, runChat, type ModelInfo, type RunMetrics } from './api'
+import { emptyMetrics, listModels, runChat, runMockChat, type ModelInfo, type RunMetrics } from './api'
 import { DEFAULT_MODELS, PRESET_PROMPTS } from './presets'
 
 type Results = Record<string, RunMetrics>
@@ -28,6 +28,7 @@ export default function App() {
   const [temperature, setTemperature] = useState(0.7)
   const [maxTokens, setMaxTokens] = useState(1024)
   const [stream, setStream] = useState(true)
+  const [demo, setDemo] = useState(false)
 
   const [results, setResults] = useState<Results>({})
   const [running, setRunning] = useState(false)
@@ -78,7 +79,7 @@ export default function App() {
   }
 
   async function runAll() {
-    if (!apiKey.trim()) {
+    if (!apiKey.trim() && !demo) {
       setModelsError('Enter your 302.AI API key first.')
       return
     }
@@ -92,6 +93,10 @@ export default function App() {
     await Promise.all(
       selected.map(async (model) => {
         try {
+          if (demo) {
+            await runMockChat({ model, prompt, signal: ctrl.signal, onUpdate: (p) => patch(model, p) })
+            return
+          }
           await runChat({
             apiKey: apiKey.trim(),
             model,
@@ -165,6 +170,11 @@ export default function App() {
       </header>
 
       {modelsError && <div className="banner error">{modelsError}</div>}
+      {demo && (
+        <div className="banner info">
+          Demo mode is on — responses are simulated locally, nothing is sent to 302.AI.
+        </div>
+      )}
 
       <main className="layout">
         <aside className="panel">
@@ -221,6 +231,10 @@ export default function App() {
           <label className="checkline">
             <input type="checkbox" checked={stream} onChange={(e) => setStream(e.target.checked)} />
             Stream responses
+          </label>
+          <label className="checkline">
+            <input type="checkbox" checked={demo} onChange={(e) => setDemo(e.target.checked)} />
+            Demo mode (no API calls)
           </label>
         </aside>
 

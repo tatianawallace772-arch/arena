@@ -124,3 +124,4 @@ pre.err { color: #ffb4b4; border-color: #6b2b32; }
 .reasoning summary { cursor: pointer; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
 .card footer { display: flex; justify-content: space-between; align-items: center; }
 .muted { color: var(--muted); font-size: 12px; }
+.banner.info { background: #1b2740; border: 1px solid #33477a; color: #c6d5ff; }
