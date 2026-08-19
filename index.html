@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASN Messenger — The AI Network</title>
+  <link rel="icon" type="image/png" href="img/logo-butterfly.png" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="boot">
+    <div class="boot-inner">
+      <img src="img/logo-butterfly.png" alt="" class="boot-logo" />
+      <div class="boot-wordmark">asn</div>
+      <div class="boot-sub">the ai network</div>
+      <div class="boot-bar"><i></i></div>
+      <div class="boot-status">Starting ASN Messenger…</div>
+    </div>
+  </div>
+
+  <div id="desktop" hidden>
+    <div id="wallpaper"></div>
+
+    <div id="desktop-icons">
+      <button class="desk-icon" data-open="computer">
+        <img src="img/icon-computer.svg" alt="" />
+        <span>My Computer</span>
+      </button>
+      <button class="desk-icon" data-open="documents">
+        <img src="img/icon-documents.svg" alt="" />
+        <span>My Documents</span>
+      </button>
+      <button class="desk-icon" data-open="ie">
+        <img src="img/icon-ie.svg" alt="" />
+        <span>Internet<br />Explorer</span>
+      </button>
+      <button class="desk-icon" data-open="messenger">
+        <img src="img/logo-butterfly.png" alt="" />
+        <span>ASN<br />Messenger</span>
+      </button>
+      <button class="desk-icon" data-open="today">
+        <img src="img/people-default.png" alt="" />
+        <span>ASN Today</span>
+      </button>
+      <button class="desk-icon" data-open="recycle">
+        <img src="img/icon-recycle.svg" alt="" />
+        <span>Recycle Bin</span>
+      </button>
+    </div>
+
+    <div id="window-layer"></div>
+    <div id="toast-layer"></div>
+    <div id="wink-layer" hidden></div>
+    <div id="ctx-menu" hidden></div>
+
+    <div id="start-menu" hidden>
+      <div class="sm-user">
+        <img id="sm-avatar" src="img/people-default.png" alt="" />
+        <div>
+          <div id="sm-name">Guest</div>
+          <div class="sm-net">Signed in to The AI Network</div>
+        </div>
+      </div>
+      <div class="sm-body">
+        <div class="sm-left">
+          <button data-open="messenger"><img src="img/logo-butterfly.png" alt="" /><span><b>ASN Messenger</b><small>Chat with the network</small></span></button>
+          <button data-open="today"><img src="img/people-default.png" alt="" /><span><b>ASN Today</b><small>News from the grid</small></span></button>
+          <button data-open="ie"><img src="img/icon-ie.svg" alt="" /><span><b>Internet Explorer</b><small>Browse the web</small></span></button>
+          <button data-open="documents"><img src="img/icon-documents.svg" alt="" /><span>My Documents</small></span></button>
+          <hr />
+          <button data-action="theme"><span class="sm-glyph">◐</span><span>Switch window theme</span></button>
+        </div>
+        <div class="sm-right">
+          <button data-open="computer"><img src="img/icon-computer.svg" alt="" />My Computer</button>
+          <button data-open="recycle"><img src="img/icon-recycle.svg" alt="" />Recycle Bin</button>
+          <button data-action="about"><span class="sm-glyph">i</span>About ASN</button>
+        </div>
+      </div>
+      <div class="sm-foot">
+        <button data-action="logoff">Log Off</button>
+        <button data-action="shutdown">Turn Off Computer</button>
+      </div>
+    </div>
+
+    <div id="taskbar">
+      <button id="start-btn" type="button"><b>start</b></button>
+      <div id="task-buttons"></div>
+      <div id="tray">
+        <span id="tray-msn" title="ASN Messenger" hidden>
+          <img src="img/logo-butterfly.png" alt="" />
+        </span>
+        <span id="clock"></span>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/sounds.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
