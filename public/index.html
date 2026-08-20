@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Core Codex — the AI coding agent powered by the latest GLM models from z.ai. Build projects, write code, no login required." />
+  <meta name="color-scheme" content="dark" />
+  <title>Core Codex — AI Coding Agent</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237c5cff'/%3E%3Cstop offset='1' stop-color='%2322d3ee'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='url(%23g)'/%3E%3Cpath d='M24 20v24M24 20l16 24M40 20v24' stroke='%230b0d12' stroke-width='6' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <!-- ================= Header ================= -->
+  <header class="site-header" id="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#/" aria-label="Core Codex home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 64 64" width="26" height="26"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs><rect x="4" y="4" width="56" height="56" rx="14" fill="url(#lg)"/><path d="M24 20v24M24 20l16 24M40 20v24" stroke="#0b0d12" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        </span>
+        <span class="brand-name">Core&nbsp;Codex</span>
+      </a>
+
+      <nav class="main-nav" id="main-nav" aria-label="Main">
+        <a href="#/" data-route="/">Home</a>
+        <a href="#/agent" data-route="/agent">Agent</a>
+        <a href="#/pricing" data-route="/pricing">Pricing</a>
+      </nav>
+
+      <div class="header-actions">
+        <span class="engine-chip" id="engine-chip" title="Generation engine status">
+          <span class="chip-dot"></span><span id="engine-chip-text">Local Engine</span>
+        </span>
+        <a class="plan-badge" id="plan-badge" href="#/pricing" title="Your plan">Free</a>
+        <button class="icon-btn" id="open-settings" title="Settings" aria-label="Settings">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+        <a class="btn btn-primary btn-sm" id="header-cta" href="#/agent">Start building</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= Routed views ================= -->
+  <main id="view" class="view" role="main" aria-live="polite"></main>
+
+  <!-- ================= Footer ================= -->
+  <footer class="site-footer" id="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <span class="brand-name small">Core Codex</span>
+        <p>The AI coding agent. Powered by the latest GLM models.</p>
+      </div>
+      <nav aria-label="Footer">
+        <a href="#/agent">Agent</a>
+        <a href="#/pricing">Pricing</a>
+        <a href="https://z.ai" target="_blank" rel="noopener noreferrer">z.ai ↗</a>
+      </nav>
+      <p class="footer-note">© 2026 Core Codex · No accounts, no login — your keys and data stay in your browser.</p>
+    </div>
+  </footer>
+
+  <!-- ================= Overlays ================= -->
+  <div class="modal-backdrop" id="modal-root" hidden></div>
+  <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
+  <!-- ================= Scripts ================= -->
+  <script src="/js/lib.js" defer></script>
+  <script src="/js/agent.js" defer></script>
+  <script src="/js/checkout.js" defer></script>
+  <script src="/js/app.js" defer></script>
+</body>
+</html>

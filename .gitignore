@@ -67,3 +67,6 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Core Codex runtime state (orders contain customer PII — keep out of git)
+data/orders.json
