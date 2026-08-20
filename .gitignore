@@ -67,3 +67,9 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Node
+node_modules/
+dist/
+.env
+.DS_Store
