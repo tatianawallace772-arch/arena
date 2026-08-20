@@ -17,9 +17,9 @@
   --surface-3: #1a1f30;
   --line: rgba(255, 255, 255, 0.07);
   --line-strong: rgba(255, 255, 255, 0.14);
-  --text: #eceef6;
-  --muted: #9299b0;
-  --faint: #6b7190;
+  --text: #f2f4fa;
+  --muted: #a3abc4;
+  --faint: #8087a3;
 
   --brand: #7c5cff;
   --brand-2: #22d3ee;
@@ -71,8 +71,7 @@ body {
   position: fixed; z-index: -1; pointer-events: none;
   top: -320px; left: 50%; transform: translateX(-50%);
   width: 1100px; height: 700px;
-  background: radial-gradient(closest-side, rgba(124,92,255,0.16), transparent 70%);
-  filter: blur(10px);
+  background: radial-gradient(closest-side, rgba(124,92,255,0.11), transparent 70%);
 }
 
 a { color: var(--brand-2); text-decoration: none; }
@@ -95,9 +94,7 @@ a:hover { text-decoration: underline; }
 .site-header {
   position: sticky; top: 0; z-index: 50;
   height: var(--header-h);
-  background: rgba(7, 8, 13, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(7, 8, 13, 0.96);
   border-bottom: 1px solid var(--line);
 }
 .header-inner {
@@ -796,7 +793,7 @@ a:hover { text-decoration: underline; }
 
 .pay-overlay {
   position: absolute; inset: 0; z-index: 5; border-radius: var(--radius-lg);
-  background: rgba(7,8,13,0.82); backdrop-filter: blur(6px);
+  background: rgba(7,8,13,0.9);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
 }
 .pay-overlay .spinner { width: 30px; height: 30px; border-width: 3px; border-color: rgba(124,92,255,0.25); border-top-color: var(--brand); }
@@ -829,7 +826,7 @@ a:hover { text-decoration: underline; }
 
 .modal-backdrop {
   position: fixed; inset: 0; z-index: 100;
-  background: rgba(4, 5, 9, 0.7); backdrop-filter: blur(8px);
+  background: rgba(4, 5, 9, 0.82);
   display: grid; place-items: center; padding: 20px;
   animation: fade-in 0.18s ease; overflow-y: auto;
 }
