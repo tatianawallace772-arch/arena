@@ -1,0 +1,13 @@
+{
+  "name": "kimi-test-playground",
+  "version": "1.0.0",
+  "description": "A browser-based playground to test Kimi (Moonshot AI) chat models — streaming, model picker, latency & token stats.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "CC0-1.0"
+}

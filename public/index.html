@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kimi AI Test Playground</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌙</text></svg>" />
+</head>
+<body>
+  <div class="app">
+    <!-- ============ Sidebar: settings ============ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <div class="logo">🌙 Kimi Test Lab</div>
+        <button class="icon-btn" id="closeSidebar" title="Close settings" aria-label="Close settings">✕</button>
+      </div>
+
+      <div class="sidebar-body">
+        <div class="field">
+          <label for="apiKey">Moonshot API key</label>
+          <div class="key-row">
+            <input type="password" id="apiKey" placeholder="sk-..." autocomplete="off" spellcheck="false" />
+            <button class="icon-btn" id="toggleKeyVis" title="Show/hide key">👁</button>
+          </div>
+          <button class="btn secondary" id="testKeyBtn">Test connection</button>
+          <div class="hint" id="keyStatus">Stored only in this browser (localStorage). Never stored on the server.</div>
+        </div>
+
+        <div class="field">
+          <label for="connMode">Connection mode</label>
+          <select id="connMode">
+            <option value="auto" selected>Auto — direct, fallback to proxy</option>
+            <option value="direct">Direct — browser → api.moonshot.ai</option>
+            <option value="proxy">Proxy — via this server</option>
+          </select>
+          <div class="hint">Direct calls go from your browser to Moonshot. Proxy relays through the server this app runs on.</div>
+        </div>
+
+        <div class="field">
+          <label for="baseUrl">API base URL</label>
+          <input type="text" id="baseUrl" value="https://api.moonshot.ai/v1" spellcheck="false" />
+          <div class="hint">Use https://api.moonshot.cn/v1 for the China endpoint (direct mode).</div>
+        </div>
+
+        <div class="field">
+          <label for="model">Model</label>
+          <select id="model"></select>
+          <div class="hint" id="modelHint"></div>
+        </div>
+
+        <div class="field">
+          <label for="systemPrompt">System prompt</label>
+          <textarea id="systemPrompt" rows="3" placeholder="You are a helpful assistant…"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="temperature">Temperature: <span id="tempVal">0.7</span></label>
+          <input type="range" id="temperature" min="0" max="1.5" step="0.1" value="0.7" />
+        </div>
+
+        <div class="field">
+          <label for="maxTokens">Max tokens</label>
+          <input type="number" id="maxTokens" min="16" max="8192" step="16" value="1024" />
+        </div>
+
+        <div class="field">
+          <label for="topP">Top P: <span id="topPVal">1.0</span></label>
+          <input type="range" id="topP" min="0.1" max="1" step="0.05" value="1" />
+        </div>
+
+        <div class="field checkbox-row">
+          <input type="checkbox" id="streamToggle" checked />
+          <label for="streamToggle">Stream responses</label>
+        </div>
+
+        <hr />
+
+        <div class="field">
+          <div class="label-row">
+            <label>Quick tests</label>
+          </div>
+          <div class="quick-tests" id="quickTests">
+            <button class="chip" data-prompt="In one sentence, who are you and who made you?">Identity check</button>
+            <button class="chip" data-prompt="What is 17 * 24 + 19? Show your reasoning step by step.">Math reasoning</button>
+            <button class="chip" data-prompt="Write a haiku about debugging code at 2 AM.">Creativity</button>
+            <button class="chip" data-prompt="You have 3 apples, buy 2 bags of 6 apples, give away 7. How many are left? Explain.">Logic trap</button>
+            <button class="chip" data-prompt="Write a Python function that returns the n-th Fibonacci number using memoization.">Code gen</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-foot">
+        <button class="btn danger" id="clearChat">Clear conversation</button>
+      </div>
+    </aside>
+
+    <!-- ============ Main chat area ============ -->
+    <main class="chat-area">
+      <header class="chat-header">
+        <button class="icon-btn" id="openSidebar" title="Settings" aria-label="Settings">⚙️</button>
+        <div class="title">
+          <strong>Kimi AI Test Playground</strong>
+          <span class="subtitle" id="headerModel">no model selected</span>
+        </div>
+        <div class="status-dot" id="statusDot" title="Not connected"></div>
+      </header>
+
+      <div class="messages" id="messages">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon">🌙</div>
+          <h2>Test Kimi here</h2>
+          <p>Paste your <strong>Moonshot API key</strong> in Settings (⚙️), pick a model, and fire away.</p>
+          <p class="dim">Runs live against <code>api.moonshot.ai</code> — streaming, latency &amp; token usage included.</p>
+        </div>
+      </div>
+
+      <div class="composer-wrap">
+        <div class="composer">
+          <textarea id="composer" rows="1" placeholder="Ask Kimi anything…  (Enter to send, Shift+Enter for newline)"></textarea>
+          <button class="btn primary" id="sendBtn" title="Send">Send ➤</button>
+          <button class="btn stop hidden" id="stopBtn" title="Stop">■ Stop</button>
+        </div>
+        <div class="composer-hint" id="composerHint"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
