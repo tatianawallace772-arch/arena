@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>arena — stealth/ox-alpha · big-pickle</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body data-mode="stealth">
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="brand-name">arena</span>
+          <span class="brand-sub">one app · two backends</span>
+        </div>
+        <div class="switch" role="tablist" aria-label="Backend">
+          <button class="sw" role="tab" id="tab-stealth" data-mode="stealth" aria-selected="true">
+            <span class="sw-name">stealth/ox-alpha</span>
+            <span class="sw-via">OpenRouter</span>
+          </button>
+          <button class="sw" role="tab" id="tab-pickle" data-mode="pickle" aria-selected="false">
+            <span class="sw-name">big-pickle</span>
+            <span class="sw-via">OpenCode Zen</span>
+          </button>
+          <span class="thumb" aria-hidden="true"></span>
+        </div>
+        <div class="status" id="status" title="Backend status">
+          <span class="pill" id="pill">checking…</span>
+          <button class="mini" id="health" type="button">ping</button>
+        </div>
+      </header>
+
+      <section class="meta" id="meta"></section>
+
+      <main class="log" id="log" aria-live="polite"></main>
+
+      <form class="composer" id="composer">
+        <textarea
+          id="input"
+          rows="2"
+          placeholder="Ask stealth/ox-alpha or big-pickle something…  (Enter to send, Shift+Enter for a newline)"
+          autocomplete="off"
+          spellcheck="false"
+        ></textarea>
+        <div class="composer-row">
+          <label class="chk"><input type="checkbox" id="stream" checked /> stream</label>
+          <button type="button" class="ghost" id="clear">clear</button>
+          <button type="submit" class="send" id="send">send</button>
+        </div>
+      </form>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>

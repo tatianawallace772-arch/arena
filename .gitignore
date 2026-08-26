@@ -1,3 +1,15 @@
+# Secrets — never commit credentials. Use .env.example as the template.
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+npm-debug.log*
+
+# macOS
+.DS_Store
+
 # Prerequisites
 *.d
 

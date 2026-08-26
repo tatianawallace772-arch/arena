@@ -1,0 +1,15 @@
+{
+  "name": "arena",
+  "version": "0.1.0",
+  "private": true,
+  "description": "One web app, two backends: stealth/ox-alpha via OpenRouter, big-pickle via OpenCode Zen.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
