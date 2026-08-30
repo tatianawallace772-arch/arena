@@ -1,0 +1,22 @@
+{
+  "name": "claude-code-terminal-sim",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "An offline, interactive recreation of the Claude Code terminal UI — a simulated agent, a virtual repo, real diffs, permission prompts, and session recording. Unofficial fan project.",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/addon-unicode11": "^0.8.0",
+    "@xterm/addon-web-links": "^0.11.0",
+    "@xterm/xterm": "^5.5.0"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}

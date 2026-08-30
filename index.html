@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Claude Code — terminal simulator</title>
+    <meta
+      name="description"
+      content="An offline, interactive recreation of the Claude Code terminal UI: streaming replies, tool calls, real diffs, permission prompts, checkpoints and session recording."
+    />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo" aria-hidden="true">▐▛███▜▌</span>
+          <span class="name">Claude Code <span class="thin">terminal simulator</span></span>
+        </div>
+        <div class="badges">
+          <span class="badge sim" title="Nothing here talks to an API. The agent, git and tests are simulated locally.">
+            <span class="dot"></span> simulation · offline
+          </span>
+          <span class="badge" id="mode-badge" title="Current permission mode">⏵⏵ manual approve</span>
+          <span class="badge dim" id="model-badge" title="Selected model">Opus 4.1</span>
+        </div>
+        <div class="tools">
+          <button data-act="demo" title="Type and run a scripted session">▶ Run demo</button>
+          <button data-act="replay" title="Replay the captured session at 4× speed">⟲ Replay</button>
+          <button data-act="copy" title="Copy the transcript with colours as ANSI">⧉ Copy ANSI</button>
+          <button data-act="export-cast" title="Download an asciinema v2 .cast">↓ .cast</button>
+          <button data-act="export-md" title="Download the transcript as Markdown">↓ .md</button>
+          <span class="sep"></span>
+          <button data-act="font-down" title="Smaller text">A−</button>
+          <button data-act="font-up" title="Larger text">A+</button>
+          <button data-act="theme" title="Cycle theme: dark → light → ansi">◐ Theme</button>
+          <button data-act="keys" title="Keyboard shortcuts">? Keys</button>
+          <button data-act="fullscreen" title="Zoom the terminal">⤢ Zoom</button>
+        </div>
+      </header>
+
+      <main class="stage">
+        <section class="window" id="window">
+          <div class="titlebar">
+            <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="ttl" id="title">user@ringbook — zsh — ~/code/pocketmix</span>
+            <span class="size" id="size">80×24</span>
+          </div>
+          <div class="termwrap">
+            <div id="terminal" tabindex="0"></div>
+          </div>
+        </section>
+
+        <aside class="side">
+          <h2>Try a prompt</h2>
+          <ul class="chips" id="chips"></ul>
+          <h2>What is real here</h2>
+          <ul class="facts">
+            <li><b>Virtual repo.</b> 16 files with a planted bug; edits are applied for real and <code>git diff</code> reflects them.</li>
+            <li><b>Test runner.</b> <code>npm test</code> passes or fails depending on what the agent actually changed.</li>
+            <li><b>Diffs + permissions.</b> Every edit and non-read-only command shows a real unified diff and waits for you.</li>
+            <li><b>Checkpoints.</b> <kbd>esc</kbd> <kbd>esc</kbd> rewinds the transcript *and* the working tree.</li>
+            <li><b>Recording.</b> The frame stream is captured as asciinema v2 — replay it or download the <code>.cast</code>.</li>
+          </ul>
+          <h2>Keys you will want</h2>
+          <ul class="keys">
+            <li><kbd>?</kbd> shortcut sheet (empty prompt)</li>
+            <li><kbd>/help</kbd> <kbd>/cost</kbd> <kbd>/model</kbd> <kbd>/init</kbd></li>
+            <li><kbd>ctrl</kbd>+<kbd>o</kbd> verbose transcript</li>
+            <li><kbd>shift</kbd>+<kbd>tab</kbd> permission modes</li>
+            <li><kbd>esc</kbd> interrupt · <kbd>esc esc</kbd> rewind</li>
+          </ul>
+        </aside>
+      </main>
+
+      <footer class="foot">
+        <span>Unofficial recreation for study and demos · not affiliated with, or endorsed by, Anthropic.</span>
+        <span class="dim">no keyboard data leaves this page · <a href="https://code.claude.com/docs/en/overview" target="_blank" rel="noreferrer noopener">real Claude Code docs</a></span>
+      </footer>
+    </div>
+
+    <div class="overlay" id="overlay" hidden>
+      <div class="sheet">
+        <h2 id="sheet-title">Keyboard shortcuts</h2>
+        <table id="sheet-body"></table>
+        <button data-act="close-sheet">Close</button>
+      </div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

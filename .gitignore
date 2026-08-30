@@ -67,3 +67,12 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# ---------------------------------------------------------------- node / web
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+*.tsbuildinfo
+coverage/
+.DS_Store
