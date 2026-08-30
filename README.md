@@ -12,7 +12,7 @@ FISH_API_KEY="your-key-here" node server.js
 
 Then open `http://localhost:4173`.
 
-For a quick local test, you can leave `FISH_API_KEY` unset and enter a key in the page. The server-side environment variable is preferred for production because the key never needs to be entered into the browser.
+For a quick local test, you can leave `FISH_API_KEY` unset and enter a key in the page. The server-side environment variable is preferred for production because the key never needs to be entered into the browser. If your network uses an upstream gateway, set `FISH_AUDIO_URL` to its Fish Audio TTS URL; it defaults to `https://api.fish.audio/v1/tts`.
 
 ## What it does
 

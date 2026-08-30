@@ -63,17 +63,23 @@ function getApiKey(request) {
 
 function requestFishAudio(apiKey, payload) {
   return new Promise((resolve, reject) => {
-    const body = JSON.stringify(payload);
-    const upstream = https.request({
-      hostname: 'api.fish.audio',
-      path: '/v1/tts',
+    const endpoint = new URL(process.env.FISH_AUDIO_URL || 'https://api.fish.audio/v1/tts');
+    const transport = endpoint.protocol === 'http:' ? http : https;
+    const { model, ...requestBody } = payload;
+    const body = JSON.stringify(requestBody);
+    const upstream = transport.request({
+      protocol: endpoint.protocol,
+      hostname: endpoint.hostname,
+      port: endpoint.port || undefined,
+      path: `${endpoint.pathname}${endpoint.search}`,
       method: 'POST',
       timeout: 120000,
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(body),
-        model: payload.model
+        'User-Agent': 'Fish-Audio-Voice-Lab/1.0',
+        model
       }
     }, (response) => {
       const chunks = [];
@@ -155,8 +161,10 @@ async function handleTts(request, response) {
       'Content-Length': result.body.length
     });
     response.end(result.body);
-  } catch (_) {
-    sendJson(response, 502, { error: 'Fish Audio is unavailable.', message: 'The upstream voice request could not be completed.' });
+  } catch (error) {
+    // Keep credentials out of logs and responses; the error itself contains no request body.
+    console.error(`Fish Audio request failed: ${error.message}`);
+    sendJson(response, 502, { error: 'Fish Audio is unavailable.', message: 'The upstream voice request could not be completed. Check the server connection and try again.' });
   }
 }
 
