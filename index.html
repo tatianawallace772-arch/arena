@@ -258,6 +258,7 @@
             <strong>Latest result</strong>
             <div class="player-actions">
               <span id="playerMeta" class="player-meta"></span>
+              <button class="btn btn-ghost btn-sm" id="openLabBtn" title="Load this clip into the Sound Lab">🎛 Sound Lab</button>
               <button class="btn btn-ghost btn-sm" id="downloadBtn">⬇ Download</button>
             </div>
           </div>
@@ -266,6 +267,104 @@
         </div>
 
         <div id="errorBox" class="error-box" hidden></div>
+      </section>
+
+      <!-- Sound lab (Web Audio API) -->
+      <section class="card" id="labCard">
+        <div class="card-head">
+          <h2>🎛 Sound Lab <span class="badge badge-outline">Web Audio API</span></h2>
+          <span id="labCtxState" class="badge badge-muted" title="AudioContext state — browsers start it suspended until you click Play">context: idle</span>
+        </div>
+
+        <div class="lab-grid">
+          <div class="lab-col">
+            <label class="field">
+              <span>Source</span>
+              <select id="labSource">
+                <option value="tone">🎹 Test tone (oscillator)</option>
+              </select>
+              <small class="hint">No Fish Audio credits needed — the test tone runs on your browser's Web Audio engine.</small>
+            </label>
+
+            <div id="labToneControls">
+              <label class="field">
+                <span>Waveform</span>
+                <select id="labToneType">
+                  <option value="sine">Sine</option>
+                  <option value="square">Square</option>
+                  <option value="sawtooth">Sawtooth</option>
+                  <option value="triangle">Triangle</option>
+                </select>
+              </label>
+              <label class="field range-field">
+                <span>Frequency <b id="labFreqVal">440 Hz</b></span>
+                <input type="range" id="labFreq" min="80" max="2000" step="1" value="440" />
+              </label>
+            </div>
+
+            <div class="lab-transport">
+              <button class="btn btn-primary" id="labPlay">▶ Play</button>
+              <button class="btn" id="labStop">⏹ Stop</button>
+              <label class="switch" title="Repeat the clip">
+                <input type="checkbox" id="labLoop" />
+                <span>Loop</span>
+              </label>
+            </div>
+
+            <label class="field range-field">
+              <span>Tape speed <b id="labRateVal">1.00×</b></span>
+              <input type="range" id="labRate" min="0.5" max="2" step="0.05" value="1" />
+              <small class="hint">Changes pitch and speed together, like a tape machine.</small>
+            </label>
+          </div>
+
+          <div class="lab-col">
+            <div class="fx-grid">
+              <label class="field">
+                <span>Biquad filter</span>
+                <select id="labFilterType">
+                  <option value="bypass">Bypass</option>
+                  <option value="lowpass">Low-pass</option>
+                  <option value="highpass">High-pass</option>
+                  <option value="bandpass">Band-pass</option>
+                  <option value="notch">Notch</option>
+                  <option value="peaking">Peaking</option>
+                </select>
+              </label>
+              <label class="field range-field">
+                <span>Cutoff <b id="labCutoffVal">1.00 kHz</b></span>
+                <input type="range" id="labCutoff" min="20" max="20000" step="10" value="1000" />
+              </label>
+              <label class="field range-field">
+                <span>Q / resonance <b id="labQVal">1.0</b></span>
+                <input type="range" id="labQ" min="0.1" max="18" step="0.1" value="1" />
+              </label>
+              <label class="field range-field">
+                <span>Pan <b id="labPanVal">C</b></span>
+                <input type="range" id="labPan" min="-1" max="1" step="0.05" value="0" />
+              </label>
+              <label class="field range-field">
+                <span>Output gain <b id="labGainVal">0.9</b></span>
+                <input type="range" id="labGain" min="0" max="2" step="0.05" value="0.9" />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <canvas id="labOverview" class="lab-canvas lab-canvas-tall" title="Full waveform with playhead"></canvas>
+
+        <div class="scope-row">
+          <canvas id="labScope" class="lab-canvas" title="Live analyser"></canvas>
+          <div class="scope-toggle">
+            <button class="chip chip-toggle active" id="scopeOsc" type="button">Oscilloscope</button>
+            <button class="chip chip-toggle" id="scopeSpec" type="button">Spectrum</button>
+          </div>
+        </div>
+
+        <p class="hint">
+          Graph: source → biquad filter → panner → gain → limiter → analyser → speakers.
+          Browsers keep audio suspended until a click — the Play button wakes it up.
+        </p>
       </section>
 
       <!-- History + log -->

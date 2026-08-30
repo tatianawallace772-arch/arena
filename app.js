@@ -78,7 +78,11 @@
    'volumeRange', 'volumeVal', 'tempRange', 'tempVal', 'toppRange', 'toppVal',
    'generateBtn', 'genTimer', 'playerBox', 'audioPlayer', 'playerMeta', 'downloadBtn',
    'errorBox', 'historyList', 'historyCount', 'logTable', 'logCount', 'clearLogBtn',
-   'toasts', 'tagRow']
+   'toasts', 'tagRow', 'labCard', 'labCtxState', 'labSource', 'labToneControls',
+  'labToneType', 'labFreq', 'labFreqVal', 'labPlay', 'labStop', 'labLoop',
+  'labRate', 'labRateVal', 'labFilterType', 'labCutoff', 'labCutoffVal',
+  'labQ', 'labQVal', 'labPan', 'labPanVal', 'labGain', 'labGainVal',
+  'labOverview', 'labScope', 'scopeOsc', 'scopeSpec', 'openLabBtn']
     .forEach((id) => { els[id] = $(id); });
 
   /* ------------------------------------------------------- helpers */
@@ -473,6 +477,7 @@
       }
       renderHistory();
       playEntry(entry);
+      renderLabSourceOptions('clip:' + entry.id);
       toast('Speech generated · ' + fmtBytes(entry.bytes), 'ok');
       refreshCredit().catch(() => {});
     } catch (e) {
@@ -541,6 +546,7 @@
         </div>
         <div class="h-actions">
           <button class="btn btn-ghost btn-sm" data-dl="${h.id}">⬇ Save</button>
+          <button class="btn btn-ghost btn-sm" data-lab="${h.id}" title="Open in Sound Lab">🎛</button>
         </div>
       </div>`).join('') || '<div class="voice-empty">Nothing generated yet.</div>';
   }
@@ -612,6 +618,335 @@
       const credit = await fetchCredit();
       setCreditBadge(String(credit.credit ?? '—'), 'ok');
     } catch { /* silent */ }
+  }
+
+  /* --------------------------------------------------- sound lab */
+  // A small Web Audio API playground. Everything runs locally in the
+  // browser — no API calls, no credits. The graph:
+  //   source (buffer | oscillator) → biquad filter → stereo panner
+  //   → gain → limiter → analyser → destination
+  const Lab = {
+    ctx: null, filter: null, panner: null, gain: null, limiter: null, analyser: null,
+    source: null, buffer: null, buffers: new Map(),
+    mode: 'tone',            // 'tone' | 'clip'
+    entryId: null,
+    playing: false, manualStop: false,
+    startCtxTime: 0, startOffset: 0, prevRate: 1,
+    overviewCache: null, overviewKey: '',
+    raf: 0, scopeMode: 'osc',
+  };
+
+  function labCtx() {
+    if (!Lab.ctx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) { toast('This browser has no Web Audio support.', 'bad'); return null; }
+      Lab.ctx = new AC();
+      Lab.filter = Lab.ctx.createBiquadFilter();
+      Lab.filter.type = 'lowpass';
+      Lab.filter.frequency.value = Number(els.labCutoff.value);
+      Lab.filter.Q.value = Number(els.labQ.value);
+      Lab.panner = Lab.ctx.createStereoPanner ? Lab.ctx.createStereoPanner() : Lab.ctx.createGain();
+      Lab.gain = Lab.ctx.createGain();
+      Lab.gain.gain.value = Number(els.labGain.value);
+      // Near-transparent safety limiter so filter resonance / gain boosts
+      // can't blast your ears.
+      Lab.limiter = Lab.ctx.createDynamicsCompressor();
+      Lab.limiter.threshold.value = -2;
+      Lab.limiter.knee.value = 0;
+      Lab.limiter.ratio.value = 20;
+      Lab.limiter.attack.value = 0.003;
+      Lab.limiter.release.value = 0.25;
+      Lab.analyser = Lab.ctx.createAnalyser();
+      Lab.analyser.fftSize = 2048;
+      Lab.analyser.smoothingTimeConstant = 0.72;
+      Lab.filter.connect(Lab.panner);
+      Lab.panner.connect(Lab.gain);
+      Lab.gain.connect(Lab.limiter);
+      Lab.limiter.connect(Lab.analyser);
+      Lab.analyser.connect(Lab.ctx.destination);
+      Lab.ctx.addEventListener?.('statechange', setLabCtxBadge);
+    }
+    return Lab.ctx;
+  }
+
+  function setLabCtxBadge() {
+    const b = els.labCtxState;
+    if (!Lab.ctx) { b.textContent = 'context: idle'; b.className = 'badge badge-muted'; return; }
+    const s = Lab.ctx.state;
+    b.textContent = 'context: ' + s;
+    b.className = 'badge ' + (s === 'running' ? 'badge-ok' : 'badge-warn');
+  }
+
+  function renderLabSourceOptions(selectValue) {
+    const sel = els.labSource;
+    const wanted = selectValue || sel.value || 'tone';
+    const opts = ['<option value="tone">🎹 Test tone (oscillator)</option>'].concat(
+      state.history.map((h) => {
+        const label = `🐟 ${h.ts.toLocaleTimeString()} · ${(h.text || '').slice(0, 30)}`;
+        return `<option value="clip:${h.id}">${escapeHtml(label)}</option>`;
+      })
+    );
+    sel.innerHTML = opts.join('');
+    sel.value = [...sel.options].some((o) => o.value === wanted) ? wanted : 'tone';
+    labSourceChanged();
+  }
+
+  function labSourceChanged() {
+    labStop();
+    const v = els.labSource.value;
+    if (v === 'tone') {
+      Lab.mode = 'tone';
+      Lab.entryId = null;
+      Lab.buffer = null;
+      els.labToneControls.hidden = false;
+      els.labLoop.disabled = true;
+    } else {
+      Lab.mode = 'clip';
+      Lab.entryId = Number(v.slice(5));
+      Lab.buffer = Lab.buffers.get(Lab.entryId) || null;
+      els.labToneControls.hidden = true;
+      els.labLoop.disabled = false;
+      labLoadClip(Lab.entryId);
+    }
+    Lab.overviewKey = '';
+    drawLabOverview();
+  }
+
+  async function labLoadClip(id) {
+    const entry = state.history.find((h) => h.id === id);
+    if (!entry) return;
+    if (!Lab.buffers.has(id)) {
+      try {
+        const ab = await (await fetch(entry.url)).arrayBuffer();
+        const ctx = labCtx();
+        if (!ctx) return;
+        const buf = await ctx.decodeAudioData(ab);
+        Lab.buffers.set(id, buf);
+        // keep the cache in step with history (max 12 clips)
+        if (Lab.buffers.size > 12) {
+          const live = new Set(state.history.map((h) => String(h.id)));
+          for (const k of [...Lab.buffers.keys()]) {
+            if (!live.has(String(k))) { Lab.buffers.delete(k); break; }
+          }
+        }
+      } catch (e) {
+        toast('Could not decode that clip in the browser: ' + (e.message || e), 'bad');
+        return;
+      }
+    }
+    if (Lab.entryId !== id) return; // selection moved on meanwhile
+    Lab.buffer = Lab.buffers.get(id) || null;
+    drawLabOverview();
+  }
+
+  function connectSource(node) {
+    node.connect(els.labFilterType.value === 'bypass' ? Lab.panner : Lab.filter);
+  }
+
+  function currentLabPos() {
+    if (!Lab.buffer) return 0;
+    const rate = Lab.prevRate || 1;
+    let pos = Lab.startOffset + (Lab.ctx.currentTime - Lab.startCtxTime) * rate;
+    if (els.labLoop.checked) pos %= Lab.buffer.duration || 1;
+    return Math.max(0, Math.min(pos, Lab.buffer.duration || 0));
+  }
+
+  async function labPlay() {
+    const ctx = labCtx();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') { try { await ctx.resume(); } catch { /* ignore */ } }
+    setLabCtxBadge();
+    labStop();
+
+    if (Lab.mode === 'tone') {
+      const osc = ctx.createOscillator();
+      osc.type = els.labToneType.value;
+      osc.frequency.value = Number(els.labFreq.value);
+      osc.detune.value = 1200 * Math.log2(Number(els.labRate.value));
+      connectSource(osc);
+      osc.start();
+      Lab.source = osc;
+      Lab.playing = true;
+    } else {
+      if (!Lab.buffer) {
+        await labLoadClip(Lab.entryId);
+        if (!Lab.buffer) { toast('No clip loaded — generate speech first.', 'warn'); return; }
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = Lab.buffer;
+      src.playbackRate.value = Number(els.labRate.value);
+      src.loop = els.labLoop.checked;
+      Lab.prevRate = Number(els.labRate.value);
+      Lab.startCtxTime = ctx.currentTime;
+      Lab.startOffset = 0;
+      src.onended = () => { if (!Lab.manualStop) labStopDone(); };
+      connectSource(src);
+      src.start();
+      Lab.source = src;
+      Lab.playing = true;
+    }
+    els.labPlay.textContent = '↻ Restart';
+    startLabRaf();
+  }
+
+  function labStop() {
+    if (Lab.source) {
+      Lab.manualStop = true;
+      try { Lab.source.onended = null; } catch { /* ignore */ }
+      try { Lab.source.stop(); } catch { /* ignore */ }
+      try { Lab.source.disconnect(); } catch { /* ignore */ }
+      Lab.source = null;
+      Lab.manualStop = false;
+    }
+    if (Lab.playing) labStopDone();
+  }
+
+  function labStopDone() {
+    Lab.playing = false;
+    cancelAnimationFrame(Lab.raf);
+    els.labPlay.textContent = '▶ Play';
+    drawLabOverview();
+    drawScope();
+  }
+
+  function startLabRaf() {
+    cancelAnimationFrame(Lab.raf);
+    const loop = () => {
+      if (!Lab.playing) return;
+      drawLabOverview();
+      drawScope();
+      Lab.raf = requestAnimationFrame(loop);
+    };
+    Lab.raf = requestAnimationFrame(loop);
+  }
+
+  /* ----- canvases ----- */
+  function fitCanvas(cv) {
+    const dpr = window.devicePixelRatio || 1;
+    const r = cv.getBoundingClientRect();
+    const w = Math.max(10, Math.round(r.width * dpr));
+    const h = Math.max(10, Math.round(r.height * dpr));
+    if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    const g = cv.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    return g;
+  }
+
+  function fmtHz(v) { return v >= 1000 ? (v / 1000).toFixed(2) + ' kHz' : Math.round(v) + ' Hz'; }
+
+  function drawLabOverview() {
+    const cv = els.labOverview;
+    if (!cv) return;
+    const g = fitCanvas(cv);
+    const w = cv.width, h = cv.height, mid = h / 2;
+    g.clearRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(138, 164, 184, 0.18)';
+    g.lineWidth = 1;
+    g.beginPath(); g.moveTo(0, mid); g.lineTo(w, mid); g.stroke();
+
+    if (Lab.mode === 'tone' || !Lab.buffer) {
+      g.fillStyle = 'rgba(138, 164, 184, 0.55)';
+      g.font = `${Math.round(12 * (window.devicePixelRatio || 1))}px ui-monospace, monospace`;
+      g.textAlign = 'center';
+      g.fillText('continuous oscillator — watch the live scope below', w / 2, mid + 4);
+      return;
+    }
+
+    // cached full-waveform render, rebuilt per clip / per resize
+    const key = Lab.entryId + ':' + w + 'x' + h;
+    if (Lab.overviewKey !== key || !Lab.overviewCache) {
+      const off = document.createElement('canvas');
+      off.width = w; off.height = h;
+      const og = off.getContext('2d');
+      const data = Lab.buffer.getChannelData(0);
+      const step = Math.max(1, Math.floor(data.length / w));
+      og.strokeStyle = 'rgba(103, 232, 249, 0.85)';
+      og.lineWidth = 1;
+      og.beginPath();
+      for (let x = 0; x < w; x++) {
+        const s0 = x * step;
+        const s1 = Math.min(data.length, s0 + step);
+        let min = 1, max = -1;
+        for (let i = s0; i < s1; i++) {
+          const v = data[i];
+          if (v < min) min = v;
+          if (v > max) max = v;
+        }
+        if (min > max) { min = 0; max = 0; }
+        og.moveTo(x + 0.5, mid + min * (mid - 3));
+        og.lineTo(x + 0.5, mid + max * (mid - 3));
+      }
+      og.stroke();
+      Lab.overviewCache = off;
+      Lab.overviewKey = key;
+    }
+    g.drawImage(Lab.overviewCache, 0, 0);
+
+    const dur = Lab.buffer.duration || 1;
+    const pos = Lab.playing ? currentLabPos() % dur : 0;
+    const x = Math.round((pos / dur) * w);
+    g.fillStyle = '#22d3ee';
+    g.fillRect(x - 1, 0, 2.5, h);
+    g.fillStyle = 'rgba(4, 33, 43, 0.9)';
+    g.fillRect(x - 1, 0, 2.5, 10);
+  }
+
+  function drawScope() {
+    const cv = els.labScope;
+    if (!cv) return;
+    const g = fitCanvas(cv);
+    const w = cv.width, h = cv.height, mid = h / 2;
+    g.clearRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(138, 164, 184, 0.15)';
+    g.beginPath(); g.moveTo(0, mid); g.lineTo(w, mid); g.stroke();
+
+    if (!Lab.analyser) {
+      g.fillStyle = 'rgba(138, 164, 184, 0.4)';
+      g.font = `${Math.round(11 * (window.devicePixelRatio || 1))}px ui-monospace, monospace`;
+      g.textAlign = 'center';
+      g.fillText('press Play to start the audio context', w / 2, mid + 4);
+      return;
+    }
+
+    const n = Lab.analyser.frequencyBinCount;
+    if (Lab.scopeMode === 'osc') {
+      const arr = new Uint8Array(n);
+      Lab.analyser.getByteTimeDomainData(arr);
+      g.strokeStyle = '#34d399';
+      g.lineWidth = Math.max(1.5, (window.devicePixelRatio || 1) * 1.25);
+      g.beginPath();
+      for (let i = 0; i < n; i++) {
+        const x = (i / (n - 1)) * w;
+        const y = mid + ((arr[i] - 128) / 128) * (mid - 4);
+        if (i) g.lineTo(x, y); else g.moveTo(x, y);
+      }
+      g.stroke();
+    } else {
+      const arr = new Uint8Array(n);
+      Lab.analyser.getByteFrequencyData(arr);
+      const bars = Math.min(96, Math.floor(w / (5 * (window.devicePixelRatio || 1))));
+      const bw = w / bars;
+      const topBin = Math.floor(n * 0.72);
+      const grad = g.createLinearGradient(0, h, 0, 0);
+      grad.addColorStop(0, 'rgba(8, 145, 178, 0.85)');
+      grad.addColorStop(1, 'rgba(52, 211, 153, 0.95)');
+      g.fillStyle = grad;
+      for (let b = 0; b < bars; b++) {
+        // logarithmic bin grouping so low frequencies get space too
+        const i0 = Math.floor(2 * Math.pow(topBin / 2, b / bars));
+        const i1 = Math.max(i0 + 1, Math.floor(2 * Math.pow(topBin / 2, (b + 1) / bars)));
+        let v = 0;
+        for (let i = i0; i < i1 && i < n; i++) v = Math.max(v, arr[i]);
+        const bh = (v / 255) * (h - 6);
+        g.fillRect(b * bw + 1, h - bh, Math.max(1, bw - 2), bh);
+      }
+    }
+  }
+
+  function openLabFor(entryId) {
+    renderLabSourceOptions('clip:' + entryId);
+    els.labCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast('Clip loaded into the Sound Lab — press Play.', 'ok', 2600);
   }
 
   /* ---------------------------------------------------- wiring */
@@ -721,15 +1056,99 @@
     els.historyList.addEventListener('click', (ev) => {
       const play = ev.target.closest('[data-play]');
       const dl = ev.target.closest('[data-dl]');
+      const lab = ev.target.closest('[data-lab]');
       if (play) {
         const entry = state.history.find((h) => String(h.id) === play.dataset.play);
         if (entry) playEntry(entry);
       } else if (dl) {
         const entry = state.history.find((h) => String(h.id) === dl.dataset.dl);
         if (entry) downloadEntry(entry);
+      } else if (lab) {
+        openLabFor(Number(lab.dataset.lab));
       }
     });
     els.clearLogBtn.addEventListener('click', () => { state.log = []; renderLog(); els.logCount.textContent = '0'; });
+
+    // sound lab
+    els.labSource.addEventListener('change', labSourceChanged);
+    els.labPlay.addEventListener('click', labPlay);
+    els.labStop.addEventListener('click', labStop);
+    els.labLoop.addEventListener('change', () => { if (Lab.source && Lab.mode === 'clip') Lab.source.loop = els.labLoop.checked; });
+    els.labToneType.addEventListener('change', () => { if (Lab.source && Lab.mode === 'tone') Lab.source.type = els.labToneType.value; });
+    els.labFreq.addEventListener('input', () => {
+      els.labFreqVal.textContent = fmtHz(Number(els.labFreq.value));
+      if (Lab.source && Lab.mode === 'tone' && Lab.ctx) {
+        Lab.source.frequency.setTargetAtTime(Number(els.labFreq.value), Lab.ctx.currentTime, 0.02);
+      }
+    });
+    els.labRate.addEventListener('input', () => {
+      const v = Number(els.labRate.value);
+      els.labRateVal.textContent = v.toFixed(2) + '×';
+      if (Lab.ctx && Lab.playing) {
+        if (Lab.mode === 'clip' && Lab.source) {
+          // keep the playhead continuous when the rate changes mid-play
+          const pos = currentLabPos();
+          Lab.startOffset = pos;
+          Lab.startCtxTime = Lab.ctx.currentTime;
+          Lab.prevRate = v;
+          Lab.source.playbackRate.setTargetAtTime(v, Lab.ctx.currentTime, 0.02);
+        } else if (Lab.mode === 'tone' && Lab.source) {
+          Lab.source.detune.setTargetAtTime(1200 * Math.log2(v), Lab.ctx.currentTime, 0.02);
+        }
+      }
+    });
+    els.labFilterType.addEventListener('change', () => {
+      const t = els.labFilterType.value;
+      if (t !== 'bypass' && Lab.filter) Lab.filter.type = t;
+      if (Lab.source) {
+        try { Lab.source.disconnect(); } catch { /* ignore */ }
+        connectSource(Lab.source);
+      }
+    });
+    els.labCutoff.addEventListener('input', () => {
+      const v = Number(els.labCutoff.value);
+      els.labCutoffVal.textContent = fmtHz(v);
+      if (Lab.ctx) Lab.filter.frequency.setTargetAtTime(v, Lab.ctx.currentTime, 0.02);
+    });
+    els.labQ.addEventListener('input', () => {
+      const v = Number(els.labQ.value);
+      els.labQVal.textContent = v.toFixed(1);
+      if (Lab.ctx) Lab.filter.Q.setTargetAtTime(v, Lab.ctx.currentTime, 0.02);
+    });
+    els.labPan.addEventListener('input', () => {
+      const v = Number(els.labPan.value);
+      els.labPanVal.textContent = v === 0 ? 'C' : (v < 0 ? 'L' + Math.round(-v * 100) : 'R' + Math.round(v * 100));
+      if (Lab.ctx && Lab.panner && Lab.panner.pan) Lab.panner.pan.setTargetAtTime(v, Lab.ctx.currentTime, 0.02);
+    });
+    els.labGain.addEventListener('input', () => {
+      const v = Number(els.labGain.value);
+      els.labGainVal.textContent = v.toFixed(2);
+      if (Lab.ctx) Lab.gain.gain.setTargetAtTime(v, Lab.ctx.currentTime, 0.02);
+    });
+    els.scopeOsc.addEventListener('click', () => {
+      Lab.scopeMode = 'osc';
+      els.scopeOsc.classList.add('active');
+      els.scopeSpec.classList.remove('active');
+      drawScope();
+    });
+    els.scopeSpec.addEventListener('click', () => {
+      Lab.scopeMode = 'spec';
+      els.scopeSpec.classList.add('active');
+      els.scopeOsc.classList.remove('active');
+      drawScope();
+    });
+    els.openLabBtn.addEventListener('click', () => {
+      if (state.history.length) openLabFor(state.history[0].id);
+      else {
+        els.labCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        toast('Generate speech first — or try the test tone.', 'warn');
+      }
+    });
+    window.addEventListener('resize', () => {
+      Lab.overviewKey = '';
+      drawLabOverview();
+      drawScope();
+    });
 
     // tabs
     document.querySelectorAll('.tab').forEach((tab) => {
@@ -799,6 +1218,10 @@
     restore();
     renderHistory();
     renderLog();
+    renderLabSourceOptions();
+    setLabCtxBadge();
+    // first paint of the lab canvases once layout has settled
+    requestAnimationFrame(() => { drawLabOverview(); drawScope(); });
 
     if (!state.apiKey) {
       setTransportBadge('no key', 'warn');

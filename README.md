@@ -15,8 +15,12 @@ API — pure HTML, CSS and vanilla JavaScript, no frameworks and no build step.
 
 Plus client-side goodies: voice picker with cover art, emotion/delivery marker
 chips (`[happy]`, `[whispering]`, `[emphasis]`, …), speed/volume/temperature
-controls, generation history with replay & download, and a request log that
-shows how every call reached the API.
+controls, generation history with replay & download, a request log that
+shows how every call reached the API, and a **🎛 Sound Lab** powered by the
+**Web Audio API** — play any generated clip (or a test-tone oscillator)
+through a live graph of biquad filter → panner → gain → limiter → analyser,
+with waveform overview, playhead, oscilloscope and spectrum views. The lab
+runs entirely in the browser, no API credits needed.
 
 ## Run it
 

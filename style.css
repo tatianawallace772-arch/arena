@@ -655,6 +655,52 @@ input[type="range"] {
 .toast.warn { border-left-color: var(--warn); }
 @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
+/* ---------------- sound lab ---------------- */
+.lab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px 22px;
+  margin-bottom: 14px;
+}
+
+.lab-transport {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 12px;
+  flex-wrap: wrap;
+}
+
+.lab-canvas {
+  width: 100%;
+  display: block;
+  height: 70px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background:
+    linear-gradient(rgba(34, 211, 238, 0.04), rgba(34, 211, 238, 0.01)),
+    #081420;
+}
+
+.lab-canvas-tall { height: 92px; margin-bottom: 10px; }
+
+.scope-row { display: flex; flex-direction: column; gap: 8px; }
+.scope-toggle { display: flex; gap: 6px; }
+.chip-toggle.active {
+  border-color: rgba(34, 211, 238, 0.6);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.fx-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px 16px;
+  align-items: end;
+}
+
+#labCard .badge-outline { margin-left: 4px; }
+
 /* misc */
 [hidden] { display: none !important; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
