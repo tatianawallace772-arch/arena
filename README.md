@@ -1,19 +1,25 @@
 # Fish Audio Voice Lab
 
-A single-file HTML playground for testing Fish Audio text-to-speech from a browser.
+A local-first HTML playground for testing Fish Audio text-to-speech through a same-origin server proxy.
 
 ## Run it
 
-Serve the repository with any static web server, then open the page in a browser:
+Use Node.js to serve the page and proxy requests to Fish Audio:
 
 ```bash
-python3 -m http.server 4173 --bind 0.0.0.0
+FISH_API_KEY="your-key-here" node server.js
 ```
 
-Open `http://localhost:4173` and enter your Fish Audio API key in the password field. The page does not hardcode, persist, or log the key; it is kept in memory for the current tab and sent directly to Fish Audio when you generate audio.
+Then open `http://localhost:4173`.
 
-## Notes
+For a quick local test, you can leave `FISH_API_KEY` unset and enter a key in the page. The server-side environment variable is preferred for production because the key never needs to be entered into the browser.
 
-- Choose a model, output format, optional reference voice ID, and speaking speed.
-- Generated audio can be played in the page or downloaded locally.
-- Never commit an API key or paste one into source code. Revoke keys that have been exposed and create a replacement.
+## What it does
+
+- Sends browser requests to the local `/api/tts` route.
+- Forwards validated text-to-speech requests to Fish Audio on the server.
+- Supports model, output format, reference voice ID, and speaking speed controls.
+- Plays and downloads the generated audio in the page.
+- Does not hardcode, persist, or log API keys.
+
+Never commit an API key or paste one into source code. Revoke keys that have been exposed and create a replacement.

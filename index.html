@@ -194,12 +194,12 @@
         </div>
 
         <div class="field">
-          <label for="api-key">Fish Audio API key <span class="label-note">required</span></label>
+          <label for="api-key">Fish Audio API key <span class="label-note">required unless server key is set</span></label>
           <div class="secret-wrap">
-            <input id="api-key" name="api-key" type="password" autocomplete="off" placeholder="sk-fish-…" spellcheck="false" required />
+            <input id="api-key" name="api-key" type="password" autocomplete="off" placeholder="sk-fish-…" spellcheck="false" />
             <button class="peek" id="peek-key" type="button" aria-label="Show API key">Show</button>
           </div>
-          <div class="helper"><strong>Private by design.</strong> The key is held in memory only and never written to local storage.</div>
+          <div class="helper"><strong>Private by design.</strong> The key is held in memory only and never written to local storage. You can omit it when the server has <code>FISH_API_KEY</code> configured.</div>
         </div>
 
         <div class="field">
@@ -268,7 +268,7 @@
         </div>
         <audio id="audio" controls preload="metadata"></audio>
         <div class="audio-meta"><span id="audio-meta-text">No audio generated yet</span><a class="download" id="download" download="fish-audio-preview.mp3">Download file ↓</a></div>
-        <div class="notice"><strong>Quick note</strong><br />This page calls the Fish Audio API directly from your browser. Keep production API keys on a trusted server and use this page for local testing only.</div>
+        <div class="notice"><strong>Quick note</strong><br />Requests go through the local server, so the browser never contacts Fish Audio directly. For production, configure <code>FISH_API_KEY</code> on the server.</div>
       </section>
     </section>
 
@@ -375,8 +375,8 @@
       clearError();
       const apiKey = keyInput.value.trim();
       const text = textInput.value.trim();
-      if (!apiKey || !text) {
-        showError('Add an API key and some text before generating a preview.');
+      if (!text) {
+        showError('Add some text before generating a preview.');
         setState('Incomplete', 'error');
         return;
       }
@@ -395,14 +395,12 @@
       if (referenceInput.value.trim()) payload.reference_id = referenceInput.value.trim();
 
       try {
-        const response = await fetch('https://api.fish.audio/v1/tts', {
+        const proxyHeaders = { 'Content-Type': 'application/json' };
+        if (apiKey) proxyHeaders['x-fish-api-key'] = apiKey;
+        const response = await fetch('/api/tts', {
           method: 'POST',
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
-            model: modelInput.value
-          },
-          body: JSON.stringify(payload)
+          headers: proxyHeaders,
+          body: JSON.stringify({ ...payload, model: modelInput.value })
         });
 
         if (!response.ok) {
