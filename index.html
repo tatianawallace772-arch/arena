@@ -268,7 +268,7 @@
         </div>
         <audio id="audio" controls preload="metadata"></audio>
         <div class="audio-meta"><span id="audio-meta-text">No audio generated yet</span><a class="download" id="download" download="fish-audio-preview.mp3">Download file ↓</a></div>
-        <div class="notice"><strong>Quick note</strong><br />This page calls the Fish Audio API directly from your browser. If your browser blocks the request because of CORS, run the same request through a small server-side proxy instead of exposing a production key.</div>
+        <div class="notice"><strong>Quick note</strong><br />This page calls the Fish Audio API directly from your browser. Keep production API keys on a trusted server and use this page for local testing only.</div>
       </section>
     </section>
 
@@ -430,7 +430,7 @@
       } catch (error) {
         const isNetworkError = error instanceof TypeError;
         showError(isNetworkError
-          ? 'The browser could not reach Fish Audio. Check your connection or use a server-side proxy if CORS is blocked.'
+          ? 'The browser could not reach Fish Audio. Check your network connection and try again.'
           : error.message);
         setState('Request failed', 'error');
         audioMeta.textContent = 'No audio generated';

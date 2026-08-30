@@ -16,5 +16,4 @@ Open `http://localhost:4173` and enter your Fish Audio API key in the password f
 
 - Choose a model, output format, optional reference voice ID, and speaking speed.
 - Generated audio can be played in the page or downloaded locally.
-- A browser may block direct API calls if Fish Audio does not allow the page origin through CORS. For a production app, use a server-side proxy and keep the API key on the server.
 - Never commit an API key or paste one into source code. Revoke keys that have been exposed and create a replacement.
