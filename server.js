@@ -147,6 +147,19 @@ const server = http.createServer((req, res) => {
   }
 
   if (pathname.startsWith('/api/')) return proxy(req, res);
+
+  // /config.js: prefer the gitignored static file; if it is absent
+  // (e.g. it was not persisted), fall back to the FISH_API_KEY env var
+  // so the preview still gets a pre-filled key.
+  if (pathname === '/config.js' && !fs.existsSync(path.join(ROOT, 'config.js'))) {
+    const key = (process.env.FISH_API_KEY || '').trim();
+    const body = key
+      ? `window.FISH_CONFIG = { apiKey: ${JSON.stringify(key)} };`
+      : 'window.FISH_CONFIG = { apiKey: "" };';
+    res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-store' });
+    return res.end(body);
+  }
+
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { 'Content-Type': 'text/plain' });
     return res.end('Method not allowed');
