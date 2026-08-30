@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fish Audio Playground — TTS Test Console</title>
+  <meta name="description" content="Browser test console for the Fish Audio text-to-speech API (voices, prosody, emotion tags)." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ============ HEADER ============ -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="34" height="34">
+          <path class="fish-body" d="M8 32c10-13 24-16 36-9 4-5 8-7 12-7-1 5-1 9 1 13-2 4-2 8-1 13-4 0-8-2-12-7-12 7-26 4-36-3z"/>
+          <circle class="fish-eye" cx="20" cy="29" r="2.6"/>
+          <path class="fish-fin" d="M28 20c3-4 7-5 11-4-2 3-2 6-1 8-4-2-7-3-10-4z"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>Fish Audio Playground</h1>
+        <p>Text-to-speech test console · pure HTML / CSS / JS</p>
+      </div>
+    </div>
+    <div class="top-status">
+      <span id="transportBadge" class="badge badge-muted" title="How requests reach api.fish.audio">transport: idle</span>
+      <span id="creditBadge" class="badge badge-muted" title="API credit balance">credits: —</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ============ SIDEBAR : CONNECTION ============ -->
+    <aside class="sidebar">
+      <section class="card" id="connectionCard">
+        <h2><span class="dot" id="connDot"></span> Connection</h2>
+
+        <label class="field">
+          <span>API key</span>
+          <div class="key-row">
+            <input type="password" id="apiKey" placeholder="sk-fish-…" autocomplete="off" spellcheck="false" />
+            <button type="button" class="btn btn-ghost btn-icon" id="toggleKey" title="Show / hide">👁</button>
+          </div>
+          <small class="hint">Stored only in your browser (localStorage). Never committed to the repo.</small>
+        </label>
+
+        <label class="field">
+          <span>Transport</span>
+          <select id="transportSelect">
+            <option value="auto">Auto-detect (recommended)</option>
+            <option value="proxy">Local proxy (<code>/api</code> via server.js)</option>
+            <option value="direct">Direct → api.fish.audio</option>
+            <option value="relay">CORS relay</option>
+          </select>
+          <small class="hint">api.fish.audio sends no CORS headers, so browsers usually need a relay or the bundled proxy server.</small>
+        </label>
+
+        <div class="field" id="relayFields">
+          <span>Relay service</span>
+          <select id="relaySelect">
+            <option value="corsproxy">corsproxy.io</option>
+            <option value="corslol">api.cors.lol</option>
+            <option value="custom">Custom…</option>
+          </select>
+          <label class="field" id="corsproxyKeyField" style="margin-top:8px">
+            <span>corsproxy.io API key <em>(optional, free)</em></span>
+            <input type="password" id="corsproxyKey" placeholder="paste key from console.corsproxy.io" autocomplete="off" spellcheck="false" />
+            <small class="hint">Without a key, corsproxy.io may rate-limit or refuse server-side style calls.</small>
+          </label>
+          <label class="field" id="customRelayField" style="margin-top:8px; display:none">
+            <span>Custom relay URL template</span>
+            <input type="text" id="customRelay" placeholder="https://your-worker.workers.dev/?url={url}" spellcheck="false" />
+            <small class="hint"><code>{url}</code> is replaced with the URL-encoded Fish Audio endpoint.</small>
+          </label>
+        </div>
+
+        <button class="btn btn-primary btn-block" id="testConnBtn">Test connection</button>
+
+        <div id="connResult" class="conn-result" hidden>
+          <div class="conn-row"><span>Transport</span><strong id="connTransport">—</strong></div>
+          <div class="conn-row"><span>HTTP</span><strong id="connHttp">—</strong></div>
+          <div class="conn-row"><span>Latency</span><strong id="connLatency">—</strong></div>
+          <div class="conn-row"><span>Credits</span><strong id="connCredit">—</strong></div>
+          <div class="conn-row"><span>Message</span><strong id="connMessage">—</strong></div>
+        </div>
+
+        <p class="security-note">
+          ⚠️ This is a test tool. A key pasted here lives in the browser — anyone with access
+          to this machine can use it. Rotate the key at
+          <a href="https://fish.audio/app/api-keys/" target="_blank" rel="noreferrer">fish.audio/app/api-keys</a> when done testing.
+        </p>
+      </section>
+
+      <section class="card" id="endpointsCard">
+        <h2>Endpoints exercised</h2>
+        <ul class="endpoint-list">
+          <li><code>POST /v1/tts</code> — synthesize speech</li>
+          <li><code>GET /model</code> — browse voice library</li>
+          <li><code>GET /wallet/api/credit</code> — credit balance</li>
+        </ul>
+        <p class="hint">Docs: <a href="https://docs.fish.audio" target="_blank" rel="noreferrer">docs.fish.audio</a></p>
+      </section>
+    </aside>
+
+    <!-- ============ MAIN COLUMN ============ -->
+    <div class="content">
+      <!-- Voice library -->
+      <section class="card" id="voicesCard">
+        <div class="card-head">
+          <h2>Voice library</h2>
+          <div class="voice-tools">
+            <input type="search" id="voiceSearch" placeholder="Search voices…" spellcheck="false" />
+            <select id="voiceLang" title="Filter by language">
+              <option value="">All languages</option>
+              <option value="en">English</option>
+              <option value="zh">Chinese</option>
+              <option value="ja">Japanese</option>
+              <option value="ko">Korean</option>
+              <option value="es">Spanish</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="pt">Portuguese</option>
+              <option value="ru">Russian</option>
+              <option value="ar">Arabic</option>
+              <option value="hi">Hindi</option>
+              <option value="id">Indonesian</option>
+              <option value="it">Italian</option>
+              <option value="tr">Turkish</option>
+              <option value="vi">Vietnamese</option>
+            </select>
+            <label class="switch" title="Only voices owned by this API key">
+              <input type="checkbox" id="voiceSelf" />
+              <span>My voices</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="voice-grid" id="voiceGrid">
+          <div class="voice-empty">Load the library to pick a reference voice →</div>
+        </div>
+
+        <div class="pager">
+          <button class="btn btn-ghost" id="voicePrev" disabled>‹ Prev</button>
+          <span id="voicePageInfo">page 1</span>
+          <button class="btn btn-ghost" id="voiceNext" disabled>Next ›</button>
+          <button class="btn btn-ghost" id="voiceRefresh" title="Reload">⟳</button>
+        </div>
+      </section>
+
+      <!-- TTS studio -->
+      <section class="card" id="studioCard">
+        <div class="card-head">
+          <h2>Synthesis studio</h2>
+          <span class="badge badge-outline" id="selectedVoiceBadge">voice: default</span>
+        </div>
+
+        <div class="tag-row" id="tagRow" title="Click to insert an emotion / delivery marker at the cursor">
+          <span class="tag-label">Markers:</span>
+          <button class="chip" data-tag="[happy]">😄 happy</button>
+          <button class="chip" data-tag="[excited]">🤩 excited</button>
+          <button class="chip" data-tag="[calm]">😌 calm</button>
+          <button class="chip" data-tag="[sad]">😢 sad</button>
+          <button class="chip" data-tag="[angry]">😠 angry</button>
+          <button class="chip" data-tag="[curious]">🤔 curious</button>
+          <button class="chip" data-tag="[whispering]">🤫 whispering</button>
+          <button class="chip" data-tag="[shouting]">📣 shouting</button>
+          <button class="chip" data-tag="[emphasis]">❗ emphasis</button>
+          <button class="chip" data-tag="[laughing]">😂 laughing</button>
+          <button class="chip" data-tag="[chuckling]">🙂 chuckling</button>
+          <button class="chip" data-tag="[sighing]">😮‍💨 sighing</button>
+        </div>
+
+        <div class="textarea-wrap">
+          <textarea id="ttsText" rows="5" placeholder="Type something for Fish Audio to speak…" spellcheck="false"></textarea>
+          <div class="textarea-meta">
+            <button class="btn btn-ghost btn-sm" id="sampleBtn">Insert sample</button>
+            <button class="btn btn-ghost btn-sm" id="clearBtn">Clear</button>
+            <span id="charCount">0 chars</span>
+          </div>
+        </div>
+
+        <div class="controls-grid">
+          <label class="field">
+            <span>Model</span>
+            <select id="modelSelect">
+              <option value="s2.1-pro">S2.1 Pro (default)</option>
+              <option value="s2.1-pro-free">S2.1 Pro Free (free tier)</option>
+              <option value="s2-pro">S2 Pro</option>
+              <option value="s1">S1 (legacy, uses (parentheses) markers)</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Audio format</span>
+            <select id="formatSelect">
+              <option value="mp3">MP3</option>
+              <option value="opus">Opus</option>
+              <option value="wav">WAV</option>
+            </select>
+          </label>
+
+          <label class="field" id="bitrateField">
+            <span>MP3 bitrate</span>
+            <select id="bitrateSelect">
+              <option value="64">64 kbps</option>
+              <option value="128" selected>128 kbps</option>
+              <option value="192">192 kbps</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Latency</span>
+            <select id="latencySelect">
+              <option value="normal">Normal</option>
+              <option value="balanced">Balanced</option>
+            </select>
+          </label>
+
+          <label class="field range-field">
+            <span>Speed <b id="speedVal">1.00×</b></span>
+            <input type="range" id="speedRange" min="0.5" max="2" step="0.05" value="1" />
+          </label>
+
+          <label class="field range-field">
+            <span>Volume <b id="volumeVal">0 dB</b></span>
+            <input type="range" id="volumeRange" min="-20" max="20" step="1" value="0" />
+          </label>
+
+          <details class="advanced">
+            <summary>Advanced sampling</summary>
+            <div class="advanced-grid">
+              <label class="field range-field">
+                <span>Temperature <b id="tempVal">0.7</b></span>
+                <input type="range" id="tempRange" min="0.1" max="2" step="0.05" value="0.7" />
+              </label>
+              <label class="field range-field">
+                <span>Top-P <b id="toppVal">0.7</b></span>
+                <input type="range" id="toppRange" min="0.1" max="1" step="0.05" value="0.7" />
+              </label>
+            </div>
+          </details>
+        </div>
+
+        <div class="generate-row">
+          <button class="btn btn-primary btn-lg" id="generateBtn">
+            <span class="btn-label">Generate speech</span>
+            <span class="eq" hidden>
+              <i></i><i></i><i></i><i></i><i></i>
+            </span>
+          </button>
+          <span class="kbd-hint">Ctrl / ⌘ + Enter</span>
+          <span id="genTimer" class="gen-timer"></span>
+        </div>
+
+        <div id="playerBox" class="player-box" hidden>
+          <div class="player-head">
+            <strong>Latest result</strong>
+            <div class="player-actions">
+              <span id="playerMeta" class="player-meta"></span>
+              <button class="btn btn-ghost btn-sm" id="downloadBtn">⬇ Download</button>
+            </div>
+          </div>
+          <audio id="audioPlayer" controls preload="metadata"></audio>
+          <div class="wave-note">fish audio</div>
+        </div>
+
+        <div id="errorBox" class="error-box" hidden></div>
+      </section>
+
+      <!-- History + log -->
+      <section class="card" id="historyCard">
+        <div class="tabs">
+          <button class="tab active" data-tab="history">History <span class="count" id="historyCount">0</span></button>
+          <button class="tab" data-tab="log">Request log <span class="count" id="logCount">0</span></button>
+        </div>
+
+        <div class="tab-panel" id="panel-history">
+          <div id="historyList" class="history-list">
+            <div class="voice-empty">Nothing generated yet.</div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="panel-log" hidden>
+          <div class="log-tools">
+            <button class="btn btn-ghost btn-sm" id="clearLogBtn">Clear log</button>
+            <span class="hint">Newest first · transport shows how each call reached the API</span>
+          </div>
+          <div class="log-table" id="logTable"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>
+      Fish Audio Playground — a client-side test harness for the
+      <a href="https://docs.fish.audio" target="_blank" rel="noreferrer">Fish Audio API</a>.
+      Keep your API key private; this page is for local testing only.
+    </p>
+  </footer>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -67,3 +67,9 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Fish Audio Playground — local secrets & junk
+config.js
+*.mp3
+*.wav
+*.opus
