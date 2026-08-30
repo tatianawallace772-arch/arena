@@ -67,3 +67,8 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Rust
+/deepseek-tui/target
+**/*.rs.bk
+Cargo.lock.bak

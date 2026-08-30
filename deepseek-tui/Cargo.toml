@@ -1,0 +1,19 @@
+[package]
+name = "deepseek-tui"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.74"
+description = "A DeepSeek-style chat interface for the terminal, built with ratatui — fully offline simulator with mock streaming responses."
+license = "CC0-1.0"
+repository = "https://github.com/tatianawallace772-arch/arena"
+keywords = ["tui", "ratatui", "deepseek", "chat", "terminal"]
+categories = ["command-line-utilities"]
+
+[dependencies]
+ratatui = "0.29"
+crossterm = "0.28.1"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true
