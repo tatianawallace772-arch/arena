@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GPT-6 Astra — London Map (2D / 3D)</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --panel: rgba(13, 18, 32, 0.88);
+    --accent: #6c8cff;
+    --accent2: #22d3ee;
+    --text: #e8ecf7;
+    --muted: #93a0bd;
+    --border: rgba(120, 140, 200, 0.25);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; font-family: "Segoe UI", system-ui, -apple-system, sans-serif; background: var(--bg); }
+  #map { position: absolute; inset: 0; }
+
+  /* ── Top bar ─────────────────────────────── */
+  .topbar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 18px;
+    background: linear-gradient(180deg, rgba(8,11,20,0.92), rgba(8,11,20,0.55) 80%, transparent);
+    pointer-events: none;
+  }
+  .topbar > * { pointer-events: auto; }
+  .brand { display: flex; align-items: center; gap: 10px; user-select: none; }
+  .brand .orb {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: conic-gradient(from 210deg, #6c8cff, #22d3ee, #a78bfa, #6c8cff);
+    box-shadow: 0 0 18px rgba(108,140,255,0.55);
+    animation: spin 8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .brand h1 { font-size: 17px; color: var(--text); font-weight: 700; letter-spacing: 0.4px; }
+  .brand h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .brand .tag {
+    font-size: 10px; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 999px; padding: 2px 8px; margin-left: 4px; letter-spacing: 1px;
+  }
+  .spacer { flex: 1; }
+
+  /* ── View toggle ─────────────────────────── */
+  .view-toggle {
+    display: flex; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden; backdrop-filter: blur(8px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+  }
+  .view-toggle button {
+    padding: 9px 22px; border: none; background: transparent; cursor: pointer;
+    color: var(--muted); font-size: 14px; font-weight: 600; letter-spacing: 0.5px;
+    transition: all 0.25s ease;
+  }
+  .view-toggle button.active {
+    background: linear-gradient(135deg, var(--accent), #4f6ef2);
+    color: #fff; box-shadow: inset 0 0 12px rgba(255,255,255,0.15);
+  }
+  .view-toggle button:not(.active):hover { color: var(--text); }
+
+  /* ── Landmark panel ──────────────────────── */
+  .panel {
+    position: absolute; top: 70px; left: 18px; z-index: 9;
+    width: 250px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 14px; backdrop-filter: blur(10px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  .panel header {
+    padding: 12px 14px 8px; color: var(--text); font-size: 13px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;
+  }
+  .panel header small { color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .panel ul { list-style: none; max-height: 46vh; overflow-y: auto; }
+  .panel li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 14px; cursor: pointer; color: var(--text); font-size: 13.5px;
+    border-top: 1px solid rgba(120,140,200,0.10); transition: background 0.15s;
+  }
+  .panel li:hover { background: rgba(108,140,255,0.14); }
+  .panel li .emoji { font-size: 17px; width: 22px; text-align: center; }
+  .panel li .sub { display: block; font-size: 11px; color: var(--muted); }
+  .panel .collapse {
+    background: none; border: none; color: var(--muted); cursor: pointer; font-size: 15px;
+  }
+
+  /* ── Status chip ─────────────────────────── */
+  .status {
+    position: absolute; bottom: 28px; left: 18px; z-index: 9;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 999px;
+    padding: 7px 14px; color: var(--muted); font-size: 12px; backdrop-filter: blur(8px);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .status .dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 8px #34d399; }
+
+  .maplibregl-popup-content {
+    background: var(--panel) !important; color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; font-family: inherit; padding: 12px 14px;
+  }
+  .maplibregl-popup-tip { border-top-color: rgba(13,18,32,0.88) !important; border-bottom-color: rgba(13,18,32,0.88) !important; }
+  .popup-title { font-weight: 700; font-size: 14px; margin-bottom: 3px; }
+  .popup-sub { font-size: 12px; color: var(--muted); }
+
+  .marker-pin {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #a5b8ff, var(--accent) 60%);
+    border: 2px solid #fff; box-shadow: 0 0 10px rgba(108,140,255,0.9);
+    cursor: pointer;
+  }
+  @media (max-width: 640px) {
+    .panel { display: none; }
+    .brand .tag { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="orb"></div>
+    <h1><span>GPT-6 Astra</span> · London Explorer</h1>
+    <div class="tag">NO API KEY · NO CHAT</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="view-toggle">
+    <button id="btn2d" class="active">2D Map</button>
+    <button id="btn3d">3D Map</button>
+  </div>
+</div>
+
+<div class="panel" id="panel">
+  <header>Landmarks <small>fly to</small></header>
+  <ul id="landmarkList"></ul>
+</div>
+
+<div class="status">
+  <div class="dot"></div>
+  <span id="statusText">2D mode · OpenFreeMap tiles · keyless</span>
+</div>
+
+<script>
+  const LONDON = [-0.1276, 51.5072];
+
+  const landmarks = [
+    { name: "Big Ben & Parliament", sub: "Westminster",        emoji: "🕰️", coords: [-0.1246, 51.5007], zoom3d: 16.5 },
+    { name: "London Eye",           sub: "South Bank",         emoji: "🎡", coords: [-0.1196, 51.5033], zoom3d: 16.5 },
+    { name: "Buckingham Palace",    sub: "St James's",         emoji: "👑", coords: [-0.1419, 51.5014], zoom3d: 16.2 },
+    { name: "Tower Bridge",         sub: "River Thames",       emoji: "🌉", coords: [-0.0754, 51.5055], zoom3d: 16.0 },
+    { name: "Tower of London",      sub: "Tower Hill",         emoji: "🏰", coords: [-0.0759, 51.5081], zoom3d: 16.5 },
+    { name: "The Shard",            sub: "London Bridge",      emoji: "🏙️", coords: [-0.0865, 51.5045], zoom3d: 16.0 },
+    { name: "St Paul's Cathedral",  sub: "City of London",     emoji: "⛪", coords: [-0.0983, 51.5138], zoom3d: 16.5 },
+    { name: "Trafalgar Square",     sub: "Charing Cross",      emoji: "🦁", coords: [-0.1281, 51.5080], zoom3d: 16.5 },
+    { name: "British Museum",       sub: "Bloomsbury",         emoji: "🏛️", coords: [-0.1270, 51.5194], zoom3d: 16.3 },
+    { name: "Piccadilly Circus",    sub: "West End",           emoji: "💡", coords: [-0.1337, 51.5101], zoom3d: 16.8 },
+    { name: "Canary Wharf",         sub: "Docklands skyline",  emoji: "🏦", coords: [-0.0235, 51.5054], zoom3d: 15.5 },
+    { name: "Hyde Park",            sub: "Speakers' Corner",   emoji: "🌳", coords: [-0.1657, 51.5073], zoom3d: 14.8 },
+  ];
+
+  // OpenFreeMap: free vector tiles, zero API key, zero registration.
+  const map = new maplibregl.Map({
+    container: "map",
+    style: "https://tiles.openfreemap.org/styles/liberty",
+    center: LONDON,
+    zoom: 12.5,
+    pitch: 0,
+    bearing: 0,
+    antialias: true,
+    maxPitch: 72,
+  });
+
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
+  map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
+
+  let is3D = false;
+
+  function add3DBuildings() {
+    if (map.getLayer("astra-3d-buildings")) return;
+    // Insert below the first symbol (label) layer so labels stay on top.
+    const layers = map.getStyle().layers;
+    let labelLayerId;
+    for (const l of layers) {
+      if (l.type === "symbol" && l.layout && l.layout["text-field"]) { labelLayerId = l.id; break; }
+    }
+    map.addLayer({
+      id: "astra-3d-buildings",
+      source: "openmaptiles",
+      "source-layer": "building",
+      type: "fill-extrusion",
+      minzoom: 13,
+      layout: { visibility: "none" },
+      paint: {
+        "fill-extrusion-color": [
+          "interpolate", ["linear"], ["coalesce", ["get", "render_height"], 8],
+          0, "#c8d0e8",
+          30, "#9fb0e0",
+          80, "#7c92dd",
+          200, "#5f79d6",
+          310, "#4a63c8"
+        ],
+        "fill-extrusion-height": [
+          "interpolate", ["linear"], ["zoom"],
+          13, 0,
+          14.5, ["coalesce", ["get", "render_height"], 8]
+        ],
+        "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], 0],
+        "fill-extrusion-opacity": 0.92
+      }
+    }, labelLayerId);
+  }
+
+  function setMode(mode3d) {
+    if (mode3d === is3D) return;
+    is3D = mode3d;
+    document.getElementById("btn2d").classList.toggle("active", !is3D);
+    document.getElementById("btn3d").classList.toggle("active", is3D);
+    document.getElementById("statusText").textContent = is3D
+      ? "3D mode · extruded buildings · drag right-mouse to rotate"
+      : "2D mode · OpenFreeMap tiles · keyless";
+
+    if (is3D) {
+      add3DBuildings();
+      map.setLayoutProperty("astra-3d-buildings", "visibility", "visible");
+      map.easeTo({
+        pitch: 60,
+        bearing: -18,
+        zoom: Math.max(map.getZoom(), 15.2),
+        duration: 1600,
+        essential: true,
+      });
+    } else {
+      if (map.getLayer("astra-3d-buildings")) {
+        map.setLayoutProperty("astra-3d-buildings", "visibility", "none");
+      }
+      map.easeTo({ pitch: 0, bearing: 0, duration: 1200, essential: true });
+    }
+  }
+
+  document.getElementById("btn2d").addEventListener("click", () => setMode(false));
+  document.getElementById("btn3d").addEventListener("click", () => setMode(true));
+
+  // Landmark markers + list
+  const list = document.getElementById("landmarkList");
+  landmarks.forEach((lm) => {
+    const el = document.createElement("div");
+    el.className = "marker-pin";
+    const popup = new maplibregl.Popup({ offset: 18 }).setHTML(
+      `<div class="popup-title">${lm.emoji} ${lm.name}</div><div class="popup-sub">${lm.sub}</div>`
+    );
+    new maplibregl.Marker({ element: el }).setLngLat(lm.coords).setPopup(popup).addTo(map);
+
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="emoji">${lm.emoji}</span><span>${lm.name}<span class="sub">${lm.sub}</span></span>`;
+    li.addEventListener("click", () => {
+      map.flyTo({
+        center: lm.coords,
+        zoom: is3D ? lm.zoom3d : 15.5,
+        pitch: is3D ? 62 : 0,
+        bearing: is3D ? -25 : 0,
+        speed: 1.1,
+        essential: true,
+      });
+    });
+    list.appendChild(li);
+  });
+
+  // Gentle intro animation once loaded
+  map.on("load", () => {
+    add3DBuildings();
+    map.flyTo({ center: LONDON, zoom: 13.4, duration: 2500, essential: true });
+  });
+</script>
+</body>
+</html>
