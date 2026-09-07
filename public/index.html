@@ -224,7 +224,7 @@
                 <div class="model-block">
                   <div class="field-label-row model-heading">
                     <label for="model-select">Model</label>
-                    <span class="model-catalog-status"><span class="model-status-dot"></span><span id="model-count">26 models</span></span>
+                    <button class="model-catalog-status model-catalog-button" id="browse-models" type="button" title="Browse all Magic Hour models"><span class="model-status-dot"></span><span id="model-count">26 models</span><span data-icon="arrow-right"></span></button>
                   </div>
                   <div class="model-select-wrap">
                     <div class="select-wrap">
@@ -345,6 +345,19 @@
         <p id="modal-copy">The playground keeps your Magic Hour API key on the server. It is only used to send generation requests, check your account balance, and poll project status.</p>
         <div class="modal-status"><span class="connection-dot"></span><span><strong id="modal-status-title">Connection status</strong><small id="modal-status-copy">Checking your local environment…</small></span></div>
         <div class="modal-actions"><a class="secondary-button" href="https://docs.magichour.ai/get-started/authentication" target="_blank" rel="noreferrer">Read setup guide <span data-icon="arrow-up-right"></span></a><button class="primary-small-button" id="modal-done" type="button">Got it</button></div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop" id="model-modal-backdrop" hidden>
+      <div class="model-browser" role="dialog" aria-modal="true" aria-labelledby="model-browser-title">
+        <button class="modal-close icon-button small" id="model-modal-close" type="button" aria-label="Close model catalog"><span data-icon="x"></span></button>
+        <div class="modal-eyebrow"><span class="eyebrow-line"></span> Magic Hour catalog</div>
+        <div class="model-browser-title-row"><div><h2 id="model-browser-title">Every model, <em>in one place.</em></h2><p>Browse the full catalog, then choose a model for this playground.</p></div><span class="model-total-pill"><span class="model-status-dot"></span><strong id="model-total">26</strong> models</span></div>
+        <div class="model-browser-toolbar">
+          <label class="model-search"><span data-icon="search"></span><input id="model-search" type="search" placeholder="Search models" autocomplete="off" /></label>
+          <div class="model-filters" role="tablist" aria-label="Filter model catalog"><button class="model-filter is-active" type="button" data-model-filter="all" role="tab" aria-selected="true">All</button><button class="model-filter" type="button" data-model-filter="video" role="tab" aria-selected="false">Video</button><button class="model-filter" type="button" data-model-filter="image" role="tab" aria-selected="false">Image</button></div>
+        </div>
+        <div class="model-catalog-grid" id="model-catalog-grid"></div>
       </div>
     </div>
 

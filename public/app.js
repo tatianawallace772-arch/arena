@@ -175,6 +175,47 @@ function renderModelOptions() {
   updateModelDetails();
 }
 
+function renderModelCatalog(filter = 'all', query = '') {
+  const grid = $('#model-catalog-grid');
+  if (!grid) return;
+  const search = query.trim().toLowerCase();
+  const models = state.models.filter((model) => model.id !== 'default').filter((model) => filter === 'all' || model.kind === filter).filter((model) => {
+    if (!search) return true;
+    return [model.name, model.id, model.description, ...(model.tools || [])].join(' ').toLowerCase().includes(search);
+  });
+  $('#model-total').textContent = String(Math.max(0, state.models.filter((model) => model.id !== 'default').length) || 26);
+  if (!models.length) {
+    grid.innerHTML = '<div class="model-catalog-empty"><span data-icon="search"></span><strong>No models found</strong><span>Try a different name or filter.</span></div>';
+    mountIcons(grid);
+    return;
+  }
+  grid.innerHTML = models.map((model) => {
+    const ready = modelIsAvailable(model);
+    const kindLabel = model.kind === 'video' ? 'Video' : 'Image';
+    const tools = (model.tools || []).join(' · ');
+    const resolutions = (model.resolutions || []).join(' · ');
+    return `<article class="model-catalog-card${ready ? ' is-ready' : ' is-catalog-only'}" data-catalog-model="${escapeHtml(model.id)}">
+      <div class="model-card-top"><span class="model-kind-badge ${model.kind === 'video' ? 'video-badge' : 'image-badge'}"><span data-icon="${model.kind === 'video' ? 'video' : 'image'}"></span>${kindLabel}</span><span class="model-ready-label">${ready ? 'Ready here' : 'Other tool'}</span></div>
+      <h3>${escapeHtml(model.name)}${model.recommended ? '<span class="recommended-mark">Recommended</span>' : ''}</h3>
+      <code>${escapeHtml(model.id)}</code>
+      <p>${escapeHtml(model.description || '')}</p>
+      <div class="model-tool-tags">${(model.tools || []).map((tool) => `<span>${escapeHtml(tool)}</span>`).join('')}</div>
+      <div class="model-card-footer"><span class="model-resolution-copy">${escapeHtml(resolutions || 'Account default')}</span><button class="model-use-button" type="button" data-use-model="${escapeHtml(model.id)}"${ready ? '' : ' disabled'}>${ready ? 'Use model' : 'Not for this tool'}${ready ? icon('arrow-up-right', 12) : ''}</button></div>
+    </article>`;
+  }).join('');
+  mountIcons(grid);
+}
+
+function openModelCatalog() {
+  $('#model-modal-backdrop').hidden = false;
+  renderModelCatalog($('.model-filter.is-active')?.dataset.modelFilter || 'all', $('#model-search').value);
+  $('#model-search').focus();
+}
+
+function closeModelCatalog() {
+  $('#model-modal-backdrop').hidden = true;
+}
+
 function refreshModelSettings() {
   const model = getActiveModel();
   const allowedQuality = (model.resolutions || []).filter((resolution) => state.mediaType === 'image' ? /^(640px|1k|2k|4k)$/.test(resolution) : /^(360p|480p|720p|1080p|4k)$/.test(resolution));
@@ -464,6 +505,7 @@ async function loadModels() {
     renderModelOptions();
     refreshModelSettings();
     updateModelDetails();
+    renderModelCatalog();
   }
 }
 
@@ -732,6 +774,33 @@ function bindEvents() {
     showToast('Prompt given a little polish.');
   });
   $('#reset-button').addEventListener('click', resetControls);
+  $('#browse-models').addEventListener('click', openModelCatalog);
+  $('#model-modal-close').addEventListener('click', closeModelCatalog);
+  $('#model-modal-backdrop').addEventListener('click', (event) => { if (event.target === $('#model-modal-backdrop')) closeModelCatalog(); });
+  $$('.model-filter').forEach((button) => button.addEventListener('click', () => {
+    $$('.model-filter').forEach((filterButton) => {
+      const isActive = filterButton === button;
+      filterButton.classList.toggle('is-active', isActive);
+      filterButton.setAttribute('aria-selected', String(isActive));
+    });
+    renderModelCatalog(button.dataset.modelFilter, $('#model-search').value);
+  }));
+  $('#model-search').addEventListener('input', (event) => {
+    renderModelCatalog($('.model-filter.is-active')?.dataset.modelFilter || 'all', event.target.value);
+  });
+  $('#model-catalog-grid').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-use-model]');
+    if (!button || button.disabled) return;
+    const model = state.models.find((entry) => entry.id === button.dataset.useModel);
+    if (!model || !modelIsAvailable(model)) return showToast('Switch the output type to use that model.', 'error');
+    state.model = model.id;
+    saveModelChoice();
+    $('#model-select').value = model.id;
+    refreshModelSettings();
+    updateModelDetails();
+    closeModelCatalog();
+    showToast(`${model.name} selected.`);
+  });
   $('#upload-dropzone').addEventListener('click', () => $('#reference-input').click());
   $('#reference-input').addEventListener('change', (event) => setFile(event.target.files?.[0]));
   $('#remove-file').addEventListener('click', removeFile);
@@ -774,7 +843,7 @@ function bindEvents() {
     else showToast('Fullscreen is not available here.', 'error');
   });
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeModal();
+    if (event.key === 'Escape') { closeModal(); closeModelCatalog(); }
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
       $('#prompt').focus();
