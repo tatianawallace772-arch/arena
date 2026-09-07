@@ -67,3 +67,15 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Node / tooling (the app itself has zero runtime dependencies)
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# Generated screenshots from scripts/shot.mjs
+.shots/
+
+# OS noise
+.DS_Store
+Thumbs.db

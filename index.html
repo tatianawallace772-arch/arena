@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Nano Banana Studio · keyless AI image generator</title>
+<meta name="description" content="Generate and edit images with Gemini Nano Banana through a keyless endpoint. No API key, no signup, runs entirely in your browser." />
+<meta name="color-scheme" content="dark light" />
+<meta property="og:title" content="Nano Banana Studio" />
+<meta property="og:description" content="Keyless AI image generation — prompt, style, seed, 4K. No API key needed." />
+<meta property="og:type" content="website" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230d0f14'/%3E%3Cpath d='M18 16c-2 16 6 30 24 32 4 0 6-3 3-4C30 41 24 31 24 16z' fill='%23ffd84d'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="styles/app.css" />
+</head>
+<body>
+<a class="skip-link" href="#prompt">Skip to prompt</a>
+
+<div class="app">
+  <!-- ───────────────────────────────────────────── top bar ─────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="34" height="34">
+          <path d="M16 10c-3 19 7 36 29 39 5 1 8-4 4-6C31 38 24 26 24 10z" fill="currentColor" />
+          <path d="M22 12c-1 15 7 27 24 30" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="2.5" stroke-linecap="round" />
+        </svg>
+      </span>
+      <span class="brand__text">
+        <strong>Nano&nbsp;Banana <span class="brand__accent">Studio</span></strong>
+        <small>keyless image generation · no API key, no signup</small>
+      </span>
+    </div>
+
+    <div class="topbar__right">
+      <p class="tier" id="tierChip" title="Requests are sent straight from your browser to the free Pollinations endpoint">
+        <span class="dot dot--ok" id="tierDot"></span>
+        <span id="tierText">free tier · ~1 img / 15s</span>
+      </p>
+      <p class="tier tier--models" id="modelsChip" hidden>
+        <span id="modelsText"></span>
+      </p>
+      <button class="icon-btn" id="themeBtn" type="button" title="Toggle light / dark" aria-label="Toggle theme">
+        <svg class="icon icon--moon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+        <svg class="icon icon--sun" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M18.5 5.5l-1.7 1.7M7.2 16.8l-1.7 1.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" id="helpBtn" type="button" title="How this works &amp; shortcuts" aria-label="Help">?</button>
+    </div>
+  </header>
+
+  <!-- ───────────────────────────────────────────── layout ─────────────────────────────────────────── -->
+  <main class="layout">
+    <!-- controls -->
+    <aside class="controls" aria-label="Generation settings">
+      <form class="controls__form" id="composer" autocomplete="off">
+        <!-- prompt -->
+        <section class="card card--prompt">
+          <div class="card__head">
+            <h2 class="card__title">Prompt</h2>
+            <div class="card__head-actions">
+              <button class="ghost-btn" type="button" id="surpriseBtn" title="Fill in a random idea">
+                <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15.5l-1.9-4.6L5.5 9l4.6-1.4z" fill="currentColor"/><path d="M18.5 15l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9z" fill="currentColor"/></svg>
+                Surprise me
+              </button>
+              <button class="ghost-btn" type="button" id="clearPromptBtn">Clear</button>
+            </div>
+          </div>
+          <textarea id="prompt" class="prompt" rows="5" spellcheck="true"
+            placeholder="a lone fisherman mending a net at blue hour, 35mm documentary photograph, soft rim light"></textarea>
+          <div class="prompt__meta">
+            <span class="meter" id="promptMeter" title="Specificity check">
+              <i></i><i></i><i></i><i></i><i></i>
+            </span>
+            <span class="count" id="promptCount">0 chars</span>
+          </div>
+          <ul class="tips" id="promptTips" hidden></ul>
+          <div class="row row--tight">
+            <label class="field field--grow">
+              <span>Exclude <em>(adds “avoid: …” to the prompt)</em></span>
+              <input type="text" id="avoid" placeholder="text, watermark, extra fingers, blur" />
+            </label>
+          </div>
+        </section>
+
+        <!-- style -->
+        <section class="card">
+          <div class="card__head">
+            <h2 class="card__title">Style</h2>
+            <span class="card__hint" id="styleHint">Send the prompt exactly as written.</span>
+          </div>
+          <div class="chips" id="styleChips" role="radiogroup" aria-label="Style preset"></div>
+        </section>
+
+        <!-- shape -->
+        <section class="card">
+          <div class="card__head"><h2 class="card__title">Canvas</h2><span class="card__hint" id="dimsHint">1024 × 1024</span></div>
+          <div class="ratio-grid" id="ratioGrid" role="radiogroup" aria-label="Aspect ratio"></div>
+          <div class="seg" id="resSeg" role="radiogroup" aria-label="Resolution tier">
+            <button type="button" data-res="1K">1K</button>
+            <button type="button" data-res="2K">2K</button>
+            <button type="button" data-res="4K">4K</button>
+          </div>
+          <div class="row row--custom" id="customDims" hidden>
+            <label class="field"><span>Width</span><input type="number" id="customW" min="128" max="4096" step="16" value="1024" /></label>
+            <label class="field"><span>Height</span><input type="number" id="customH" min="128" max="4096" step="16" value="1024" /></label>
+          </div>
+        </section>
+
+        <!-- model + seed -->
+        <section class="card">
+          <div class="card__head"><h2 class="card__title">Model</h2><span class="card__hint" id="modelStatus">checking availability…</span></div>
+          <div class="models" id="modelList" role="radiogroup" aria-label="Model"></div>
+          <div class="row row--tight">
+            <label class="field field--seed">
+              <span>Seed</span>
+              <input type="number" id="seed" min="0" max="2147483647" step="1" placeholder="random" />
+            </label>
+            <button class="ghost-btn ghost-btn--stack" type="button" id="diceBtn" title="Roll a new seed">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="8.7" cy="8.7" r="1.5" fill="currentColor"/><circle cx="15.3" cy="15.3" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/></svg>
+              Roll
+            </button>
+            <label class="toggle toggle--inline" title="Keep this seed so variations stay comparable">
+              <input type="checkbox" id="lockSeed" /><span class="toggle__box" aria-hidden="true"></span><span class="toggle__label">Lock</span>
+            </label>
+          </div>
+          <div class="row row--tight">
+            <label class="field field--grow"><span>Images per run <em id="batchNote">variations on new seeds</em></span>
+              <div class="stepper" id="batchStepper">
+                <button type="button" data-batch="-1" aria-label="Fewer images">−</button>
+                <output id="batchValue">1</output>
+                <button type="button" data-batch="1" aria-label="More images">+</button>
+              </div>
+            </label>
+          </div>
+        </section>
+
+        <!-- switches -->
+        <section class="card">
+          <div class="card__head"><h2 class="card__title">Options</h2></div>
+          <div class="switches">
+            <label class="toggle" title="Provider rewrites your prompt for more detail">
+              <input type="checkbox" id="enhance" /><span class="toggle__box"></span>
+              <span class="toggle__text"><strong>Auto-enhance</strong><small>provider expands the prompt</small></span>
+            </label>
+            <label class="toggle" title="Ask the provider to skip its badge (free tier may still watermark)">
+              <input type="checkbox" id="nologo" /><span class="toggle__box"></span>
+              <span class="toggle__text"><strong>No logo</strong><small>best effort on the free tier</small></span>
+            </label>
+            <label class="toggle" title="Reject NSFW prompts server-side">
+              <input type="checkbox" id="safe" /><span class="toggle__box"></span>
+              <span class="toggle__text"><strong>Safe filter</strong><small>hard-block on detection</small></span>
+            </label>
+            <label class="toggle" title="Keep the render out of the public gallery feed">
+              <input type="checkbox" id="private" /><span class="toggle__box"></span>
+              <span class="toggle__text"><strong>Private</strong><small>not listed in public feeds</small></span>
+            </label>
+          </div>
+        </section>
+
+        <!-- advanced -->
+        <details class="card card--details" id="advancedCard">
+          <summary class="card__head card__head--summary"><h2 class="card__title">Advanced</h2><span class="card__hint">edits · pacing · key (optional)</span></summary>
+          <div class="details__body">
+            <p class="note">
+              <strong>Edit an image:</strong> paste a public image URL and describe the change. The keyless tier applies
+              references on models that support them (Nano Banana, Kontext) — it is provider-dependent, so treat it as experimental.
+            </p>
+            <div class="refs" id="refsList"></div>
+            <button class="ghost-btn" type="button" id="addRefBtn">+ Add reference URL</button>
+
+            <div class="row row--tight">
+              <label class="field field--grow">
+                <span>Request pacing <em id="paceNote">matches the free tier</em></span>
+                <select id="pace"></select>
+              </label>
+            </div>
+            <div class="row row--tight">
+              <label class="field field--grow">
+                <span>Provider token <em>optional — raises limits, removes watermark</em></span>
+                <input type="password" id="token" placeholder="leave empty for fully keyless use" autocomplete="off" />
+              </label>
+            </div>
+            <label class="toggle toggle--inline toggle--mock" title="Render locally with no network — great for demos or offline">
+              <input type="checkbox" id="mockMode" /><span class="toggle__box"></span>
+              <span class="toggle__text"><strong>Offline mock renderer</strong><small>no requests leave the page</small></span>
+            </label>
+          </div>
+        </details>
+
+        <!-- actions -->
+        <div class="actions">
+          <button class="btn btn--primary" id="generateBtn" type="submit">
+            <span class="btn__label">Generate</span>
+            <kbd>⌘/Ctrl ⏎</kbd>
+          </button>
+          <button class="btn btn--ghost" id="stopBtn" type="button" hidden>Stop</button>
+          <p class="actions__note" id="actionsNote" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </aside>
+
+    <!-- stage -->
+    <section class="stage" aria-label="Results">
+      <div class="stage__bar">
+        <p class="status" id="statusText" role="status" aria-live="polite">
+          <span class="status__dot"></span><span id="statusLabel">Idle — write a prompt to begin</span>
+        </p>
+        <div class="stage__bar-right">
+          <div class="cooldown" id="cooldown" hidden>
+            <div class="cooldown__bar"><i id="cooldownFill"></i></div>
+            <span id="cooldownText">ready</span>
+          </div>
+          <button class="ghost-btn" type="button" id="clearStageBtn" title="Remove the cards from the stage (history keeps them)">Clear stage</button>
+          <button class="ghost-btn" type="button" id="shareBtn" title="Copy a link that restores this exact setup">
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M9.5 13.5a3.5 3.5 0 1 0 0 1M14.5 9.5a3.5 3.5 0 1 0 1 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M11 12.5l2.5-1.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+            Share setup
+          </button>
+        </div>
+      </div>
+
+      <div class="stage__body" id="stageBody">
+        <div class="results" id="results"></div>
+        <div class="empty" id="emptyState">
+          <div class="empty__art" aria-hidden="true">
+            <svg viewBox="0 0 200 140" width="200" height="140">
+              <defs>
+                <linearGradient id="eg" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="rgba(255,216,77,.32)"/><stop offset="1" stop-color="rgba(255,122,69,.18)"/>
+                </linearGradient>
+              </defs>
+              <rect x="8" y="10" width="184" height="120" rx="12" fill="url(#eg)" stroke="rgba(255,255,255,.14)"/>
+              <path d="M56 40c-4 30 12 54 48 58 8 1 12-6 6-8-28-11-40-31-40-50z" fill="#ffd84d" opacity=".92"/>
+              <circle cx="150" cy="46" r="12" fill="rgba(255,255,255,.18)"/>
+              <circle cx="140" cy="98" r="7" fill="rgba(255,255,255,.12)"/>
+            </svg>
+          </div>
+          <h2>Nothing rendered yet</h2>
+          <p>Describe anything, pick a style, hit <kbd>Generate</kbd>. Images stream straight from the free endpoint — nothing to install, no key to paste.</p>
+          <div class="empty__row">
+            <button class="btn btn--soft" type="button" id="tryExampleBtn">Try an example prompt</button>
+            <button class="btn btn--soft" type="button" id="tryMockBtn">Preview offline (mock renderer)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- prompt library -->
+      <div class="library" id="library">
+        <div class="library__head">
+          <h2>Prompt library <span class="count-badge" id="libCount"></span></h2>
+          <button class="ghost-btn" type="button" id="libraryToggle">Collapse</button>
+        </div>
+        <div class="library__grid" id="libraryGrid"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- history -->
+  <footer class="history" aria-label="History">
+    <div class="history__head">
+      <h2>Session history <small id="historyCount"></small></h2>
+      <div class="history__actions">
+        <button class="ghost-btn" type="button" id="historyRedownload" title="Re-fetch every thumbnail (the provider caches by prompt + seed)">Refresh</button>
+        <button class="ghost-btn ghost-btn--danger" type="button" id="historyClear">Clear</button>
+      </div>
+    </div>
+    <div class="filmstrip" id="filmstrip"></div>
+  </footer>
+</div>
+
+<!-- modal -->
+<div class="modal" id="helpModal" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="modal__backdrop" data-close="1"></div>
+  <div class="modal__panel">
+    <button class="icon-btn modal__close" type="button" data-close="1" aria-label="Close">✕</button>
+    <h2 id="helpTitle">How Nano Banana Studio works</h2>
+    <p class="modal__lede">A thin, honest client over a public keyless endpoint. No backend, no telemetry, no account.</p>
+    <div class="modal__cols">
+      <section>
+        <h3>The pipeline</h3>
+        <ol class="steps">
+          <li><strong>You write a prompt.</strong> Style presets and “exclude” text are folded into the final string locally.</li>
+          <li><strong>We build a GET URL</strong> to <code>image.pollinations.ai/prompt/…</code> with model, size, seed and flags baked into the query.</li>
+          <li><strong>A pacer spaces requests</strong> so the free tier does not 429 a batch of four.</li>
+          <li><strong>The bytes land as a Blob</strong> when CORS allows; otherwise we fall back to a plain <code>&lt;img&gt;</code> load.</li>
+          <li><strong>Only URLs + settings are stored</strong>, in localStorage — the same prompt and seed always reproduce the image.</li>
+        </ol>
+      </section>
+      <section>
+        <h3>Limits of a keyless tier</h3>
+        <ul class="clean">
+          <li>≈ 1 request every 15 seconds per network. Batch and variations queue themselves.</li>
+          <li>Free output can carry a provider watermark; <code>nologo</code> is best-effort.</li>
+          <li>Nano Banana models are sometimes gated to registered tiers — the app detects that and falls back to a model that answers, then tells you which one served.</li>
+          <li>No uptime promise. Use the offline mock renderer if you need a dependable demo.</li>
+        </ul>
+        <h3>Shortcuts</h3>
+        <p class="keys"><kbd>⌘/Ctrl</kbd>+<kbd>⏎</kbd> generate · <kbd>Esc</kbd> stop · <kbd>S</kbd> roll seed · <kbd>D</kbd> download latest · <kbd>←</kbd>/<kbd>→</kbd> walk history</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite" aria-atomic="false"></div>
+
+<noscript>
+  <p style="padding:2rem;font:16px/1.5 system-ui">This generator needs JavaScript: it talks to the free endpoint directly from your browser, so there is no server to fall back on.</p>
+</noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

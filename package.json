@@ -1,0 +1,47 @@
+{
+  "name": "nano-banana-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Keyless AI image generator (Gemini Nano Banana via the free Pollinations endpoint) \u2014 no API key, no backend, no build step.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --test \"tests/*.test.mjs\"",
+    "serve": "PORT=3000 node server.js",
+    "test:node": "node --test tests",
+    "shots": "node scripts/shot.mjs",
+    "lint": "eslint js server.js scripts tests",
+    "check": "npm test && npm run lint"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "keywords": [
+    "ai",
+    "image-generation",
+    "nano-banana",
+    "gemini",
+    "pollinations",
+    "no-api-key",
+    "vanilla-js"
+  ],
+  "license": "CC0-1.0",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@sparticuz/chromium": "^149.0.0",
+    "css-tree": "^3.2.1",
+    "csstree-validator": "^4.0.1",
+    "eslint": "^10.10.0",
+    "globals": "^17.12.0",
+    "jsdom": "^30.0.1",
+    "puppeteer-core": "^25.10.0"
+  },
+  "files": [
+    "index.html",
+    "js",
+    "styles",
+    "server.js",
+    "README.md"
+  ]
+}
