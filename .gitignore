@@ -58,6 +58,11 @@ compile_commands.json
 *.bak
 *.swp
 
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
 # vcpkg
 vcpkg_installed/
 

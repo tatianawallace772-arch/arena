@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f1112" />
+    <meta name="description" content="A focused Magic Hour playground for turning ideas into images and video." />
+    <title>Magic Hour — Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="noise" aria-hidden="true"></div>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <a class="brand" href="#" aria-label="Magic Hour home">
+            <span class="brand-mark" aria-hidden="true"><span></span></span>
+            <span class="brand-wordmark">magic<span>hour</span></span>
+          </a>
+
+          <button class="workspace-switcher" id="workspace-switcher" type="button">
+            <span class="workspace-avatar">M</span>
+            <span class="workspace-copy">
+              <strong>Moonbeam studio</strong>
+              <small>Personal workspace</small>
+            </span>
+            <span class="icon icon-muted" data-icon="chevrons"></span>
+          </button>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Main navigation">
+          <p class="nav-label">Workspace</p>
+          <button class="nav-item is-active" type="button" data-view-target="create">
+            <span class="nav-icon" data-icon="spark"></span>
+            <span>New creation</span>
+            <span class="nav-shortcut">N</span>
+          </button>
+          <button class="nav-item" type="button" data-view-target="library">
+            <span class="nav-icon" data-icon="grid"></span>
+            <span>Library</span>
+            <span class="nav-count">8</span>
+          </button>
+          <button class="nav-item" type="button" data-view-target="favorites">
+            <span class="nav-icon" data-icon="star"></span>
+            <span>Favorites</span>
+          </button>
+
+          <p class="nav-label nav-label-spaced">Learn</p>
+          <a class="nav-item nav-link" href="https://docs.magichour.ai/api-reference" target="_blank" rel="noreferrer">
+            <span class="nav-icon" data-icon="book"></span>
+            <span>API reference</span>
+            <span class="external-mark" data-icon="arrow-up-right"></span>
+          </a>
+          <a class="nav-item nav-link" href="https://magichour.ai/developer?tab=api-keys&mh-attr=none" target="_blank" rel="noreferrer">
+            <span class="nav-icon" data-icon="key"></span>
+            <span>Developer hub</span>
+            <span class="external-mark" data-icon="arrow-up-right"></span>
+          </a>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="api-connection" id="api-connection">
+            <span class="connection-dot"></span>
+            <span class="connection-copy">
+              <strong id="connection-label">Checking connection</strong>
+              <small id="connection-detail">Magic Hour API</small>
+            </span>
+            <button class="icon-button tiny" id="connection-help" type="button" aria-label="Connection details" title="Connection details">
+              <span data-icon="info"></span>
+            </button>
+          </div>
+          <button class="profile-button" type="button" id="profile-button">
+            <span class="profile-avatar">MW</span>
+            <span class="profile-copy"><strong>My workspace</strong><small>Settings</small></span>
+            <span class="icon icon-muted" data-icon="more-horizontal"></span>
+          </button>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="breadcrumbs" aria-label="Breadcrumb">
+            <span class="breadcrumbs-root">Studio</span>
+            <span class="breadcrumbs-slash">/</span>
+            <span id="breadcrumb-current">New creation</span>
+          </div>
+          <div class="topbar-actions">
+            <button class="command-button" id="command-button" type="button">
+              <span class="icon" data-icon="search"></span>
+              <span>Quick find</span>
+              <kbd>⌘ K</kbd>
+            </button>
+            <button class="icon-button notification-button" type="button" aria-label="Notifications">
+              <span data-icon="bell"></span><i></i>
+            </button>
+            <button class="help-button" type="button" id="help-button"><span>?</span> Help</button>
+          </div>
+        </header>
+
+        <div class="page-content">
+          <section class="view" id="create-view" aria-labelledby="create-heading">
+            <div class="page-intro">
+              <div>
+                <div class="eyebrow"><span class="eyebrow-line"></span> Magic Hour studio</div>
+                <h1 id="create-heading">Make a little <em>magic.</em></h1>
+                <p>Turn a feeling, a frame, or a few words into something worth keeping.</p>
+              </div>
+              <div class="intro-meta">
+                <div class="live-pill"><span></span> Live workspace</div>
+                <div class="credits-pill"><span class="credit-gem" data-icon="gem"></span><strong id="credits-value">—</strong><span>credits</span></div>
+              </div>
+            </div>
+
+            <div class="studio-grid">
+              <section class="preview-column" aria-label="Preview and recent creations">
+                <div class="preview-header">
+                  <div class="section-kicker"><span class="kicker-dot"></span> Canvas</div>
+                  <div class="preview-actions">
+                    <span class="render-status" id="render-status"><span class="status-dot"></span><span id="render-status-label">Ready to create</span></span>
+                    <button class="icon-button small" type="button" id="expand-preview" aria-label="Expand preview" title="Expand preview"><span data-icon="expand"></span></button>
+                  </div>
+                </div>
+
+                <div class="preview-stage" id="preview-stage" data-ratio="1:1">
+                  <div class="preview-grid-lines" aria-hidden="true"></div>
+                  <div class="preview-art art-glasshouse" id="preview-art" aria-label="Preview artwork">
+                    <div class="art-sun"></div>
+                    <div class="art-hill hill-one"></div>
+                    <div class="art-hill hill-two"></div>
+                    <div class="art-house">
+                      <div class="house-roof"></div>
+                      <div class="house-window window-one"></div>
+                      <div class="house-window window-two"></div>
+                      <div class="house-glow"></div>
+                    </div>
+                    <div class="art-plant plant-left"><i></i><i></i><i></i></div>
+                    <div class="art-plant plant-right"><i></i><i></i><i></i></div>
+                    <div class="art-mist mist-one"></div>
+                    <div class="art-mist mist-two"></div>
+                    <div class="art-film-grain"></div>
+                  </div>
+                  <div class="preview-topline">
+                    <span class="preview-chip"><span data-icon="image"></span><span id="preview-type">Image preview</span></span>
+                    <span class="preview-resolution" id="preview-resolution">1024 × 1024</span>
+                  </div>
+                  <div class="preview-empty" id="preview-empty" hidden>
+                    <span class="empty-orbit"><span></span></span>
+                    <strong>Your next frame starts here</strong>
+                    <span>Describe an idea on the right to begin.</span>
+                  </div>
+                  <div class="preview-loading" id="preview-loading" hidden>
+                    <span class="loader-orbit"><i></i><i></i><i></i></span>
+                    <strong id="loading-title">Building your frame</strong>
+                    <span id="loading-detail">Magic Hour is warming up the light.</span>
+                  </div>
+                  <div class="preview-bottomline">
+                    <div class="preview-caption">
+                      <span class="caption-label">Current idea</span>
+                      <strong id="preview-caption">Glasshouse above the clouds</strong>
+                    </div>
+                    <button class="icon-button on-art-button" id="preview-more" type="button" aria-label="Preview options"><span data-icon="more-horizontal"></span></button>
+                  </div>
+                </div>
+                <div class="preview-footer">
+                  <span><span class="footer-spark" data-icon="spark"></span> <span id="preview-footer-copy">A quiet place to grow wild ideas.</span></span>
+                  <span class="mono-text" id="preview-size-copy">SQUARE · 1:1</span>
+                </div>
+
+                <div class="recent-section">
+                  <div class="recent-heading">
+                    <div>
+                      <div class="section-kicker"><span class="kicker-dot"></span> Your shelf</div>
+                      <h2>Recent creations <span id="recent-count">4</span></h2>
+                    </div>
+                    <button class="text-button" type="button" data-view-target="library">See all <span data-icon="arrow-right"></span></button>
+                  </div>
+                  <div class="creation-grid" id="creation-grid">
+                    <button class="creation-card" type="button" data-seed="glasshouse">
+                      <span class="card-art art-glasshouse mini-art"><span class="mini-sun"></span><span class="mini-house"></span><span class="mini-hill"></span></span>
+                      <span class="card-info"><strong>Glasshouse above the clouds</strong><small><span class="media-icon" data-icon="image"></span> Image · just now</small></span>
+                      <span class="card-more" data-icon="more-horizontal"></span>
+                    </button>
+                    <button class="creation-card" type="button" data-seed="velvet">
+                      <span class="card-art art-velvet mini-art"><span class="velvet-orb"></span><span class="velvet-star"></span></span>
+                      <span class="card-info"><strong>Velvet orbit</strong><small><span class="media-icon" data-icon="video"></span> Video · yesterday</small></span>
+                      <span class="card-more" data-icon="more-horizontal"></span>
+                    </button>
+                    <button class="creation-card" type="button" data-seed="tide">
+                      <span class="card-art art-tide mini-art"><span class="tide-moon"></span><span class="tide-wave"></span></span>
+                      <span class="card-info"><strong>Lemon tide study</strong><small><span class="media-icon" data-icon="image"></span> Image · Aug 28</small></span>
+                      <span class="card-more" data-icon="more-horizontal"></span>
+                    </button>
+                    <button class="creation-card" type="button" data-seed="atelier">
+                      <span class="card-art art-atelier mini-art"><span class="atelier-window"></span><span class="atelier-figure"></span></span>
+                      <span class="card-info"><strong>Atelier after rain</strong><small><span class="media-icon" data-icon="video"></span> Video · Aug 26</small></span>
+                      <span class="card-more" data-icon="more-horizontal"></span>
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <aside class="controls-card" aria-label="Generation controls">
+                <div class="controls-card-top">
+                  <div>
+                    <div class="section-kicker"><span class="kicker-dot coral"></span> Create</div>
+                    <h2>Set the scene</h2>
+                  </div>
+                  <button class="icon-button small" type="button" id="reset-button" aria-label="Reset controls" title="Reset controls"><span data-icon="rotate-ccw"></span></button>
+                </div>
+
+                <div class="media-toggle" role="tablist" aria-label="Output type">
+                  <button class="media-toggle-button is-active" type="button" role="tab" aria-selected="true" data-media-type="image"><span data-icon="image"></span> Image</button>
+                  <button class="media-toggle-button" type="button" role="tab" aria-selected="false" data-media-type="video"><span data-icon="video"></span> Video</button>
+                </div>
+
+                <div class="source-toggle" id="source-toggle" hidden role="tablist" aria-label="Video source">
+                  <button class="source-button is-active" type="button" role="tab" aria-selected="true" data-source="text">Text to video</button>
+                  <button class="source-button" type="button" role="tab" aria-selected="false" data-source="image">Animate image</button>
+                </div>
+
+                <form id="generation-form">
+                  <div class="field-block prompt-block">
+                    <div class="field-label-row">
+                      <label for="prompt">Describe your idea</label>
+                      <span class="prompt-count" id="prompt-count">0 / 2k</span>
+                    </div>
+                    <div class="prompt-wrap">
+                      <textarea id="prompt" name="prompt" rows="5" maxlength="2000" spellcheck="true">A sunlit glasshouse floating above the clouds, lush tropical plants, slow cinematic camera drift, soft morning haze.</textarea>
+                      <button class="prompt-spark" id="prompt-spark" type="button" aria-label="Enhance prompt" title="Enhance prompt"><span data-icon="spark"></span></button>
+                    </div>
+                    <div class="prompt-suggestions">
+                      <span>Try:</span>
+                      <button type="button" data-prompt="A tiny seaside cinema at blue hour, warm lights, gentle film grain, poetic and quiet.">blue hour</button>
+                      <button type="button" data-prompt="A surreal botanical garden inside a sleeping moon, soft shadows, wide angle, dreamlike.">surreal</button>
+                      <button type="button" data-prompt="A handmade paper city unfolding in the rain, tactile textures, miniature scale, cinematic.">tactile</button>
+                    </div>
+                  </div>
+
+                  <div class="reference-upload" id="reference-upload" hidden>
+                    <input type="file" id="reference-input" accept="image/png,image/jpeg,image/webp" />
+                    <button class="upload-dropzone" type="button" id="upload-dropzone">
+                      <span class="upload-icon" data-icon="upload"></span>
+                      <span class="upload-copy"><strong id="upload-label">Add a starting image</strong><small>PNG, JPG, or WEBP · 15 MB max</small></span>
+                      <span class="upload-arrow" data-icon="arrow-right"></span>
+                    </button>
+                    <div class="uploaded-file" id="uploaded-file" hidden>
+                      <span class="file-thumb" id="file-thumb"></span>
+                      <span><strong id="file-name">reference.png</strong><small>Ready to animate</small></span>
+                      <button class="remove-file" id="remove-file" type="button" aria-label="Remove image"><span data-icon="x"></span></button>
+                    </div>
+                  </div>
+
+                  <div class="settings-block">
+                    <div class="field-label-row"><label>Canvas</label><span class="setting-note" id="canvas-note">Square</span></div>
+                    <div class="ratio-options" role="radiogroup" aria-label="Aspect ratio">
+                      <button class="ratio-button is-active" type="button" data-ratio="1:1" role="radio" aria-checked="true"><span class="ratio-preview ratio-square"></span><span>1:1</span></button>
+                      <button class="ratio-button" type="button" data-ratio="16:9" role="radio" aria-checked="false"><span class="ratio-preview ratio-landscape"></span><span>16:9</span></button>
+                      <button class="ratio-button" type="button" data-ratio="9:16" role="radio" aria-checked="false"><span class="ratio-preview ratio-portrait"></span><span>9:16</span></button>
+                      <button class="ratio-button" type="button" data-ratio="4:3" role="radio" aria-checked="false"><span class="ratio-preview ratio-four-three"></span><span>4:3</span></button>
+                    </div>
+                  </div>
+
+                  <div class="settings-row">
+                    <div class="select-field">
+                      <label for="quality">Quality</label>
+                      <div class="select-wrap"><select id="quality"><option value="1k">1K · Standard</option><option value="2k">2K · Detailed</option><option value="auto">Auto</option></select><span data-icon="chevron-down"></span></div>
+                    </div>
+                    <div class="select-field video-setting" id="duration-setting" hidden>
+                      <label for="duration">Duration</label>
+                      <div class="select-wrap"><select id="duration"><option value="5">5 seconds</option><option value="8">8 seconds</option><option value="10">10 seconds</option></select><span data-icon="chevron-down"></span></div>
+                    </div>
+                    <div class="audio-setting" id="audio-setting" hidden>
+                      <label for="audio-toggle">Sound</label>
+                      <button class="switch is-on" id="audio-toggle" type="button" role="switch" aria-checked="true"><span></span></button>
+                    </div>
+                  </div>
+
+                  <div class="control-divider"></div>
+                  <div class="generate-row">
+                    <div class="cost-copy"><span class="cost-gem" data-icon="gem"></span><span>Est. <strong id="cost-value">5</strong> credits</span></div>
+                    <button class="generate-button" id="generate-button" type="submit"><span class="button-icon" data-icon="spark"></span><span id="generate-label">Generate image</span><span class="button-arrow" data-icon="arrow-up-right"></span></button>
+                  </div>
+                </form>
+
+                <div class="controls-footnote"><span class="lock-icon" data-icon="lock"></span> Your API key stays server-side and never reaches the browser.</div>
+              </aside>
+            </div>
+          </section>
+
+          <section class="view library-view" id="library-view" hidden aria-labelledby="library-heading">
+            <div class="library-header">
+              <div>
+                <div class="eyebrow"><span class="eyebrow-line"></span> Your shelf</div>
+                <h1 id="library-heading">A home for <em>good ideas.</em></h1>
+                <p>Everything you make, gathered in one place.</p>
+              </div>
+              <button class="primary-small-button" type="button" data-view-target="create"><span data-icon="plus"></span> New creation</button>
+            </div>
+            <div class="library-toolbar">
+              <div class="library-tabs"><button class="library-tab is-active" type="button" data-library-filter="all">All <span>8</span></button><button class="library-tab" type="button" data-library-filter="image">Images <span>4</span></button><button class="library-tab" type="button" data-library-filter="video">Videos <span>4</span></button></div>
+              <button class="sort-button" type="button">Recently created <span data-icon="chevron-down"></span></button>
+            </div>
+            <div class="library-grid" id="library-grid"></div>
+          </section>
+
+          <section class="view favorites-view" id="favorites-view" hidden aria-labelledby="favorites-heading">
+            <div class="library-header">
+              <div>
+                <div class="eyebrow"><span class="eyebrow-line"></span> Curated by you</div>
+                <h1 id="favorites-heading">The ones you <em>kept.</em></h1>
+                <p>Save a spark for later. Your favorite frames will live here.</p>
+              </div>
+            </div>
+            <div class="favorite-empty"><span class="favorite-star" data-icon="star"></span><strong>Nothing saved yet</strong><span>Tap the star on a creation to keep it close.</span><button type="button" class="secondary-button" data-view-target="create">Make something new</button></div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div class="modal-backdrop" id="modal-backdrop" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <button class="modal-close icon-button small" id="modal-close" type="button" aria-label="Close"><span data-icon="x"></span></button>
+        <div class="modal-eyebrow"><span class="eyebrow-line"></span> Behind the scenes</div>
+        <h2 id="modal-title">Magic Hour is connected <em>securely.</em></h2>
+        <p id="modal-copy">The playground keeps your Magic Hour API key on the server. It is only used to send generation requests, check your account balance, and poll project status.</p>
+        <div class="modal-status"><span class="connection-dot"></span><span><strong id="modal-status-title">Connection status</strong><small id="modal-status-copy">Checking your local environment…</small></span></div>
+        <div class="modal-actions"><a class="secondary-button" href="https://docs.magichour.ai/get-started/authentication" target="_blank" rel="noreferrer">Read setup guide <span data-icon="arrow-up-right"></span></a><button class="primary-small-button" id="modal-done" type="button">Got it</button></div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"><span class="toast-icon" data-icon="check"></span><span id="toast-copy">Saved.</span></div>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

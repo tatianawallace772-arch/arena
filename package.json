@@ -1,0 +1,14 @@
+{
+  "name": "magic-hour-playground",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A small, secure Magic Hour image and video generation playground.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
