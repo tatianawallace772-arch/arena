@@ -8,6 +8,38 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(__dirname, 'public');
 const magicHourBase = 'https://api.magichour.ai/v1';
 
+// The public Magic Hour model catalog is the source of truth for the picker. The
+// catalog is intentionally served from our own origin so the browser never needs
+// to know about API credentials or depend on a cross-origin request.
+const MODEL_CATALOG = [
+  { id: 'sora-2', name: 'Sora 2', kind: 'video', availableFor: ['video'], description: "OpenAI's model for surreal concepts and viral clips.", tools: ['Text to Video', 'Image to Video'], resolutions: ['720p'], durations: [4, 8, 12, 24, 36, 48, 60], audio: true, premium: true },
+  { id: 'ltx-2.3', name: 'LTX 2.3', kind: 'video', availableFor: ['video'], description: 'Fast iteration with synced audio and expressive faces.', tools: ['Text to Video', 'Image to Video'], resolutions: ['480p', '720p', '1080p'], durations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30], audio: true },
+  { id: 'minimax-h3', name: 'MiniMax H3', kind: 'video', availableFor: ['video'], description: 'Reference-driven video with native audio.', tools: ['Text to Video', 'Image to Video'], resolutions: ['480p', '720p', '1080p'], durations: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, 30], audio: true },
+  { id: 'seedance-2.0', name: 'Seedance 2.0', kind: 'video', availableFor: ['video'], description: 'Cinematic continuity with reference-to-video control.', tools: ['Text to Video', 'Image to Video'], resolutions: ['480p', '720p'], durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], audio: true },
+  { id: 'seedance-2.0-mini', name: 'Seedance 2 Mini', kind: 'video', availableFor: ['video'], description: 'Faster, lower-cost Seedance 2 with reference-to-video.', tools: ['Text to Video', 'Image to Video'], resolutions: ['480p', '720p'], durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], audio: true },
+  { id: 'seedance-2.5', name: 'Seedance 2.5', kind: 'video', availableFor: ['video'], description: 'Cinematic continuity with premium realism and detail.', tools: ['Text to Video', 'Image to Video'], resolutions: ['480p', '720p', '1080p'], durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 20, 25, 30], audio: true, premium: true },
+  { id: 'kling-3.0', name: 'Kling 3.0', kind: 'video', availableFor: ['video'], description: 'Multi-shot storytelling with character control.', tools: ['Text to Video', 'Image to Video'], resolutions: ['720p', '1080p', '4k'], durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], audio: true, recommended: true },
+  { id: 'kling-2.5', name: 'Kling 2.5', kind: 'video', availableFor: ['video'], description: 'Great for motion, action, and camera control.', tools: ['Text to Video', 'Image to Video'], resolutions: ['720p', '1080p'], durations: [5, 10], audio: false },
+  { id: 'veo3.1', name: 'Veo 3.1', kind: 'video', availableFor: ['video'], description: "Google's frontier model with premium realism.", tools: ['Text to Video', 'Image to Video'], resolutions: ['720p', '1080p'], durations: [4, 6, 8, 16, 24, 32, 40, 48, 56], audio: true, premium: true },
+  { id: 'gemini-omni-1.1', name: 'Google Omni', kind: 'video', availableFor: [], description: 'Natural-language video editing with the Google Omni model.', tools: ['Video Edit'], resolutions: ['360p', '720p', '1080p', '4k'], durations: [3, 4, 5, 6, 7, 8, 9, 10], audio: false, catalogOnly: true },
+  { id: 'wan-2.2', name: 'Wan 2.2', kind: 'video', availableFor: ['video'], description: 'Best for cinematic control and flexible text-to-video.', tools: ['Text to Video', 'Image to Video'], resolutions: ['480p', '720p', '1080p'], durations: [3, 4, 5, 6, 7, 8, 9, 10, 15], audio: false },
+  { id: 'wan-animate', name: 'Wan-Animate', kind: 'video', availableFor: [], description: 'Character animation and performance transfer.', tools: ['Character Replace'], resolutions: ['480p', '720p'], durations: [5, 10], audio: false, catalogOnly: true },
+  { id: 'kling-3.0-omni', name: 'Kling 3.0 Omni', kind: 'video', availableFor: ['video'], description: 'Dialogue-friendly video with native audio and references.', tools: ['Text to Video', 'Image to Video'], resolutions: ['720p', '1080p'], durations: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], audio: true, premium: true },
+  { id: 'seedance-1.5', name: 'Seedance 1.5', kind: 'video', availableFor: ['video'], description: 'Prompt-following multi-shot narrative video.', tools: ['Text to Video', 'Image to Video'], resolutions: ['480p', '720p', '1080p'], durations: [4, 5, 6, 7, 8, 9, 10, 11, 12], audio: true },
+  { id: 'flux-2-klein', name: 'Flux 2 Klein', kind: 'image', availableFor: ['image'], description: 'Sub-second generation and editing from Black Forest Labs.', tools: ['Text to Image', 'Image Edit'], resolutions: ['640px', '1k', '2k'], durations: [], audio: false },
+  { id: 'gpt-image-2', name: 'GPT Image 2', kind: 'image', availableFor: ['image'], description: 'Strong prompt adherence with output up to 4K.', tools: ['Text to Image', 'Image Edit'], resolutions: ['640px', '1k', '2k', '4k'], durations: [], audio: false, premium: true },
+  { id: 'nano-banana', name: 'Nano Banana', kind: 'image', availableFor: ['image'], description: 'Precise, realistic generations with consistent results.', tools: ['Text to Image', 'Image Edit'], resolutions: ['640px', '1k', '2k'], durations: [], audio: false },
+  { id: 'nano-banana-2', name: 'Nano Banana 2', kind: 'image', availableFor: ['image'], description: 'Fast generation with strong prompt adherence.', tools: ['Text to Image', 'Image Edit'], resolutions: ['640px', '1k', '2k', '4k'], durations: [], audio: false },
+  { id: 'nano-banana-2-lite', name: 'Nano Banana 2 Lite', kind: 'image', availableFor: ['image'], description: 'Fastest, lowest-cost Nano Banana 2 for drafts.', tools: ['Text to Image', 'Image Edit'], resolutions: ['640px', '1k'], durations: [], audio: false },
+  { id: 'nano-banana-pro', name: 'Nano Banana Pro', kind: 'image', availableFor: ['image'], description: 'Highest quality for realistic, detailed images.', tools: ['Text to Image', 'Image Edit'], resolutions: ['1k', '2k', '4k'], durations: [], audio: false, premium: true },
+  { id: 'seedream-v4', name: 'Seedream 4', kind: 'image', availableFor: ['image'], description: 'Creative, imaginative images with artistic freedom.', tools: ['Text to Image', 'Image Edit'], resolutions: ['640px', '1k', '2k', '4k'], durations: [], audio: false },
+  { id: 'seedream-v4.5', name: 'Seedream 4.5', kind: 'image', availableFor: ['image'], description: 'Stylized, imaginative, high-resolution images.', tools: ['Text to Image', 'Image Edit'], resolutions: ['640px', '1k', '2k', '4k'], durations: [], audio: false, premium: true },
+  { id: 'seedream-v5-pro', name: 'Seedream 5 Pro', kind: 'image', availableFor: ['image'], description: 'Pro-level detail with sharper quality for design.', tools: ['Text to Image', 'Image Edit'], resolutions: ['640px', '1k', '2k'], durations: [], audio: false, premium: true },
+  { id: 'flux-schnell', name: 'FLUX Schnell', kind: 'image', availableFor: ['image'], description: 'Free, ultra-fast image generation for quick drafts.', tools: ['Text to Image'], resolutions: ['640px', '1k', '2k'], durations: [], audio: false },
+  { id: 'z-image-turbo', name: 'Z-Image Turbo', kind: 'image', availableFor: ['image'], description: 'Ultra-fast, high-quality images for rapid iteration.', tools: ['Text to Image'], resolutions: ['640px', '1k', '2k'], durations: [], audio: false },
+  { id: 'qwen-edit', name: 'Qwen Edit', kind: 'image', availableFor: [], description: 'Fast, low-cost prompt-based image edits.', tools: ['Image Edit'], resolutions: ['640px', '1k', '2k'], durations: [], audio: false, catalogOnly: true },
+];
+
 loadDotEnv();
 const port = Number(process.env.PORT || 3000);
 
@@ -142,35 +174,67 @@ function clampNumber(value, min, max, fallback) {
   return Number.isFinite(number) ? Math.min(max, Math.max(min, number)) : fallback;
 }
 
+const DEFAULT_MODEL = {
+  id: 'default',
+  name: 'Magic Hour Default',
+  kind: 'all',
+  availableFor: ['image', 'video'],
+  description: 'Magic Hour picks the current recommended model for your account.',
+  tools: ['Text to Image', 'Text to Video', 'Image to Video'],
+  resolutions: ['640px', '480p', '1k', '720p', '2k', '1080p', '4k'],
+  durations: [3, 4, 5, 6, 7, 8, 9, 10],
+  audio: true,
+  recommended: true,
+};
+
+function getCatalogModel(id) {
+  return id === 'default' ? DEFAULT_MODEL : MODEL_CATALOG.find((model) => model.id === id);
+}
+
+function supportedAspectRatios(model, kind) {
+  if (kind === 'image') return ['1:1', '16:9', '9:16', '4:3', '3:4'];
+  if (model?.id === 'sora-2') return ['16:9', '9:16'];
+  return ['16:9', '9:16', '1:1'];
+}
+
 async function createGeneration(payload) {
   const kind = payload?.kind === 'video' ? 'video' : 'image';
   const prompt = cleanPrompt(payload?.prompt);
-  const aspectRatio = ['1:1', '16:9', '9:16', '4:3', '3:4'].includes(payload?.aspectRatio)
-    ? payload.aspectRatio
-    : '1:1';
+  const modelId = typeof payload?.model === 'string' && payload.model.trim() ? payload.model.trim() : 'default';
+  const model = getCatalogModel(modelId);
+  if (!model) throw new ApiError(400, 'That model is not in the Magic Hour catalog. Refresh the model list and try again.');
+  if (!model.availableFor.includes(kind)) {
+    throw new ApiError(400, `${model.name} is listed for ${model.tools.join(', ')}, not this playground output.`);
+  }
+
+  const ratios = supportedAspectRatios(model, kind);
+  const aspectRatio = ratios.includes(payload?.aspectRatio) ? payload.aspectRatio : ratios[0];
+  const qualityOptions = model.resolutions.filter((resolution) => kind === 'image' ? resolution.match(/^(640px|1k|2k|4k)$/) : resolution.match(/^(360p|480p|720p|1080p|4k)$/));
 
   if (kind === 'image') {
     const body = {
       name: cleanName(payload?.name, 'Magic Hour image'),
       image_count: 1,
-      model: 'default',
+      model: modelId,
       aspect_ratio: aspectRatio,
-      resolution: ['1k', '2k', 'auto'].includes(payload?.resolution) ? payload.resolution : '1k',
+      resolution: qualityOptions.includes(payload?.resolution) ? payload.resolution : (qualityOptions.includes('1k') ? '1k' : qualityOptions[0]),
       style: { prompt },
     };
     const result = await magicRequest('/ai-image-generator', { method: 'POST', body });
-    return { ...result, kind, prompt, estimatedCredits: result?.credits_charged || 5 };
+    return { ...result, kind, model: modelId, prompt, estimatedCredits: result?.credits_charged || 5 };
   }
 
   const source = payload?.source === 'image' ? 'image' : 'text';
-  const duration = clampNumber(payload?.duration, 3, 10, 5);
+  const durationOptions = model.durations.length ? model.durations : [5];
+  const requestedDuration = clampNumber(payload?.duration, 1, 60, 5);
+  const duration = durationOptions.includes(requestedDuration) ? requestedDuration : durationOptions.reduce((closest, option) => Math.abs(option - requestedDuration) < Math.abs(closest - requestedDuration) ? option : closest, durationOptions[0]);
   const body = {
     name: cleanName(payload?.name, source === 'image' ? 'Magic Hour animation' : 'Magic Hour video'),
     end_seconds: duration,
     aspect_ratio: aspectRatio,
-    resolution: ['720p', '1080p', '4k'].includes(payload?.resolution) ? payload.resolution : '720p',
-    model: 'kling-3.0',
-    audio: Boolean(payload?.audio),
+    resolution: qualityOptions.includes(payload?.resolution) ? payload.resolution : (qualityOptions.includes('720p') ? '720p' : qualityOptions[0]),
+    model: modelId,
+    audio: model.audio === false ? false : Boolean(payload?.audio),
     style: { prompt },
   };
 
@@ -182,7 +246,7 @@ async function createGeneration(payload) {
   }
 
   const result = await magicRequest(endpoint, { method: 'POST', body });
-  return { ...result, kind, source, prompt, estimatedCredits: result?.credits_charged || 450 };
+  return { ...result, kind, source, model: modelId, prompt, estimatedCredits: result?.credits_charged || 450 };
 }
 
 async function parseJsonBody(request) {
@@ -282,6 +346,16 @@ const server = http.createServer(async (request, response) => {
         configured: Boolean(process.env.MAGIC_HOUR_API_KEY),
         provider: 'Magic Hour',
         docsUrl: 'https://docs.magichour.ai/api-reference',
+      });
+      return;
+    }
+
+    if (pathname === '/api/models' && request.method === 'GET') {
+      sendJson(response, 200, {
+        source: 'Magic Hour public model catalog',
+        updatedAt: '2026-09-07',
+        count: MODEL_CATALOG.length,
+        models: [DEFAULT_MODEL, ...MODEL_CATALOG],
       });
       return;
     }

@@ -221,6 +221,23 @@
                   <button class="source-button" type="button" role="tab" aria-selected="false" data-source="image">Animate image</button>
                 </div>
 
+                <div class="model-block">
+                  <div class="field-label-row model-heading">
+                    <label for="model-select">Model</label>
+                    <span class="model-catalog-status"><span class="model-status-dot"></span><span id="model-count">26 models</span></span>
+                  </div>
+                  <div class="model-select-wrap">
+                    <div class="select-wrap">
+                      <select id="model-select" aria-label="Choose a Magic Hour model">
+                        <option value="default">Magic Hour Default · recommended</option>
+                      </select>
+                      <span data-icon="chevron-down"></span>
+                    </div>
+                    <a class="model-link" href="https://magichour.ai/models" target="_blank" rel="noreferrer" aria-label="Browse Magic Hour models" title="Browse Magic Hour models"><span data-icon="arrow-up-right"></span></a>
+                  </div>
+                  <div class="model-description" id="model-description">Magic Hour picks the current recommendation for your account.</div>
+                </div>
+
                 <form id="generation-form">
                   <div class="field-block prompt-block">
                     <div class="field-label-row">

@@ -1,6 +1,6 @@
 # Magic Hour Playground
 
-A dependency-free Magic Hour image and video generation studio. The UI keeps the API key on the Node server, supports image generation, text-to-video, image-to-video uploads, project polling, and a small local library.
+A dependency-free Magic Hour image and video generation studio. The UI keeps the API key on the Node server, imports the public 26-model Magic Hour catalog into a local model picker, supports image generation, text-to-video, image-to-video uploads, project polling, and a small local library.
 
 ## Run locally
 
@@ -16,6 +16,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## API surface
 
+- `GET /api/models` — returns the 26-model Magic Hour catalog plus the account-aware default model
 - `POST /api/generate` — starts an image, text-to-video, or image-to-video project
 - `GET /api/projects/:kind/:id` — proxies Magic Hour project status and downloads
 - `GET /api/account` — loads the connected account credit balance

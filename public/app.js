@@ -31,6 +31,9 @@ const state = {
   quality: '1k',
   duration: 5,
   audio: true,
+  model: 'default',
+  models: [],
+  modelsLoaded: false,
   connected: false,
   configLoaded: false,
   generating: false,
@@ -89,6 +92,111 @@ function formatCredits(value) {
   return Number.isFinite(number) ? new Intl.NumberFormat('en-US').format(number) : '—';
 }
 
+function defaultModelRecord() {
+  return {
+    id: 'default',
+    name: 'Magic Hour Default',
+    availableFor: ['image', 'video'],
+    description: 'Magic Hour picks the current recommendation for your account.',
+    tools: ['Text to Image', 'Text to Video', 'Image to Video'],
+    resolutions: ['640px', '480p', '1k', '720p', '2k', '1080p', '4k'],
+    durations: [3, 4, 5, 6, 7, 8, 9, 10],
+    audio: true,
+    recommended: true,
+  };
+}
+
+function getActiveModel() {
+  return state.models.find((model) => model.id === state.model) || state.models.find((model) => model.id === 'default') || defaultModelRecord();
+}
+
+function modelIsAvailable(model) {
+  return Boolean(model?.availableFor?.includes(state.mediaType));
+}
+
+function modelRatios(model) {
+  if (state.mediaType === 'image') return ['1:1', '16:9', '9:16', '4:3'];
+  if (model?.id === 'sora-2') return ['16:9', '9:16'];
+  return ['16:9', '9:16', '1:1'];
+}
+
+function saveModelChoice() {
+  try { localStorage.setItem('magic-hour-model', state.model); } catch { /* Storage may be unavailable. */ }
+}
+
+function loadModelChoice() {
+  try {
+    const saved = localStorage.getItem('magic-hour-model');
+    if (saved) state.model = saved;
+  } catch { /* Storage may be unavailable. */ }
+}
+
+function saveModelCatalog() {
+  try { localStorage.setItem('magic-hour-model-catalog', JSON.stringify(state.models)); } catch { /* Storage may be unavailable. */ }
+}
+
+function loadStoredModelCatalog() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('magic-hour-model-catalog') || 'null');
+    return Array.isArray(saved) && saved.length ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+function updateModelDetails() {
+  const model = getActiveModel();
+  $('#model-description').textContent = model.description || 'Magic Hour model';
+  $('#model-count').textContent = `${Math.max(0, state.models.length - 1) || 26} models`;
+  const audioToggle = $('#audio-toggle');
+  const audioSupported = state.mediaType !== 'video' || model.audio !== false;
+  audioToggle.disabled = !audioSupported;
+  if (!audioSupported) {
+    state.audio = false;
+    audioToggle.classList.remove('is-on');
+    audioToggle.setAttribute('aria-checked', 'false');
+  }
+  if (state.mediaType === 'video' && audioSupported && !audioToggle.disabled) {
+    audioToggle.disabled = false;
+  }
+}
+
+function renderModelOptions() {
+  const select = $('#model-select');
+  if (!select) return;
+  const currentModel = getActiveModel();
+  const available = state.models.filter(modelIsAvailable);
+  const unavailable = state.models.filter((model) => !modelIsAvailable(model));
+  const availableOptions = available.map((model) => `<option value="${escapeHtml(model.id)}">${escapeHtml(model.name)}${model.recommended ? ' · recommended' : ''}</option>`).join('');
+  const unavailableOptions = unavailable.map((model) => `<option value="${escapeHtml(model.id)}" disabled>${escapeHtml(model.name)} · ${escapeHtml((model.tools || []).join(', '))}</option>`).join('');
+  select.innerHTML = `<optgroup label="Ready for ${state.mediaType === 'image' ? 'image generation' : 'video generation'}">${availableOptions}</optgroup>${unavailableOptions ? `<optgroup label="Other catalog models">${unavailableOptions}</optgroup>` : ''}`;
+  select.value = modelIsAvailable(currentModel) ? currentModel.id : (available[0]?.id || 'default');
+  if (select.value !== state.model) state.model = select.value;
+  updateModelDetails();
+}
+
+function refreshModelSettings() {
+  const model = getActiveModel();
+  const allowedQuality = (model.resolutions || []).filter((resolution) => state.mediaType === 'image' ? /^(640px|1k|2k|4k)$/.test(resolution) : /^(360p|480p|720p|1080p|4k)$/.test(resolution));
+  const quality = $('#quality');
+  const qualityOptions = allowedQuality.length ? allowedQuality : (state.mediaType === 'image' ? ['1k'] : ['720p']);
+  const qualityLabels = { '640px': '640px · Draft', '1k': '1K · Standard', '2k': '2K · Detailed', '4k': '4K · Cinematic', '360p': '360p · Quick', '480p': '480p · Quick', '720p': '720p · Standard', '1080p': '1080p · HD' };
+  if (!qualityOptions.includes(state.quality)) state.quality = qualityOptions.includes(state.mediaType === 'image' ? '1k' : '720p') ? (state.mediaType === 'image' ? '1k' : '720p') : qualityOptions[0];
+  quality.innerHTML = qualityOptions.map((value) => `<option value="${value}">${qualityLabels[value] || value}</option>`).join('');
+  quality.value = state.quality;
+
+  if (state.mediaType === 'video') {
+    const durationSelect = $('#duration');
+    const durations = model.durations?.length ? model.durations : [5];
+    if (!durations.includes(state.duration)) state.duration = durations.reduce((closest, value) => Math.abs(value - state.duration) < Math.abs(closest - state.duration) ? value : closest, durations[0]);
+    durationSelect.innerHTML = durations.map((value) => `<option value="${value}">${value} second${value === 1 ? '' : 's'}</option>`).join('');
+    durationSelect.value = String(state.duration);
+  }
+  const validRatios = modelRatios(model);
+  if (!validRatios.includes(state.ratio)) updateRatio(validRatios[0]);
+  setPreviewTypeLabel();
+}
+
 let toastTimer;
 function showToast(message, type = 'success') {
   const toast = $('#toast');
@@ -122,16 +230,6 @@ function updateRatio(ratio) {
   });
 }
 
-function renderQualityOptions() {
-  const quality = $('#quality');
-  const options = state.mediaType === 'image'
-    ? [['1k', '1K · Standard'], ['2k', '2K · Detailed'], ['auto', 'Auto']]
-    : [['720p', '720p · Standard'], ['1080p', '1080p · HD'], ['4k', '4K · Cinematic']];
-  quality.innerHTML = options.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
-  if (!options.some(([value]) => value === state.quality)) state.quality = options[0][0];
-  quality.value = state.quality;
-}
-
 function setPreviewTypeLabel() {
   $('#preview-type').textContent = state.mediaType === 'image' ? 'Image preview' : 'Video preview';
   $('#preview-resolution').textContent = state.mediaType === 'image' ? ratioMeta[state.ratio].resolution : `${state.duration}s · ${state.quality}`;
@@ -157,8 +255,10 @@ function updateMediaUI() {
   $('#generate-label').textContent = isVideo ? 'Generate video' : 'Generate image';
   $('#cost-value').textContent = isVideo ? '450' : '5';
   $('#preview-footer-copy').textContent = isVideo ? 'A moving moment, ready when you are.' : 'A quiet place to grow wild ideas.';
-  renderQualityOptions();
-  setPreviewTypeLabel();
+  if (!state.models.length) state.models = [defaultModelRecord()];
+  renderModelOptions();
+  refreshModelSettings();
+  updateModelDetails();
 }
 
 function setMediaType(type) {
@@ -346,6 +446,27 @@ function updateConnectionUI() {
   }
 }
 
+async function loadModels() {
+  const status = $('.model-catalog-status');
+  status?.classList.add('is-loading');
+  try {
+    const response = await fetch('/api/models');
+    const payload = await response.json();
+    if (!response.ok || !Array.isArray(payload.models) || !payload.models.length) throw new Error('Model catalog unavailable');
+    state.models = payload.models;
+    saveModelCatalog();
+    loadModelChoice();
+  } catch {
+    state.models = loadStoredModelCatalog() || [defaultModelRecord()];
+  } finally {
+    state.modelsLoaded = true;
+    status?.classList.remove('is-loading');
+    renderModelOptions();
+    refreshModelSettings();
+    updateModelDetails();
+  }
+}
+
 async function loadConnection() {
   try {
     const response = await fetch('/api/config');
@@ -425,6 +546,7 @@ function demoProject(payload) {
     id: `demo-${Date.now()}`,
     kind: payload.mediaType,
     source: payload.source,
+    model: payload.model,
     prompt: payload.prompt,
     title: titleFromPrompt(payload.prompt),
     status: 'complete',
@@ -454,6 +576,7 @@ async function handleGenerate(event) {
     kind: state.mediaType,
     mediaType: state.mediaType,
     source: state.source,
+    model: state.model,
     prompt,
     aspectRatio: state.ratio,
     resolution: state.quality,
@@ -482,6 +605,7 @@ async function handleGenerate(event) {
       id: result.id,
       kind: state.mediaType,
       source: state.source,
+      model: result.model || state.model,
       prompt,
       title: titleFromPrompt(prompt),
       status: 'queued',
@@ -542,6 +666,8 @@ function resetControls() {
   state.quality = '1k';
   state.duration = 5;
   state.audio = true;
+  state.model = 'default';
+  saveModelChoice();
   removeFile();
   $('#prompt').value = defaultPrompt;
   $('#duration').value = '5';
@@ -579,6 +705,13 @@ function bindEvents() {
   $$('.media-toggle-button').forEach((button) => button.addEventListener('click', () => setMediaType(button.dataset.mediaType)));
   $$('.source-button').forEach((button) => button.addEventListener('click', () => setSource(button.dataset.source)));
   $$('.ratio-button').forEach((button) => button.addEventListener('click', () => updateRatio(button.dataset.ratio)));
+  $('#model-select').addEventListener('change', (event) => {
+    state.model = event.target.value || 'default';
+    saveModelChoice();
+    refreshModelSettings();
+    updateModelDetails();
+    showToast(`${getActiveModel().name} selected.`);
+  });
   $('#quality').addEventListener('change', (event) => { state.quality = event.target.value; setPreviewTypeLabel(); });
   $('#duration').addEventListener('change', (event) => { state.duration = Number(event.target.value); setPreviewTypeLabel(); });
   $('#audio-toggle').addEventListener('click', () => {
@@ -652,13 +785,15 @@ function bindEvents() {
 
 function init() {
   readStoredProjects();
+  loadModelChoice();
+  state.models = loadStoredModelCatalog() || [];
   $('#recent-count').textContent = String(4 + state.projects.length);
   bindEvents();
   updatePromptCount();
   updateMediaUI();
   updateRatio('1:1');
   renderLibrary();
-  setTimeout(loadConnection, 40);
+  setTimeout(() => { loadModels(); loadConnection(); }, 40);
 }
 
 init();
