@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Catoosa County Public Schools · Interactive Calendar 2026–2028</title>
+  <meta name="description" content="Animated, interactive 2026-2027 and 2027-2028 student calendars for Catoosa County Public Schools (Ringgold, GA): breaks, holidays, early release days, countdowns and more." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span>
+  </div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="crest" aria-hidden="true">CC</div>
+      <div>
+        <p class="eyebrow">Catoosa County Public Schools</p>
+        <h1>Interactive School Calendar</h1>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <span class="sun">☀️</span><span class="moon">🌙</span>
+      </button>
+      <button class="icon-btn" id="printBtn" aria-label="Print calendar" title="Print">🖨️</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Year switch -->
+    <section class="year-switch reveal" aria-label="Choose school year">
+      <div class="segmented" role="tablist" id="yearTabs">
+        <span class="pill" aria-hidden="true"></span>
+        <button role="tab" data-year="2026-2027">2026 – 2027</button>
+        <button role="tab" data-year="2027-2028">2027 – 2028</button>
+      </div>
+    </section>
+
+    <!-- Hero dashboard -->
+    <section class="hero" id="hero">
+      <article class="card countdown-card reveal">
+        <p class="card-label" id="cdLabel">Next up</p>
+        <h2 class="cd-title"><span id="cdEmoji">🎉</span> <span id="cdTitle">—</span></h2>
+        <p class="cd-date" id="cdDate">—</p>
+        <div class="cd-grid" id="cdGrid">
+          <div><b data-unit="d">0</b><span>days</span></div>
+          <div><b data-unit="h">0</b><span>hours</span></div>
+          <div><b data-unit="m">0</b><span>mins</span></div>
+          <div><b data-unit="s">0</b><span>secs</span></div>
+        </div>
+      </article>
+
+      <article class="card progress-card reveal">
+        <p class="card-label">School year progress</p>
+        <div class="ring-wrap">
+          <svg viewBox="0 0 120 120" class="ring">
+            <circle cx="60" cy="60" r="52" class="ring-bg" />
+            <circle cx="60" cy="60" r="52" class="ring-fg" id="ringFg" />
+          </svg>
+          <div class="ring-center">
+            <b id="ringPct">0%</b>
+            <span id="ringSub">complete</span>
+          </div>
+        </div>
+        <p class="ring-note" id="ringNote">—</p>
+      </article>
+
+      <article class="card stats-card reveal">
+        <p class="card-label">At a glance</p>
+        <ul class="stats">
+          <li><span class="stat-ico">🎒</span><div><small>First day</small><b id="stFirst">—</b></div></li>
+          <li><span class="stat-ico">🎓</span><div><small>Last day</small><b id="stLast">—</b></div></li>
+          <li><span class="stat-ico">📚</span><div><small>Student days</small><b class="count" id="stDays">0</b></div></li>
+          <li><span class="stat-ico">🏖️</span><div><small>Weekdays off</small><b class="count" id="stOff">0</b></div></li>
+          <li><span class="stat-ico">⏰</span><div><small>Early releases</small><b class="count" id="stEarly">0</b></div></li>
+        </ul>
+      </article>
+    </section>
+
+    <!-- Toolbar -->
+    <section class="toolbar reveal">
+      <div class="legend" id="legend" aria-label="Filter by type">
+        <button class="chip" data-type="milestone"><i></i>First / Last Day</button>
+        <button class="chip" data-type="break"><i></i>Break</button>
+        <button class="chip" data-type="holiday"><i></i>Holiday</button>
+        <button class="chip" data-type="inservice"><i></i>Student Holiday / In-Service</button>
+        <button class="chip" data-type="early"><i></i>Early Release</button>
+        <button class="chip" data-type="today"><i></i>Today</button>
+      </div>
+      <div class="view-toggle segmented small" role="tablist" id="viewTabs">
+        <span class="pill" aria-hidden="true"></span>
+        <button role="tab" data-view="grid">📅 Months</button>
+        <button role="tab" data-view="timeline">🧭 Timeline</button>
+      </div>
+    </section>
+
+    <!-- Calendar views -->
+    <section class="views">
+      <div id="gridView" class="months"></div>
+      <ol id="timelineView" class="timeline" hidden></ol>
+    </section>
+
+    <!-- Breaks at a glance -->
+    <section class="section reveal">
+      <div class="section-head">
+        <h2>Breaks at a glance</h2>
+        <p>Total consecutive days off, weekends included.</p>
+      </div>
+      <div class="breaks" id="breaks"></div>
+    </section>
+
+    <!-- Checker + export -->
+    <section class="section two-col">
+      <article class="card checker reveal">
+        <h2>Is there school on…?</h2>
+        <p class="muted">Pick any date to find out instantly.</p>
+        <div class="checker-row">
+          <input type="date" id="checkDate" min="2026-07-01" max="2028-06-30" />
+          <button class="btn" id="checkBtn">Check</button>
+        </div>
+        <div class="checker-result" id="checkResult" aria-live="polite"></div>
+      </article>
+
+      <article class="card export reveal">
+        <h2>Take it with you</h2>
+        <p class="muted">Add every holiday, break and early release to Google, Apple or Outlook calendar.</p>
+        <div class="export-btns">
+          <button class="btn" id="icsBtn">⬇️ Download .ics for <span id="icsYear">—</span></button>
+          <a class="btn ghost" id="pdfLink" target="_blank" rel="noopener">📄 Official PDF</a>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>
+      Dates from the official Catoosa County School System 2026–2027 and 2027–2028 calendars, adopted by the
+      Board of Education on December 2, 2025. The calendar may change due to conditions beyond the district's control,
+      as specified in state law. Always confirm with
+      <a href="https://www.catoosa.k12.ga.us/district-calendars" target="_blank" rel="noopener">catoosa.k12.ga.us</a>.
+    </p>
+    <p class="muted">Unofficial interactive version · Student day counts are calculated from the published calendar.</p>
+  </footer>
+
+  <!-- Day detail drawer -->
+  <div class="scrim" id="scrim" hidden></div>
+  <aside class="drawer" id="drawer" aria-hidden="true" aria-labelledby="dwTitle" role="dialog">
+    <button class="icon-btn close" id="dwClose" aria-label="Close">✕</button>
+    <div class="dw-badge" id="dwBadge">📅</div>
+    <p class="eyebrow" id="dwDow">—</p>
+    <h3 id="dwTitle">—</h3>
+    <p class="dw-status" id="dwStatus">—</p>
+    <div class="dw-events" id="dwEvents"></div>
+    <div class="dw-meta" id="dwMeta"></div>
+    <div class="dw-nav">
+      <button class="btn ghost" id="dwPrev">← Prev day</button>
+      <button class="btn ghost" id="dwNext">Next day →</button>
+    </div>
+  </aside>
+
+  <div class="tooltip" id="tooltip" role="tooltip"></div>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
