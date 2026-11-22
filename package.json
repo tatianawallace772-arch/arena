@@ -1,0 +1,32 @@
+{
+  "name": "arena-code-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal AI coding agent powered by Inception Labs Mercury — with a real Linux terminal, file editor and git control.",
+  "main": "server/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "bash test/run-all.sh",
+    "test:backend": "node test/smoke.js",
+    "test:ui": "node test/ui.js",
+    "mock-api": "node test/mock-inception.js 4010"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/addon-web-links": "^0.12.0",
+    "@xterm/xterm": "^6.0.0",
+    "express": "^4.22.1",
+    "marked": "^18.2.1",
+    "monaco-editor": "^0.57.0",
+    "node-pty": "^1.1.0",
+    "ws": "^8.23.0"
+  },
+  "devDependencies": {
+    "jsdom": "^31.0.1"
+  }
+}
