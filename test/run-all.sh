@@ -29,6 +29,9 @@ done
 step "Backend + terminal tests"
 node test/smoke.js || fail=1
 
+step "Connectivity diagnostics"
+node test/diagnostics.js || fail=1
+
 step "UI boot tests"
 node test/ui.js || fail=1
 

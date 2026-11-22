@@ -269,7 +269,12 @@ class AgentSession extends EventEmitter {
               ? 'Inception Labs rejected the API key (401). Check INCEPTION_API_KEY in .env.'
               : `${err.message}${err.body ? ` — ${String(err.body).slice(0, 300)}` : ''}`
             : err.message;
-        this.emitEvent('error', { message });
+        this.emitEvent('error', {
+          message,
+          detail: err.detail || null,
+          hint: err.hint || null,
+          code: err.code === 'NETWORK' ? 'NETWORK' : undefined,
+        });
         this.emitEvent('turn_end', { error: true, steps: step, durationMs: Date.now() - turnStart });
       }
     } finally {

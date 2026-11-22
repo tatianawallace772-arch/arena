@@ -56,6 +56,22 @@ function wsTerminal() {
     assert.ok(json.model);
   });
 
+  await test('health exposes API reachability state', async () => {
+    const res = await fetch(`${base}/api/health`);
+    const json = await res.json();
+    assert.ok('apiReachable' in json, 'health should report apiReachable');
+    assert.ok('baseUrl' in json, 'health should report the base url');
+  });
+
+  await test('diagnostics endpoint returns a staged report', async () => {
+    const res = await fetch(`${base}/api/diagnostics?timeoutMs=6000`);
+    const json = await res.json();
+    assert.ok(Array.isArray(json.checks));
+    assert.ok(json.checks.some((c) => c.stage === 'dns'));
+    assert.ok(typeof json.headline === 'string');
+    assert.ok([true, false].includes(json.ok));
+  });
+
   await test('file listing returns the project tree', async () => {
     const res = await fetch(`${base}/api/files?depth=2`);
     const json = await res.json();

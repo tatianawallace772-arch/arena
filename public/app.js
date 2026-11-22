@@ -860,6 +860,66 @@ function approvalCard({ approvalId, tool, args }) {
   scrollToBottom();
 }
 
+/* ── Connectivity diagnostics ───────────────────────────────── */
+const STAGE_LABELS = {
+  dns: 'DNS resolution',
+  tcp: 'TCP connection',
+  tls: 'TLS handshake',
+  http: 'HTTP response',
+  auth: 'API key accepted',
+  model: 'Models available',
+  ok: 'Connected',
+  unknown: 'Connectivity',
+};
+
+async function runDiagnostics({ auto = false } = {}) {
+  const card = document.createElement('div');
+  card.className = 'diag-card';
+  card.innerHTML = `<div class="diag-head"><span class="spinner"></span> Checking the connection to Inception Labs…</div>`;
+  messagesEl.appendChild(card);
+  scrollToBottom();
+
+  let result;
+  try {
+    result = await api('/api/diagnostics');
+  } catch (err) {
+    card.innerHTML = `<div class="diag-head" style="color:var(--red)">Could not run diagnostics: ${escapeHtml(
+      err.message
+    )}</div>`;
+    return;
+  }
+
+  const rows = (result.checks || [])
+    .map((c) => {
+      const icon = c.ok ? '✓' : '✗';
+      const cls = c.ok ? 'ok' : 'err';
+      const detail = c.detail ? `<span class="diag-detail">${escapeHtml(c.detail)}</span>` : '';
+      return `<div class="diag-row"><span class="dot ${cls}"></span><span class="diag-stage">${escapeHtml(
+        STAGE_LABELS[c.stage] || c.stage
+      )}</span>${detail}</div>`;
+    })
+    .join('');
+
+  card.innerHTML = `
+    <div class="diag-head ${result.ok ? 'ok' : 'err'}">
+      ${result.ok ? '✓' : '✗'} ${escapeHtml(result.headline || 'Diagnosis complete')}
+    </div>
+    <div class="diag-rows">${rows}</div>
+    ${
+      result.ok
+        ? `<div class="diag-action">Models available: ${escapeHtml(
+            (result.models || []).slice(0, 6).join(', ') || '—'
+          )}</div>`
+        : `<div class="diag-action"><strong>How to fix:</strong> ${escapeHtml(result.action || '')}</div>
+           <div class="diag-meta">base url ${escapeHtml(result.baseUrl || '')}${
+            result.error ? ` · error ${escapeHtml(result.error)}` : ''
+          }</div>`
+    }
+  `;
+  scrollToBottom();
+  return result;
+}
+
 /* ── Agent socket ───────────────────────────────────────────── */
 function setConnection(mode) {
   const el = $('#connStatus');
@@ -982,12 +1042,24 @@ function handleAgentEvent(evt) {
       // The agent signalled completion; show its summary as the final answer.
       break;
 
-    case 'error':
+    case 'error': {
       hideThinking();
-      addAgentBlock(`<p style="color:var(--red)">⚠ ${escapeHtml(evt.message)}</p>`);
+      const isNetwork = /could not reach|fetch failed|network|unreachable/i.test(evt.message || '');
+      addAgentBlock(
+        `<p style="color:var(--red)">⚠ ${escapeHtml(evt.message)}</p>` +
+          (isNetwork
+            ? `<p style="color:var(--text-dim);font-size:12px">Your machine could not complete a request to the Inception Labs API.${
+                evt.detail ? ` <code>${escapeHtml(evt.detail)}</code>` : ''
+              }</p>
+               <button class="btn sm" data-action="diagnose">Diagnose connection</button>`
+            : '')
+      );
+      const btn = messagesEl.querySelector('[data-action="diagnose"]');
+      btn?.addEventListener('click', () => runDiagnostics());
       toast(evt.message, 'error');
       setRunning(false);
       break;
+    }
 
     case 'turn_end':
       hideThinking();
@@ -1140,6 +1212,18 @@ async function boot() {
     if (params.get('token')) localStorage.setItem('agent.token', params.get('token'));
 
     const health = await api('/api/health');
+    if (health.hasApiKey && health.apiReachable === false) {
+      // The server already probed on boot — surface it with one click to retry.
+      const warn = document.createElement('div');
+      warn.className = 'msg agent';
+      warn.innerHTML = `<div class="avatar">◆</div><div class="bubble"><div class="content">
+        <p style="color:var(--amber)">⚠ The Inception Labs API is not reachable from the machine running this server.</p>
+        <p style="color:var(--text-dim);font-size:12px">Sending a message will fail until that is fixed.</p>
+        <button class="btn sm" data-action="diagnose-boot">Diagnose connection</button>
+      </div></div></div>`;
+      messagesEl.appendChild(warn);
+      warn.querySelector('[data-action="diagnose-boot"]').addEventListener('click', () => runDiagnostics());
+    }
     if (!health.hasApiKey) {
       addAgentBlock(
         `<p style="color:var(--amber)">⚠ No Inception Labs API key configured.</p>
@@ -1183,6 +1267,7 @@ window.__arena = {
   openFile,
   refreshGit,
   loadTree,
+  runDiagnostics,
 };
 
 window.addEventListener('beforeunload', () => {

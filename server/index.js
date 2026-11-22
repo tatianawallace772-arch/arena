@@ -11,6 +11,7 @@ const inception = require('./inception');
 const wsfs = require('./workspace');
 const git = require('./git');
 const terminal = require('./terminal');
+const diagnostics = require('./diagnostics');
 
 const app = express();
 app.disable('x-powered-by');
@@ -64,16 +65,74 @@ const asyncRoute = (fn) => (req, res) => {
 };
 
 // ── REST API ───────────────────────────────────────────────────────────────
+let reachability = {
+  checkedAt: 0,
+  ok: null, // unknown until probed
+  stage: null,
+  headline: null,
+  action: null,
+};
+
+/** Probe the Inception API, caching the result briefly so /health stays fast. */
+async function refreshReachability({ force = false, timeoutMs = 8000 } = {}) {
+  const age = Date.now() - reachability.checkedAt;
+  if (!force && reachability.checkedAt && age < 60_000) return reachability;
+  try {
+    const result = await diagnostics.diagnose({
+      baseUrl: config.inception.baseUrl,
+      apiKey: config.inception.apiKey,
+      timeoutMs,
+    });
+    reachability = {
+      checkedAt: Date.now(),
+      ok: result.ok,
+      stage: result.stage,
+      headline: result.headline,
+      action: result.action,
+      detail: result,
+    };
+  } catch (err) {
+    reachability = {
+      checkedAt: Date.now(),
+      ok: false,
+      stage: 'unknown',
+      headline: err.message,
+      action: 'Diagnostics failed to run.',
+    };
+  }
+  return reachability;
+}
+
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     workspace: config.workspaceRoot,
     model: config.inception.model,
     hasApiKey: !!config.inception.apiKey,
+    baseUrl: config.inception.baseUrl,
+    apiReachable: reachability.ok, // null = not probed yet
     approvalRequired: false,
     version: require('../package.json').version,
   });
 });
+
+/** Staged connectivity diagnosis: DNS → TCP → TLS → HTTP → auth → models. */
+app.get('/api/diagnostics', asyncRoute(async (req, res) => {
+  const result = await diagnostics.diagnose({
+    baseUrl: config.inception.baseUrl,
+    apiKey: config.inception.apiKey,
+    timeoutMs: Number(req.query.timeoutMs) || 12000,
+  });
+  reachability = {
+    checkedAt: Date.now(),
+    ok: result.ok,
+    stage: result.stage,
+    headline: result.headline,
+    action: result.action,
+    detail: result,
+  };
+  res.json(result);
+}));
 
 const FALLBACK_MODELS = [
   { id: 'mercury-3', label: 'Mercury 3' },
@@ -362,6 +421,16 @@ function handleAgent(socket, url) {
 
   socket.on('close', () => agent.off('event', onEvent));
 }
+
+// Probe the API once at startup and report the outcome in the banner.
+refreshReachability().then((r) => {
+  if (r.ok) {
+    console.log('   api reach   ok');
+  } else {
+    console.log(`   api reach   UNREACHABLE (${r.stage}): ${r.headline}`);
+    console.log('               run: npm run doctor  — for the full staged diagnosis');
+  }
+});
 
 server.listen(config.port, config.host, () => {
   const banner = [

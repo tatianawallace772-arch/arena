@@ -126,6 +126,22 @@ const BASE = 'http://127.0.0.1:3000';
   check('markdown strips scripts and handlers',
     !/onerror|<script/i.test(evil), evil);
 
+  // The diagnostics card should render the staged result.
+  const diagPromise = window.__arena.runDiagnostics();
+  await new Promise((r) => setTimeout(r, 1500));
+  await diagPromise;
+  const diag = doc.querySelector('.diag-card');
+  check('diagnostics card rendered', !!diag);
+  check('diagnostics lists connection stages',
+    doc.querySelectorAll('.diag-card .diag-row').length >= 4,
+    `rows=${doc.querySelectorAll('.diag-card .diag-row').length}`);
+  check('diagnostics names the failing stage',
+    /TLS handshake|DNS resolution|TCP connection/.test(diag?.textContent || ''),
+    (diag?.textContent || '').slice(0, 120));
+  check('diagnostics offers a fix',
+    /How to fix|Models available/.test(diag?.textContent || ''),
+    (diag?.textContent || '').slice(0, 120));
+
   let failed = 0;
   console.log('\nUI boot test\n');
   for (const r of results) {

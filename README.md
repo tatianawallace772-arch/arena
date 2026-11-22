@@ -138,6 +138,8 @@ trust, not as a public sandbox for untrusted users.
 ```
 server/
   index.js      Express REST API + two WebSocket endpoints (/ws/agent, /ws/terminal)
+  diagnostics.js Staged connectivity checks: DNS → TCP → TLS → HTTP → auth → models
+  doctor.js     `npm run doctor` — the same checks as a CLI report
   agent.js      The agent loop: stream → tool calls → results → repeat
   inception.js  Inception Labs client: SSE streaming, tool-call assembly, retries
   tools.js      18 tool definitions + implementations
@@ -155,6 +157,7 @@ test/
   mock-inception.js A fake streaming Inception API for offline testing
   agent-e2e.js      Full agent loop against the mock (17 assertions)
   approval.js       Approval gating in "ask" mode (7 assertions)
+  diagnostics.js    Connectivity stages, error messages, working-API round trip
   run-all.sh        Runs everything
 ```
 
@@ -184,8 +187,9 @@ npm test
 ```
 
 ```
-17 passed   backend: REST, sandbox escapes, real PTY command execution
-15 passed   UI: client boots, tree/git/chat render, XSS stripped from markdown
+19 passed   backend: REST, sandbox escapes, real PTY command execution
+11 passed   diagnostics: staged DNS/TCP/TLS/HTTP reporting, error messages
+19 passed   UI: client boots, tree/git/chat render, XSS stripped, diag card
 17 passed   agent loop: streaming, tool calls, real file writes, git tools
  7 passed   approval gate: risky tools pause, denials reach the model
 ```
@@ -203,7 +207,8 @@ Beyond the UI, the server exposes a small REST API (all under `/api`):
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/health` | Status, workspace, model, whether a key is configured |
+| `GET` | `/health` | Status, workspace, model, key present, API reachable |
+| `GET` | `/diagnostics` | Staged connectivity report: DNS → TCP → TLS → HTTP → auth → models |
 | `GET` | `/models` | Live model list from Inception |
 | `GET` | `/files?path&depth` | Directory listing |
 | `GET`/`PUT`/`POST`/`DELETE` | `/file` | Read, write, create, delete |
@@ -220,6 +225,60 @@ WebSocket `/ws/agent` speaks JSON: `chat`, `abort`, `approval`, `reset`,
 ---
 
 ## Troubleshooting
+
+### "Could not reach Inception Labs"
+
+Run the built-in connectivity check — it walks the connection one stage at a time
+and tells you exactly where it breaks:
+
+```bash
+npm run doctor
+```
+
+```
+Inception Labs connectivity check
+  base url   https://api.inceptionlabs.ai/v1
+  api key    set (…b0ec)
+
+  ✓ DNS resolution   12 address(es): 3.163.175.77 (IPv4), …
+  ✓ TCP connection
+  ✗ TLS handshake
+  ✗ HTTP response
+
+✗ The connection to api.inceptionlabs.ai was reset during setup
+  What to do: The TCP connection opened but something reset it before/while the
+  TLS handshake completed. That pattern is almost always an egress firewall or
+  proxy allowlisting specific hosts …
+  error code: ECONNRESET
+```
+
+The same report is available in the browser (**Diagnose connection** appears on
+any network error, and at startup if the API is known to be unreachable) and over
+HTTP at `GET /api/diagnostics`.
+
+**What each stage means**
+
+| Stage that fails | Meaning | Fix |
+| --- | --- | --- |
+| DNS | The hostname does not resolve | Check DNS and `INCEPTION_BASE_URL` |
+| TCP | Nothing answers on the port | Firewall; or nothing is listening |
+| TLS | TCP opened, then reset during the handshake | **Egress allowlist / firewall / VPN** — allowlist `api.inceptionlabs.ai` |
+| HTTP | Connected, but got an error status | Base URL path, or API outage |
+| API key | 401/403/402 from the API | Wrong/revoked key, or inactive billing |
+
+A **TLS-stage reset with a working TCP connection** is the signature of an egress
+allowlist: the packet is dropped rather than answered, which is why the error
+surfaces as a bare `ECONNRESET` / `fetch failed`. Compare against a host that is
+known to work:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://api.inceptionlabs.ai/
+curl -s -o /dev/null -w '%{http_code}\n' https://registry.npmjs.org/
+```
+
+If the second prints `200` and the first prints `000`, the network — not the app —
+is blocking Inception. Run the agent somewhere with unrestricted outbound HTTPS,
+or allowlist the host.
 
 **"No Inception Labs API key configured"** — add `INCEPTION_API_KEY` to `.env` and
 restart.

@@ -12,6 +12,47 @@ class InceptionError extends Error {
   }
 }
 
+/**
+ * Turn an opaque "fetch failed" into something that names the real cause.
+ * Node puts the useful part on err.cause; without this the user only ever
+ * sees the words "fetch failed".
+ */
+function networkError(err) {
+  const cause = err && err.cause;
+  const code = (cause && (cause.code || cause.errno)) || err.code || '';
+  const host = (() => {
+    try {
+      return new URL(config.inception.baseUrl).hostname;
+    } catch {
+      return config.inception.baseUrl;
+    }
+  })();
+
+  let detail;
+  if (code === 'ECONNRESET' || code === 'EPIPE' || code === 'ECONNABORTED') {
+    detail =
+      `the connection to ${host} was reset before/while the TLS handshake finished. ` +
+      'DNS and routing worked, so a firewall, VPN or egress allowlist is almost certainly ' +
+      `blocking outbound HTTPS to ${host}`;
+  } else if (code === 'ETIMEDOUT' || code === 'ETIMEDOUT') {
+    detail = `the connection to ${host} timed out — traffic is being dropped by a firewall or proxy`;
+  } else if (code === 'ENOTFOUND' || code === 'EAI_AGAIN') {
+    detail = `${host} could not be resolved. Check DNS and INCEPTION_BASE_URL`;
+  } else if (code === 'ECONNREFUSED') {
+    detail = `${host} refused the connection — nothing is listening, or a local proxy rejected it`;
+  } else if (code === 'CERT_HAS_EXPIRED' || /CERT|SELF_SIGNED/i.test(code)) {
+    detail = `TLS certificate problem talking to ${host} — something may be intercepting HTTPS`;
+  } else {
+    detail = cause?.message || err.message || 'unknown network error';
+  }
+
+  const message = `Could not reach Inception Labs: ${detail}`;
+  const wrapped = new InceptionError(message, { code: 'NETWORK' });
+  wrapped.detail = code || 'NETWORK';
+  wrapped.hint = 'Run `npm run doctor` (or click "Diagnose connection") for a staged check.';
+  return wrapped;
+}
+
 function authHeaders() {
   const key = config.inception.apiKey;
   if (!key) {
@@ -76,15 +117,10 @@ async function listModels() {
     try {
       res = await fetch(`${config.inception.baseUrl}/models`, { headers: authHeaders() });
     } catch (err) {
-      throw new InceptionError(`Could not reach Inception Labs: ${err.message}`, {
-        code: 'NETWORK',
-      });
+      throw networkError(err);
     }
     if (!res.ok) {
-      throw new InceptionError(`Model list failed (${res.status})`, {
-        status: res.status,
-        body: await res.text().catch(() => ''),
-      });
+      throw await describeFailure(res);
     }
     const json = await res.json();
     return json.data || json.models || [];
@@ -130,9 +166,7 @@ async function chat({ messages, tools, temperature, maxTokens, model, toolChoice
         body: JSON.stringify(payload),
       });
     } catch (err) {
-      throw new InceptionError(`Could not reach Inception Labs: ${err.message}`, {
-        code: 'NETWORK',
-      });
+      throw networkError(err);
     }
     if (!res.ok) {
       throw await describeFailure(res);
@@ -162,9 +196,7 @@ async function* chatStream({ messages, tools, temperature, maxTokens, model, sig
     });
   } catch (err) {
     if (err.name === 'AbortError') return;
-    throw new InceptionError(`Could not reach Inception Labs: ${err.message}`, {
-      code: 'NETWORK',
-    });
+    throw networkError(err);
   }
 
   if (!res.ok) {
