@@ -31,12 +31,12 @@
   var searchInput = document.querySelector('#site-search');
   var resultsBox = document.querySelector('.search-results');
   var SEARCH_INDEX = [
-    {title:'Home — Dubuntu 26.04 LTS', url:'index.html', desc:'Download, features and editions'},
-    {title:'Download Dubuntu', url:'download.html', desc:'ISOs, checksums, mirrors and system requirements'},
-    {title:'Desktop', url:'desktop.html', desc:'GNOME, Dub Shell, terminal and software'},
-    {title:'Server & Cloud', url:'server.html', desc:'Server, WSL, ARM and cloud images'},
-    {title:'Community', url:'community.html', desc:'Contribute, forums, roadmap and support'},
-    {title:'FAQ', url:'index.html#faq', desc:'Is Dubuntu official? Is it free? How do I install?'}
+    {title:'Home — Dubuntu 26.04 LTS', url:'/', desc:'Download, features and editions'},
+    {title:'Download Dubuntu', url:'/download', desc:'ISOs, checksums, mirrors and system requirements'},
+    {title:'Desktop', url:'/desktop', desc:'GNOME, Dub Shell, terminal and software'},
+    {title:'Server & Cloud', url:'/server', desc:'Server, WSL, ARM and cloud images'},
+    {title:'Community', url:'/community', desc:'Contribute, forums, roadmap and support'},
+    {title:'FAQ', url:'/#faq', desc:'Is Dubuntu official? Is it free? How do I install?'}
   ];
   function renderResults(q){
     if(!resultsBox) return;
