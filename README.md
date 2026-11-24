@@ -6,7 +6,7 @@
 
 ## What’s here
 
-A fast, dependency-free static site (no build step) modelled on the ubuntu.com layout — black header, hero, editions, desktop tour, server strip, releases table, community and FAQ — with Dubuntu branding and interactive tools.
+A fast, dependency-free static site modelled on the ubuntu.com layout — black header, hero, editions, desktop tour, server strip, releases table, community and FAQ — with Dubuntu branding and interactive tools.
 
 | Page | Purpose |
 |------|---------|
@@ -22,33 +22,49 @@ Assets live in `assets/css/style.css`, `assets/js/app.js`, `assets/img/`.
 ## Run locally
 
 ```bash
-python3 -m http.server 8000
+python3 dev-server.py 8000
 # open http://localhost:8000
 ```
 
-No npm, no build. Edit HTML/CSS/JS and refresh.
+`dev-server.py` reproduces Vercel's clean-URL behaviour, so `/download` serves
+`download.html` just like production. There is no npm install and no build step:
+edit HTML/CSS/JS and refresh.
 
-## Deploy to dubuntu.org (Vercel)
+## Deployment status
 
-This repo is Vercel-ready (`vercel.json` included). Two paths:
+| Item | Value |
+|------|-------|
+| Vercel project | `dubuntu` (`prj_mHuGbWarPpqSG6eDU0nfwMwy29lM`, team `team_3t47LYzr7LJyUXTd99Tr7Lqq`) |
+| Connected repo | `tatianawallace772-arch/arena`, production domain target `dubuntu.org` |
+| Production build | framework preset `eleventy`, but the build command is only a copy — the site itself still has no build step |
+| Build command | `mkdir -p dist && cp *.html robots.txt sitemap.xml dist/ && cp -r assets dist/` |
+| Output directory | `dist` (git-ignored) |
+| Install command | `echo no-install-needed` |
+| Domains attached | `dubuntu.org` (serve) and `www.dubuntu.org` (308 → `dubuntu.org`) |
 
-### Option A — Vercel Git integration (recommended)
+### DNS records still needed at the registrar
 
-1. Push this repo to GitHub.
-2. In Vercel: **Add New → Project → Import** this repo. Framework preset: **Other** (no build command, output directory: `.`).
-3. Add the custom domain **dubuntu.org** in Project → Settings → Domains.
-4. At your DNS registrar, add the records Vercel shows (typically):
-   - `A` `@` → `76.76.21.21`
-   - `CNAME` `www` → `cname.vercel-dns.com`
-5. Wait for DNS to propagate — Vercel issues the TLS certificate automatically.
+The domain is registered with **OVH** (nameservers `dns200.anycast.me` /
+`ns200.anycast.me`) and currently points at `54.38.92.132`, so Vercel still
+reports the domain as *misconfigured*. In the OVH DNS zone for `dubuntu.org`:
 
-### Option B — Vercel CLI
+| Type | Name | Value |
+|------|------|-------|
+| `A` | `@` | `216.198.79.1` |
+| `A` | `@` | `64.29.17.1` |
+| `CNAME` | `www` | `d22fa11e1cacfad8.vercel-dns-017.com.` |
 
-```bash
-npm i -g vercel
-vercel --prod
-vercel domains add dubuntu.org
-```
+(The older single-record alternative still works: `A @ 76.76.21.21` and
+`CNAME www cname.vercel-dns.com.`) Remove the existing `A` record for
+`54.38.92.132`, then wait for propagation — Vercel issues the TLS certificate
+automatically once the records resolve. Progress is visible at
+Vercel → project `dubuntu` → Settings → Domains.
+
+### Deploying new changes
+
+This branch produces preview deployments on push. To publish a change to
+production either ask for a deploy, or run `vercel --prod` with the project's
+build settings above (or merge the branch into the repo's production branch).
 
 ## Interactive features
 
