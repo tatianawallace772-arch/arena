@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dubuntu Desktop — GNOME, Dub Shell &amp; Software | dubuntu.org</title>
+<meta name="description" content="Tour the Dubuntu Desktop: GNOME 48, Dub Shell, terminal, Dub Store, dark mode, accessibility and customisation.">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://dubuntu.org/desktop.html">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div class="disclaimer-bar"><strong>Unofficial project.</strong> Dubuntu is a community remix and is <strong>not affiliated with Canonical Ltd.</strong> Ubuntu is a trademark of Canonical Ltd. <a href="community.html#disclaimer">Learn more</a></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html"><img class="brand-mark" src="assets/img/logo.svg" alt="Dubuntu logo"><span>dubuntu<small>dubuntu.org</small></span></a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <nav class="main-nav" aria-label="Main"><a href="index.html">Home</a><a href="desktop.html" class="active">Desktop</a><a href="server.html">Server</a><a href="download.html">Download</a><a href="community.html">Community</a></nav>
+    <div class="header-actions"><button class="search-btn" aria-label="Search (Ctrl+K)">⌕</button><a class="btn btn--sm" href="download.html">Download</a></div>
+  </div>
+</header>
+<div class="search-overlay" role="dialog" aria-label="Search"><div class="search-box"><input id="site-search" type="search" placeholder="Search Dubuntu… (download, desktop, server)" autocomplete="off"><div class="search-results"></div><p style="color:#666;font-size:13px;margin:10px 0 0">Press Esc to close · Ctrl/⌘+K to open</p></div></div>
+
+<section class="page-hero">
+  <div class="wrap">
+    <p class="breadcrumb"><a href="index.html">Home</a> / Desktop</p>
+    <h1>The desktop that<br>stays out of your way</h1>
+    <p class="lead">GNOME 48 + Dub Shell. Fast, accessible, and easy to make your own — without the bloat.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><a class="btn" href="download.html">↓ Download Desktop</a><a class="btn btn--outline" href="index.html#faq">Desktop FAQ</a></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="grid-3">
+      <article class="card reveal"><div class="icon">🖥️</div><h3>GNOME 48</h3><p>Workspaces, fractional scaling, and system-wide dark mode. The familiar Ubuntu desktop, refined.</p></article>
+      <article class="card reveal"><div class="icon">🐚</div><h3>Dub Shell</h3><p>Our lightweight shell theme: a dock that auto-hides, a top bar that shows what matters, and a launcher that searches everything.</p></article>
+      <article class="card reveal"><div class="icon">♿</div><h3>Accessible by default</h3><p>Screen reader, magnifier, high-contrast, sticky keys and on-screen keyboard — no extra installs.</p></article>
+      <article class="card reveal"><div class="icon">🎵</div><h3>Media ready</h3><p>Codecs, drivers and the Dub Music app pre-installed. Play anything, out of the box.</p></article>
+      <article class="card reveal"><div class="icon">🔒</div><h3>Private by default</h3><p>No telemetry, no ads, no forced accounts. Your files stay yours.</p></article>
+      <article class="card reveal"><div class="icon">⚙️</div><h3>Easy to tweak</h3><p>GNOME Tweaks, Extensions, and <span class="mono">gsettings</span> — power users get full control.</p></article>
+    </div>
+
+    <div class="feature-split reveal" style="margin-top:48px">
+      <div>
+        <p class="kicker">Customise</p>
+        <h2>Make it yours in minutes</h2>
+        <p>Change the accent colour, dock position, and wallpaper with the Dub Settings app — or go deep with <span class="mono">gsettings</span> and shell extensions.</p>
+        <ul class="checklist">
+          <li><span class="tick">✓</span><span><b>Accent colours</b>: Dub Orange, Dub Green, Dub Gold, Aubergine.</span></li>
+          <li><span class="tick">✓</span><span><b>Wallpapers</b>: 12 community wallpapers, light + dark variants.</span></li>
+          <li><span class="tick">✓</span><span><b>Fonts</b>: Ubuntu + Ubuntu Mono, with Noto fallbacks for 100+ languages.</span></li>
+        </ul>
+      </div>
+      <div class="codeblock mono" id="code-desktop">
+        <button class="copy" data-copy="#code-desktop">Copy</button><span class="c"># Accent + dark mode in two lines</span><br>gsettings set org.gnome.desktop.interface color-scheme <span class="g">'prefer-dark'</span><br>gsettings set org.gnome.desktop.interface accent-color <span class="o">'orange'</span><br><br><span class="c"># Dock to the bottom, auto-hide</span><br>gsettings set org.gnome.shell.extensions.dash-to-dock dock-position <span class="g">'BOTTOM'</span><br>gsettings set org.gnome.shell.extensions.dash-to-dock autohide <span class="o">true</span>
+      </div>
+    </div>
+
+    <div class="reveal" style="margin-top:48px">
+      <p class="kicker">Included apps</p>
+      <h2>Everything you need, nothing you don’t</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Category</th><th>Apps</th><th>Notes</th></tr></thead>
+          <tbody>
+            <tr><td><b>Office</b></td><td>LibreOffice, Thunderbird, Calendar</td><td>Full suite, offline-first</td></tr>
+            <tr><td><b>Web</b></td><td>Firefox (ESR), Epiphany</td><td>Snaps, auto-updated</td></tr>
+            <tr><td><b>Media</b></td><td>Dub Music, Videos (Totem), Rhythmbox</td><td>Codecs included</td></tr>
+            <tr><td><b>Dev</b></td><td>GNOME Console, Text Editor, Builder</td><td>Flatpak-ready</td></tr>
+            <tr><td><b>Utilities</b></td><td>Files, Disks, Software, Settings</td><td>GNOME 48</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section section--aubergine">
+  <div class="wrap center reveal">
+    <h2 style="color:#fff">Try it live — no install needed</h2>
+    <p class="lead" style="color:rgba(255,255,255,.85)">Boot the USB, explore, and install only if you love it.</p>
+    <a class="btn btn--lg" href="download.html">↓ Get the Desktop ISO</a>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div><a class="brand" href="index.html"><img class="brand-mark" src="assets/img/logo.svg" alt=""> dubuntu</a><p style="color:rgba(255,255,255,.75);font-size:14px;max-width:32ch">Ubuntu, remixed. An unofficial community project at dubuntu.org.</p></div>
+      <div><h4>Product</h4><ul><li><a href="desktop.html">Desktop</a></li><li><a href="server.html">Server</a></li><li><a href="download.html">Download</a></li><li><a href="download.html#checker">System requirements</a></li></ul></div>
+      <div><h4>Community</h4><ul><li><a href="community.html">About</a></li><li><a href="community.html#contribute">Contribute</a></li><li><a href="community.html#roadmap">Roadmap</a></li><li><a href="community.html#support">Support</a></li></ul></div>
+      <div><h4>Resources</h4><ul><li><a href="download.html#verify">Verify checksum</a></li><li><a href="index.html#faq">FAQ</a></li><li><a href="community.html#disclaimer">Disclaimer</a></li></ul></div>
+      <div><h4>Project</h4><ul><li><a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></li><li><a href="community.html#support">Forum</a></li><li><a href="community.html#support">Bug reports</a></li></ul></div>
+    </div>
+    <div class="legal-note"><b>Disclaimer:</b> Dubuntu is an unofficial community remix. It is not affiliated with, endorsed by, or supported by Canonical Ltd. “Ubuntu” and the Ubuntu logo are registered trademarks of Canonical Ltd. This site is not an official Ubuntu site.</div>
+    <div class="footer-bottom"><span>© <span id="year">2026</span> Dubuntu Community · dubuntu.org</span><span><a href="index.html" style="color:#fff">Back to top ↑</a></span></div>
+  </div>
+</footer>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

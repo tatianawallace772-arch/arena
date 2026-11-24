@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dubuntu Server &amp; Cloud — LXD, Docker, WSL, ARM | dubuntu.org</title>
+<meta name="description" content="Dubuntu Server 26.04 LTS: hardened, cloud-ready, LXD and Docker friendly. Plus ARM64 and WSL editions.">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://dubuntu.org/server.html">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div class="disclaimer-bar"><strong>Unofficial project.</strong> Dubuntu is a community remix and is <strong>not affiliated with Canonical Ltd.</strong> Ubuntu is a trademark of Canonical Ltd. <a href="community.html#disclaimer">Learn more</a></div>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html"><img class="brand-mark" src="assets/img/logo.svg" alt="Dubuntu logo"><span>dubuntu<small>dubuntu.org</small></span></a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <nav class="main-nav" aria-label="Main"><a href="index.html">Home</a><a href="desktop.html">Desktop</a><a href="server.html" class="active">Server</a><a href="download.html">Download</a><a href="community.html">Community</a></nav>
+    <div class="header-actions"><button class="search-btn" aria-label="Search (Ctrl+K)">⌕</button><a class="btn btn--sm" href="download.html">Download</a></div>
+  </div>
+</header>
+<div class="search-overlay" role="dialog" aria-label="Search"><div class="search-box"><input id="site-search" type="search" placeholder="Search Dubuntu… (download, desktop, server)" autocomplete="off"><div class="search-results"></div><p style="color:#666;font-size:13px;margin:10px 0 0">Press Esc to close · Ctrl/⌘+K to open</p></div></div>
+
+<section class="page-hero">
+  <div class="wrap">
+    <p class="breadcrumb"><a href="index.html">Home</a> / Server</p>
+    <h1>Lean. Hardened.<br>Ready to ship.</h1>
+    <p class="lead">Dubuntu Server 26.04 LTS boots to a prompt in under 10 seconds — the same image for bare metal, cloud, and containers.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px"><a class="btn" href="download.html">↓ Download Server</a><a class="btn btn--outline" href="download.html#verify">Verify ISO</a></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="grid-4">
+      <article class="card reveal"><div class="icon">⚡</div><h3>&lt;10s boot</h3><p>Minimal server image, no snap bloat by default. Add only what you need.</p></article>
+      <article class="card reveal"><div class="icon">🐳</div><h3>Docker-ready</h3><p>Docker Engine and containerd pre-configured. <span class="mono">docker run</span> works on first boot.</p></article>
+      <article class="card reveal"><div class="icon">📦</div><h3>LXD containers</h3><p>System containers with <span class="mono">lxc</span> — near-native speed, snapshot rollback.</p></article>
+      <article class="card reveal"><div class="icon">☁️</div><h3>Cloud-init</h3><p>First-boot automation for AWS, Azure, GCP, and OpenStack. Same cloud-config everywhere.</p></article>
+    </div>
+
+    <div class="feature-split reveal" style="margin-top:48px">
+      <div>
+        <p class="kicker">Cloud-init</p>
+        <h2>Automate first boot</h2>
+        <p>Drop a <span class="mono">cloud-config</span> on your ISO or VM and Dubuntu configures itself — users, SSH keys, packages, and services.</p>
+        <ul class="checklist">
+          <li><span class="tick">✓</span><span><b>Hardened defaults</b>: AppArmor, automatic security updates, auditd.</span></li>
+          <li><span class="tick">✓</span><span><b>ZFS + LUKS</b> install options for encrypted roots.</span></li>
+          <li><span class="tick">✓</span><span><b>5-year LTS</b> security updates from the Dubuntu archive.</span></li>
+        </ul>
+      </div>
+      <div class="codeblock mono" id="code-cloud">
+        <button class="copy" data-copy="#code-cloud">Copy</button><span class="c">#cloud-config</span><br>users:<br>  - name: dub<br>    sudo: ALL=(ALL) NOPASSWD:ALL<br>    ssh_authorized_keys:<br>      - <span class="g">ssh-ed25519 AAAAC3… you@host</span><br>packages:<br>  - docker.io<br>  - htop<br>runcmd:<br>  - systemctl enable --now docker
+      </div>
+    </div>
+
+    <div class="grid-3 reveal" style="margin-top:48px">
+      <article class="card"><span class="tag">ARM64</span><h3>Raspberry Pi &amp; ARM servers</h3><p>Same LTS, tuned for Pi 4/5 and Ampere/Graviton. Wi-Fi and GPIO work out of the box.</p><p style="margin-top:12px"><a href="download.html">Get ARM64 →</a></p></article>
+      <article class="card"><span class="tag">WSL</span><h3>Windows Subsystem for Linux</h3><p>One-click WSL2 install. systemd, GUI apps, and Docker Desktop integration.</p><p style="margin-top:12px"><a href="download.html">Get WSL →</a></p></article>
+      <article class="card"><span class="tag">Minimal</span><h3>1.4 GB minimal ISO</h3><p>For very old hardware or embedded builds. Install the desktop later with one command.</p><p style="margin-top:12px"><a href="download.html">Get Minimal →</a></p></article>
+    </div>
+  </div>
+</section>
+
+<section class="section section--dark">
+  <div class="wrap center reveal">
+    <h2 style="color:#fff">Deploy anywhere</h2>
+    <p class="lead" style="color:rgba(255,255,255,.85)">Bare metal, homelab, or hyperscale cloud — one image, one set of updates.</p>
+    <a class="btn btn--lg" href="download.html">↓ Download Server ISO</a>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div><a class="brand" href="index.html"><img class="brand-mark" src="assets/img/logo.svg" alt=""> dubuntu</a><p style="color:rgba(255,255,255,.75);font-size:14px;max-width:32ch">Ubuntu, remixed. An unofficial community project at dubuntu.org.</p></div>
+      <div><h4>Product</h4><ul><li><a href="desktop.html">Desktop</a></li><li><a href="server.html">Server</a></li><li><a href="download.html">Download</a></li><li><a href="download.html#checker">System requirements</a></li></ul></div>
+      <div><h4>Community</h4><ul><li><a href="community.html">About</a></li><li><a href="community.html#contribute">Contribute</a></li><li><a href="community.html#roadmap">Roadmap</a></li><li><a href="community.html#support">Support</a></li></ul></div>
+      <div><h4>Resources</h4><ul><li><a href="download.html#verify">Verify checksum</a></li><li><a href="index.html#faq">FAQ</a></li><li><a href="community.html#disclaimer">Disclaimer</a></li></ul></div>
+      <div><h4>Project</h4><ul><li><a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></li><li><a href="community.html#support">Forum</a></li><li><a href="community.html#support">Bug reports</a></li></ul></div>
+    </div>
+    <div class="legal-note"><b>Disclaimer:</b> Dubuntu is an unofficial community remix. It is not affiliated with, endorsed by, or supported by Canonical Ltd. “Ubuntu” and the Ubuntu logo are registered trademarks of Canonical Ltd. This site is not an official Ubuntu site.</div>
+    <div class="footer-bottom"><span>© <span id="year">2026</span> Dubuntu Community · dubuntu.org</span><span><a href="index.html" style="color:#fff">Back to top ↑</a></span></div>
+  </div>
+</footer>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

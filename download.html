@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Download Dubuntu 26.04 LTS “Dub Jam” | dubuntu.org</title>
+<meta name="description" content="Download Dubuntu Desktop, Server, ARM64 and WSL. Verified ISOs with SHA-256 checksums, mirrors, and a system requirements checker.">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://dubuntu.org/download.html">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div class="disclaimer-bar"><strong>Unofficial project.</strong> Dubuntu is a community remix and is <strong>not affiliated with Canonical Ltd.</strong> Ubuntu is a trademark of Canonical Ltd. <a href="community.html#disclaimer">Learn more</a></div>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html"><img class="brand-mark" src="assets/img/logo.svg" alt="Dubuntu logo"><span>dubuntu<small>dubuntu.org</small></span></a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <nav class="main-nav" aria-label="Main">
+      <a href="index.html">Home</a><a href="desktop.html">Desktop</a><a href="server.html">Server</a><a href="download.html" class="active">Download</a><a href="community.html">Community</a>
+    </nav>
+    <div class="header-actions"><button class="search-btn" aria-label="Search (Ctrl+K)">⌕</button><a class="btn btn--sm" href="download.html">Download</a></div>
+  </div>
+</header>
+<div class="search-overlay" role="dialog" aria-label="Search"><div class="search-box"><input id="site-search" type="search" placeholder="Search Dubuntu… (download, desktop, server)" autocomplete="off"><div class="search-results"></div><p style="color:#666;font-size:13px;margin:10px 0 0">Press Esc to close · Ctrl/⌘+K to open</p></div></div>
+
+<section class="download-hero">
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span> Current LTS · 5-year support</span>
+    <h1>Download Dubuntu<br>26.04 LTS “Dub Jam”</h1>
+    <p style="color:rgba(255,255,255,.85);font-size:18px;max-width:62ch">Free forever. Pick an edition, choose a mirror, verify the checksum — then boot from USB and install in minutes.</p>
+    <div class="selector" role="tablist" aria-label="Edition">
+      <button data-edition="desktop" class="active">🖥️ Desktop</button>
+      <button data-edition="server">🖥️ Server</button>
+      <button data-edition="arm">🦾 ARM64</button>
+      <button data-edition="wsl">🪟 WSL</button>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="download-card reveal">
+      <div class="download-row">
+        <div>
+          <h2 id="dl-name" style="margin:0">Dubuntu Desktop 26.04 LTS — “Dub Jam”</h2>
+          <p style="color:#666;margin:6px 0 0">Recommended for most laptops and desktops.</p>
+        </div>
+        <label style="font-size:13px;font-weight:700">Mirror
+          <select id="dl-mirror" style="display:block;margin-top:6px;padding:10px 12px;border:2px solid #111;border-radius:10px;font-family:inherit">
+            <option value="global">Global (releases.dubuntu.org)</option>
+            <option value="us">US mirror</option>
+            <option value="eu">EU mirror</option>
+            <option value="asia">Asia-Pacific mirror</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="iso-meta">
+        <div><small>File</small><b id="dl-file" class="mono">dubuntu-26.04-desktop-amd64.iso</b></div>
+        <div><small>Size</small><b id="dl-size">5.2 GB</b></div>
+        <div><small>Architecture</small><b id="dl-arch">amd64 (Intel / AMD 64-bit)</b></div>
+        <div><small>Minimum</small><b id="dl-min">4 GB RAM · 25 GB disk · 2 GHz dual-core</b></div>
+      </div>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+        <a id="dl-button" class="btn btn--lg" href="https://releases.dubuntu.org/26.04/dubuntu-26.04-desktop-amd64.iso">↓ Download ISO</a>
+        <a class="btn btn--outline btn--lg" href="#verify">Verify checksum ↓</a>
+        <a class="btn btn--outline btn--lg" href="#checker">Check my PC</a>
+      </div>
+      <p style="color:#666;font-size:13px;margin-top:12px">Torrent and direct-link mirrors are listed below. All downloads are served over HTTPS. If a mirror is slow, try another — checksums are identical everywhere.</p>
+
+      <div class="codeblock mono" id="code-sha" style="margin-top:16px">
+        <button class="copy" data-copy="#code-sha">Copy</button><span class="c"># SHA-256 (expected)</span><br><span id="dl-sha">a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90</span>
+      </div>
+
+      <div id="verify" style="margin-top:28px">
+        <h3>Verify your download</h3>
+        <p style="color:#444">After downloading, run <span class="mono">sha256sum dubuntu-*.iso</span> and paste the result below — or paste the expected hash from above to test the verifier.</p>
+        <div class="checksum">
+          <input id="verify-input" type="text" placeholder="Paste SHA-256 here…" spellcheck="false">
+          <button id="verify-btn" class="btn">Verify</button>
+        </div>
+        <div id="verify-verdict" class="verdict" role="status"></div>
+        <div class="codeblock mono" id="code-verify" style="margin-top:14px">
+          <button class="copy" data-copy="#code-verify">Copy</button><span class="prompt">$</span> sha256sum dubuntu-26.04-desktop-amd64.iso<br><span class="c"># Compare the first field with the hash above</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Checker -->
+    <div id="checker" class="download-card reveal" style="margin-top:24px">
+      <h3>Will Dubuntu run on my PC?</h3>
+      <p style="color:#444">Drag the sliders to match your hardware. Desktop needs 4 GB RAM / 25 GB disk; Server needs 2 GB / 10 GB.</p>
+      <div class="range-row">
+        <div><label for="req-ram">RAM</label><input id="req-ram" type="range" min="1" max="32" value="8"><div class="range-val" id="req-ram-val">8 GB RAM</div></div>
+        <div><label for="req-cpu">CPU speed</label><input id="req-cpu" type="range" min="1" max="5" step="0.5" value="3"><div class="range-val" id="req-cpu-val">3 GHz</div></div>
+        <div><label for="req-disk">Free disk</label><input id="req-disk" type="range" min="5" max="512" value="100"><div class="range-val" id="req-disk-val">100 GB disk</div></div>
+      </div>
+      <div id="req-verdict" class="verdict" role="status"></div>
+    </div>
+
+    <!-- All releases -->
+    <div class="reveal" style="margin-top:36px">
+      <h2>All current downloads</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Edition</th><th>File</th><th>Size</th><th>Arch</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><b>Desktop</b></td><td class="mono">dubuntu-26.04-desktop-amd64.iso</td><td>5.2 GB</td><td>amd64</td><td><a href="https://releases.dubuntu.org/26.04/dubuntu-26.04-desktop-amd64.iso">Download</a></td></tr>
+            <tr><td><b>Server</b></td><td class="mono">dubuntu-26.04-server-amd64.iso</td><td>2.8 GB</td><td>amd64</td><td><a href="https://releases.dubuntu.org/26.04/dubuntu-26.04-server-amd64.iso">Download</a></td></tr>
+            <tr><td><b>ARM64</b></td><td class="mono">dubuntu-26.04-arm64.iso</td><td>4.6 GB</td><td>arm64</td><td><a href="https://releases.dubuntu.org/26.04/dubuntu-26.04-arm64.iso">Download</a></td></tr>
+            <tr><td><b>WSL</b></td><td class="mono">dubuntu-wsl-26.04.msixbundle</td><td>1.1 GB</td><td>Windows</td><td><a href="https://releases.dubuntu.org/26.04/dubuntu-wsl-26.04.msixbundle">Download</a></td></tr>
+            <tr><td><b>Minimal</b></td><td class="mono">dubuntu-26.04-minimal-amd64.iso</td><td>1.4 GB</td><td>amd64</td><td><a href="https://releases.dubuntu.org/26.04/dubuntu-26.04-minimal-amd64.iso">Download</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Install steps -->
+    <div class="reveal" style="margin-top:36px">
+      <h2>Install in 3 steps</h2>
+      <div class="grid-3">
+        <article class="card"><span class="tag">Step 1</span><h3>Write to USB</h3><p>Use <b>Balena Etcher</b>, <b>Rufus</b> (Windows), or <span class="mono">dd</span> on Linux. A 8 GB+ USB stick is enough.</p></article>
+        <article class="card"><span class="tag">Step 2</span><h3>Boot &amp; try live</h3><p>Restart, pick the USB in your boot menu (F12 / Esc / F2), and try Dubuntu live — nothing is installed yet.</p></article>
+        <article class="card"><span class="tag">Step 3</span><h3>Install &amp; reboot</h3><p>Click <b>Install Dubuntu</b>, choose language and disk, and you’re done in ~10 minutes. Updates continue in the background.</p></article>
+      </div>
+      <div class="codeblock mono" id="code-dd" style="margin-top:16px">
+        <button class="copy" data-copy="#code-dd">Copy</button><span class="c"># Linux: write the ISO to a USB stick (replace /dev/sdX!)</span><br><span class="prompt">$</span> sudo dd if=dubuntu-26.04-desktop-amd64.iso of=/dev/sdX bs=4M status=progress conv=fsync
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div><a class="brand" href="index.html"><img class="brand-mark" src="assets/img/logo.svg" alt=""> dubuntu</a><p style="color:rgba(255,255,255,.75);font-size:14px;max-width:32ch">Ubuntu, remixed. An unofficial community project at dubuntu.org.</p></div>
+      <div><h4>Product</h4><ul><li><a href="desktop.html">Desktop</a></li><li><a href="server.html">Server</a></li><li><a href="download.html">Download</a></li><li><a href="download.html#checker">System requirements</a></li></ul></div>
+      <div><h4>Community</h4><ul><li><a href="community.html">About</a></li><li><a href="community.html#contribute">Contribute</a></li><li><a href="community.html#roadmap">Roadmap</a></li><li><a href="community.html#support">Support</a></li></ul></div>
+      <div><h4>Resources</h4><ul><li><a href="download.html#verify">Verify checksum</a></li><li><a href="index.html#faq">FAQ</a></li><li><a href="community.html#disclaimer">Disclaimer</a></li></ul></div>
+      <div><h4>Project</h4><ul><li><a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></li><li><a href="community.html#support">Forum</a></li><li><a href="community.html#support">Bug reports</a></li></ul></div>
+    </div>
+    <div class="legal-note"><b>Disclaimer:</b> Dubuntu is an unofficial community remix. It is not affiliated with, endorsed by, or supported by Canonical Ltd. “Ubuntu” and the Ubuntu logo are registered trademarks of Canonical Ltd. This site is not an official Ubuntu site.</div>
+    <div class="footer-bottom"><span>© <span id="year">2026</span> Dubuntu Community · dubuntu.org</span><span><a href="index.html" style="color:#fff">Back to top ↑</a></span></div>
+  </div>
+</footer>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

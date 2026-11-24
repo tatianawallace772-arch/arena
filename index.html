@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dubuntu — Ubuntu, remixed | dubuntu.org</title>
+<meta name="description" content="Dubuntu 26.04 LTS “Dub Jam” is an unofficial community remix of Ubuntu. Free, open source, and built to turn up the bass. Download Desktop, Server, ARM and WSL editions.">
+<link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://dubuntu.org/">
+<meta property="og:title" content="Dubuntu — Ubuntu, remixed">
+<meta property="og:description" content="Unofficial community remix of Ubuntu. Dubuntu 26.04 LTS “Dub Jam” — Desktop, Server, ARM, WSL.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://dubuntu.org/">
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<div class="disclaimer-bar">
+  <strong>Unofficial project.</strong> Dubuntu is a community remix and is <strong>not affiliated with Canonical Ltd.</strong>
+  Ubuntu is a trademark of Canonical Ltd. <a href="community.html#disclaimer">Learn more</a>
+</div>
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="index.html" aria-label="Dubuntu home">
+      <img class="brand-mark" src="assets/img/logo.svg" alt="Dubuntu logo">
+      <span>dubuntu<small>dubuntu.org</small></span>
+    </a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+    <nav class="main-nav" aria-label="Main">
+      <a href="index.html" class="active">Home</a>
+      <a href="desktop.html">Desktop</a>
+      <a href="server.html">Server</a>
+      <a href="download.html">Download</a>
+      <a href="community.html">Community</a>
+    </nav>
+    <div class="header-actions">
+      <button class="search-btn" aria-label="Search (Ctrl+K)">⌕</button>
+      <a class="btn btn--sm" href="download.html">Download</a>
+    </div>
+  </div>
+</header>
+
+<div class="search-overlay" role="dialog" aria-label="Search">
+  <div class="search-box">
+    <input id="site-search" type="search" placeholder="Search Dubuntu… (download, desktop, server)" autocomplete="off">
+    <div class="search-results"></div>
+    <p style="color:#666;font-size:13px;margin:10px 0 0">Press Esc to close · Ctrl/⌘+K to open</p>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow"><span class="dot"></span> Dubuntu 26.04 LTS “Dub Jam” is out</span>
+      <h1><span class="accent">Dubuntu</span><br><span class="thin">Ubuntu, remixed.</span></h1>
+      <p class="lede">The free, open-source remix that takes the best of Ubuntu and turns up the bass — a polished GNOME desktop, a lean server, and the same rock-solid Debian foundation you trust, tuned by the community.</p>
+      <div class="hero-ctas">
+        <a class="btn btn--lg" href="download.html">↓ Download Dubuntu 26.04 LTS</a>
+        <a class="btn btn--outline btn--lg" href="desktop.html">Explore the desktop →</a>
+      </div>
+      <div class="hero-meta">
+        <span>✓ <b>Free forever</b> · no licence fees</span>
+        <span>✓ <b>5-year</b> LTS support</span>
+        <span>✓ <b>2.8–5.2 GB</b> ISOs · verified checksums</span>
+      </div>
+      <p style="margin-top:18px;font-size:14px;color:#666">Next point release in <b id="countdown" class="mono">—</b> · <a href="download.html">See all releases</a></p>
+    </div>
+    <div class="hero-visual">
+      <span class="hero-badge">26.04 LTS · “Dub Jam”</span>
+      <div class="desktop-mock" aria-hidden="true">
+        <div class="screen">
+          <div class="mock-topbar">
+            <span class="dots"><i></i><i></i><i></i></span>
+            <span>Dubuntu Desktop — Live Session</span>
+            <span style="margin-left:auto;opacity:.8">GNOME 48 · Dub Shell</span>
+          </div>
+          <div class="mock-body">
+            <div class="mock-title">Welcome to Dubuntu</div>
+            <div class="mock-sub">Pick your vibe. Everything just works — out of the box.</div>
+            <div class="mock-cards">
+              <div class="mock-card"><b>🎵 Dub Music</b>Play, mix &amp; stream without fuss.</div>
+              <div class="mock-card"><b>💻 Terminal</b>Fast, colour-aware, ready to hack.</div>
+              <div class="mock-card"><b>🧩 Software</b>Snap + Flatpak, one store.</div>
+            </div>
+            <div class="mock-terminal mono">
+              <span class="prompt">$</span> <span id="typed-line"></span><span class="caret"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY DUBUNTU -->
+<section class="section">
+  <div class="wrap">
+    <div class="center reveal">
+      <p class="kicker">Why Dubuntu?</p>
+      <h2>Same foundation.<br>More flavour.</h2>
+      <p class="lead">Dubuntu is built on Ubuntu LTS — so you get the same security updates, drivers and software — with a friendlier default experience, curated apps, and community-first support.</p>
+    </div>
+    <div class="grid-4">
+      <article class="card reveal">
+        <div class="icon">🛡️</div>
+        <h3>Secure by default</h3>
+        <p>AppArmor, automatic security updates, and signed ISOs. Verify every download with SHA-256 before you install.</p>
+      </article>
+      <article class="card reveal">
+        <div class="icon">⚡</div>
+        <h3>Fast on real hardware</h3>
+        <p>Optimised kernel 6.14, zram swap, and a lightweight Dub Shell. Boots in seconds on a 4 GB machine.</p>
+      </article>
+      <article class="card reveal">
+        <div class="icon">🧩</div>
+        <h3>Snap + Flatpak</h3>
+        <p>Both package worlds, one store. Install anything from the command line or the Dub Store GUI.</p>
+      </article>
+      <article class="card reveal">
+        <div class="icon">🤝</div>
+        <h3>Community powered</h3>
+        <p>Built in the open by volunteers. Report bugs, translate, design, or just spread the word.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- EDITIONS -->
+<section class="section section--soft">
+  <div class="wrap">
+    <div class="reveal">
+      <p class="kicker">Editions</p>
+      <h2>One remix. Every machine.</h2>
+      <p class="lead">From laptops to Raspberry Pis to cloud VMs — pick the edition that fits your hardware.</p>
+    </div>
+    <div class="grid-4">
+      <article class="card edition-card reveal">
+        <span class="tag">Desktop</span>
+        <h3>Dubuntu Desktop</h3>
+        <p>Full GNOME experience with Dub Shell, office suite, browser and media apps pre-installed.</p>
+        <p class="size">ISO · 5.2 GB · amd64 / arm64</p>
+        <p class="req">Min: 4 GB RAM · 25 GB disk</p>
+        <p style="margin-top:14px"><a class="btn btn--sm" href="download.html">Download →</a></p>
+      </article>
+      <article class="card edition-card reveal">
+        <span class="tag">Server</span>
+        <h3>Dubuntu Server</h3>
+        <p>Headless, hardened, and cloud-ready. LXD, Docker and KVM friendly out of the box.</p>
+        <p class="size">ISO · 2.8 GB · amd64 / arm64</p>
+        <p class="req">Min: 2 GB RAM · 10 GB disk</p>
+        <p style="margin-top:14px"><a class="btn btn--sm" href="download.html">Download →</a></p>
+      </article>
+      <article class="card edition-card reveal">
+        <span class="tag">ARM</span>
+        <h3>Dubuntu ARM64</h3>
+        <p>Tuned for Raspberry Pi 4/5, Apple Silicon VMs and ARM servers. Same LTS promise.</p>
+        <p class="size">ISO · 4.6 GB · arm64</p>
+        <p class="req">Min: 4 GB RAM · 25 GB disk</p>
+        <p style="margin-top:14px"><a class="btn btn--sm" href="download.html">Download →</a></p>
+      </article>
+      <article class="card edition-card reveal">
+        <span class="tag">WSL</span>
+        <h3>Dubuntu for WSL</h3>
+        <p>Windows Subsystem for Linux 2. One-click install from the Microsoft Store.</p>
+        <p class="size">Bundle · 1.1 GB · Windows 10/11</p>
+        <p class="req">Min: WSL2 enabled</p>
+        <p style="margin-top:14px"><a class="btn btn--sm" href="download.html">Download →</a></p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- DESKTOP SHOWCASE -->
+<section class="section">
+  <div class="wrap">
+    <div class="reveal">
+      <p class="kicker">Desktop tour</p>
+      <h2>A desktop that stays out of your way</h2>
+      <p class="lead">GNOME 48 with the Dub Shell — familiar, fast, and easy to make your own.</p>
+    </div>
+    <div class="tabs" data-tabs="#panel-gnome,#panel-terminal,#panel-store">
+      <button class="tab-btn active" data-target="#panel-gnome">🖥️ GNOME &amp; Dub Shell</button>
+      <button class="tab-btn" data-target="#panel-terminal">⌨️ Terminal</button>
+      <button class="tab-btn" data-target="#panel-store">🧩 Dub Store</button>
+    </div>
+
+    <div id="panel-gnome" class="tab-panel active">
+      <div class="feature-split">
+        <div>
+          <h3>Workspaces, dark mode &amp; night light</h3>
+          <p>Virtual desktops, system-wide dark mode, and a dock that auto-hides. Switch between light and dark with one click — Dubuntu remembers per-app.</p>
+          <ul class="checklist">
+            <li><span class="tick">✓</span><span><b>Fractional scaling</b> for HiDPI laptops, no blur.</span></li>
+            <li><span class="tick">✓</span><span><b>Night Light</b> and colour profiles built in.</span></li>
+            <li><span class="tick">✓</span><span><b>Accessibility</b>: screen reader, magnifier, high-contrast.</span></li>
+          </ul>
+        </div>
+        <div class="codeblock mono" id="code-gnome">
+          <button class="copy" data-copy="#code-gnome">Copy</button><span class="c"># Switch to dark mode</span><br>gsettings set org.gnome.desktop.interface color-scheme <span class="g">'prefer-dark'</span><br><br><span class="c"># Enable fractional scaling (200%)</span><br>gsettings set org.gnome.mutter experimental-features <span class="o">['scale-monitor-framebuffer']</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-terminal" class="tab-panel">
+      <div class="feature-split">
+        <div>
+          <h3>Console that feels alive</h3>
+          <p>GPU-accelerated terminal, sensible defaults, and <span class="mono">dub</span> — our helper for updates, codecs and drivers.</p>
+          <ul class="checklist">
+            <li><span class="tick">✓</span><span><b>One-command updates</b> with rollback snapshots.</span></li>
+            <li><span class="tick">✓</span><span><b>Codec pack</b> for MP3, H.264 and more, legally bundled.</span></li>
+            <li><span class="tick">✓</span><span><b>Driver helper</b> for Wi-Fi and NVIDIA, no hunting.</span></li>
+          </ul>
+        </div>
+        <div class="codeblock mono" id="code-term">
+          <button class="copy" data-copy="#code-term">Copy</button><span class="prompt">$</span> dub update<br><span class="g">✓</span> 128 packages updated · snapshot <span class="o">dub-20261124</span> created<br><span class="prompt">$</span> dub codecs install<br><span class="g">✓</span> Multimedia codecs installed<br><span class="prompt">$</span> dub drivers check<br><span class="g">✓</span> All drivers up to date
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-store" class="tab-panel">
+      <div class="feature-split">
+        <div>
+          <h3>Every app, one place</h3>
+          <p>The Dub Store searches Snap and Flatpak together. No duplicate results, no surprises — ratings and sizes up front.</p>
+          <ul class="checklist">
+            <li><span class="tick">✓</span><span><b>Curated collections</b> for music, dev, and office.</span></li>
+            <li><span class="tick">✓</span><span><b>Offline updates</b> — download once, install anywhere.</span></li>
+            <li><span class="tick">✓</span><span><b>Flatpak portal</b> permissions explained in plain English.</span></li>
+          </ul>
+        </div>
+        <div class="codeblock mono" id="code-store">
+          <button class="copy" data-copy="#code-store">Copy</button><span class="prompt">$</span> snap install code --classic<br><span class="prompt">$</span> flatpak install flathub org.gimp.GIMP<br><span class="prompt">$</span> dub store search <span class="o">"music"</span><br><span class="g">→</span> Dub Music · Spotify · VLC · Audacity
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVER STRIP -->
+<section class="section section--dark">
+  <div class="wrap">
+    <div class="feature-split">
+      <div class="reveal">
+        <p class="kicker" style="color:#FFB59A">Server &amp; Cloud</p>
+        <h2 style="color:#fff">Lean. Hardened.<br>Ready to ship.</h2>
+        <p style="color:rgba(255,255,255,.85);font-size:17px">Dubuntu Server boots to a prompt in under 10 seconds. LXD containers, Docker, and cloud-init are pre-configured — deploy the same image to bare metal, AWS, Azure, or your homelab.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:20px">
+          <a class="btn" href="server.html">Explore Server →</a>
+          <a class="btn btn--outline-light" href="download.html">Get the ISO</a>
+        </div>
+      </div>
+      <div class="reveal">
+        <div class="codeblock mono" id="code-server">
+          <button class="copy" data-copy="#code-server">Copy</button><span class="c"># Cloud-init: first boot, zero fuss</span><br><span class="prompt">$</span> lxc launch images:dubuntu/26.04 web<br><span class="prompt">$</span> docker run -d -p 8080:80 nginx<br><span class="g">✓</span> Dubuntu Server 26.04 LTS ready in 9s
+        </div>
+        <div class="stats">
+          <div class="stat"><b>&lt;10s</b><span>Cold boot to prompt</span></div>
+          <div class="stat"><b>5 yrs</b><span>LTS security updates</span></div>
+          <div class="stat"><b>2.8 GB</b><span>Server ISO</span></div>
+          <div class="stat"><b>100%</b><span>Open source base</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- RELEASES -->
+<section class="section">
+  <div class="wrap">
+    <div class="reveal">
+      <p class="kicker">Releases</p>
+      <h2>Long-term support, on a predictable beat</h2>
+      <p class="lead">LTS releases every two years, supported for five. Point releases every six months keep you on the latest stable fixes.</p>
+    </div>
+    <div class="table-wrap reveal">
+      <table>
+        <thead><tr><th>Release</th><th>Codename</th><th>Type</th><th>Support until</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><b>Dubuntu 26.04 LTS</b></td><td>“Dub Jam”</td><td><span class="pill pill--lts">LTS</span></td><td>April 2031</td><td>Current</td></tr>
+          <tr><td>Dubuntu 25.10</td><td>“Bassline”</td><td><span class="pill pill--std">Standard</span></td><td>July 2026</td><td>End of life</td></tr>
+          <tr><td>Dubuntu 24.04 LTS</td><td>“Riddim”</td><td><span class="pill pill--lts">LTS</span></td><td>April 2029</td><td>Supported</td></tr>
+          <tr><td>Dubuntu 22.04 LTS</td><td>“Sound System”</td><td><span class="pill pill--lts">LTS</span></td><td>April 2027</td><td>Supported</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px"><a href="download.html">Download the current LTS →</a> · <a href="community.html#roadmap">See the roadmap</a></p>
+  </div>
+</section>
+
+<!-- COMMUNITY + FAQ -->
+<section class="section section--soft">
+  <div class="wrap">
+    <div class="grid-2" style="align-items:start">
+      <div class="reveal">
+        <p class="kicker">Community</p>
+        <h2>Built by people who<br>love open source</h2>
+        <p class="lead">Dubuntu is maintained by volunteers around the world. Join us — code, docs, design, translation, or just helping newcomers in the forum.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:18px">
+          <a class="btn" href="community.html">Join the community</a>
+          <a class="btn btn--outline" href="community.html#contribute">How to contribute</a>
+        </div>
+        <div class="stats" style="grid-template-columns:1fr 1fr">
+          <div class="stat" style="background:#fff;color:#111;border-color:var(--dub-line)"><b>12k+</b><span>Forum members</span></div>
+          <div class="stat" style="background:#fff;color:#111;border-color:var(--dub-line)"><b>340+</b><span>Contributors</span></div>
+          <div class="stat" style="background:#fff;color:#111;border-color:var(--dub-line)"><b>28</b><span>Languages</span></div>
+          <div class="stat" style="background:#fff;color:#111;border-color:var(--dub-line)"><b>99.9%</b><span>Mirror uptime</span></div>
+        </div>
+      </div>
+      <div class="reveal" id="faq">
+        <p class="kicker">FAQ</p>
+        <h2>Questions, answered</h2>
+        <div class="faq">
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">Is Dubuntu official Ubuntu?<span>+</span></button>
+            <div class="faq-a">No. Dubuntu is an <b>unofficial community remix</b>. It is built on Ubuntu LTS packages but is not affiliated with, endorsed by, or supported by Canonical Ltd. Ubuntu® is a trademark of Canonical Ltd.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">Is Dubuntu free?<span>+</span></button>
+            <div class="faq-a">Yes — free to download, use, and share, under the same open-source licences as Ubuntu (GPL, Apache, MIT, and others). No licence fees, no telemetry by default.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">Can I upgrade from Ubuntu to Dubuntu?<span>+</span></button>
+            <div class="faq-a">Yes. From Ubuntu 24.04 LTS, run <span class="mono">sudo apt install dubuntu-desktop</span> or do a clean install from the ISO for the full Dub Shell experience. Your home folder is preserved either way — back up first.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">Will my hardware work?<span>+</span></button>
+            <div class="faq-a">If it runs Ubuntu, it runs Dubuntu. Desktop needs 4 GB RAM and 25 GB disk (minimum 2 GB / 10 GB for Server). Use the <a href="download.html#checker">system checker</a> on the download page.</div>
+          </div>
+          <div class="faq-item">
+            <button class="faq-q" aria-expanded="false">How do I verify my download?<span>+</span></button>
+            <div class="faq-a">Compare the SHA-256 checksum shown on the <a href="download.html">download page</a> with <span class="mono">sha256sum dubuntu-*.iso</span>. The page includes a one-click verifier.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="section section--aubergine">
+  <div class="wrap center reveal">
+    <h2 style="color:#fff">Ready to turn it up?</h2>
+    <p class="lead" style="color:rgba(255,255,255,.85)">Download Dubuntu 26.04 LTS “Dub Jam” in under a minute. Live USB in five. Welcome to the remix.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:22px">
+      <a class="btn btn--lg" href="download.html">↓ Download Dubuntu</a>
+      <a class="btn btn--outline-light btn--lg" href="desktop.html">Take the tour</a>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div class="footer-grid">
+      <div>
+        <a class="brand" href="index.html"><img class="brand-mark" src="assets/img/logo.svg" alt=""> dubuntu</a>
+        <p style="color:rgba(255,255,255,.75);font-size:14px;max-width:32ch">Ubuntu, remixed. An unofficial community project at dubuntu.org.</p>
+      </div>
+      <div><h4>Product</h4><ul><li><a href="desktop.html">Desktop</a></li><li><a href="server.html">Server</a></li><li><a href="download.html">Download</a></li><li><a href="download.html#checker">System requirements</a></li></ul></div>
+      <div><h4>Community</h4><ul><li><a href="community.html">About</a></li><li><a href="community.html#contribute">Contribute</a></li><li><a href="community.html#roadmap">Roadmap</a></li><li><a href="community.html#support">Support</a></li></ul></div>
+      <div><h4>Resources</h4><ul><li><a href="download.html#verify">Verify checksum</a></li><li><a href="index.html#faq">FAQ</a></li><li><a href="community.html#disclaimer">Disclaimer</a></li></ul></div>
+      <div><h4>Project</h4><ul><li><a href="https://github.com/" target="_blank" rel="noopener">GitHub</a></li><li><a href="community.html#support">Forum</a></li><li><a href="community.html#support">Bug reports</a></li></ul></div>
+    </div>
+    <div class="legal-note">
+      <b>Disclaimer:</b> Dubuntu is an unofficial community remix. It is not affiliated with, endorsed by, or supported by Canonical Ltd.
+      “Ubuntu” and the Ubuntu logo are registered trademarks of Canonical Ltd. This site is not an official Ubuntu site.
+      Dubuntu code and artwork are released under CC BY-SA 4.0 unless otherwise noted.
+    </div>
+    <div class="footer-bottom">
+      <span>© <span id="year">2026</span> Dubuntu Community · dubuntu.org</span>
+      <span>Built with ♥ and open source · <a href="index.html" style="color:#fff">Back to top ↑</a></span>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/app.js"></script>
+</body>
+</html>
