@@ -20,7 +20,6 @@
   ],
   "redirects": [
     { "source": "/home", "destination": "/", "permanent": true },
-    { "source": "/get", "destination": "/download.html", "permanent": true },
-    { "source": "/download", "destination": "/download.html", "permanent": true }
+    { "source": "/get", "destination": "/download", "permanent": true }
   ]
 }
