@@ -66,6 +66,7 @@ VM testing, USB writing and troubleshooting — are in
 | `config/package-lists/dubuntu.list.chroot` | Packages baked into the squashfs |
 | `config/hooks/normal/` | Branding (`os-release`, motd, wallpaper, dconf) and cleanup hooks |
 | `config/includes.chroot/` | Files copied into the image (logo, wallpaper) |
+| `docs/ci/build-iso.yml` | Optional GitHub Actions workflow (copy to `.github/workflows/` to enable) |
 | `build/` | Git-ignored build tree, `out/` ISO, `build.log` |
 
 ## Deployment status

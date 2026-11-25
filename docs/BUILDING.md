@@ -158,7 +158,25 @@ grep dubuntu-24.04-amd64.iso SHA256SUMS
 | `snapd` post-install fails in the chroot | Drop `snapd` from the package list; install snaps after first boot. |
 | Want Firefox, but `firefox` fails | In 24.04 the `firefox` deb is a snap shim. Keep `epiphany-browser`, then `snap install firefox` in the live session. |
 
-## 9. Installer status
+## 9. Building on GitHub Actions (optional)
+
+A ready-made workflow lives in [`docs/ci/build-iso.yml`](ci/build-iso.yml). It is
+not active yet — GitHub App tokens without the `workflows` permission cannot
+create files under `.github/workflows/`, so install it yourself:
+
+```bash
+mkdir -p .github/workflows
+cp docs/ci/build-iso.yml .github/workflows/build-iso.yml
+git add .github/workflows/build-iso.yml && git commit -m "ci: build Dubuntu ISO"
+git push
+```
+
+Then: **Actions → Build Dubuntu ISO → Run workflow**. It installs the toolchain
+on an `ubuntu-24.04` runner, builds, and uploads `dubuntu-<version>-amd64.iso`
+plus `SHA256SUMS` as a 7-day artifact (plus `build/build.log` if it fails).
+Budget ~30-60 minutes and note artifact storage for a ~5 GB ISO.
+
+## 10. Installer status
 
 The ISO is a **live image** (BIOS + UEFI hybrid). It boots to a full desktop
 session you can use, demo and rescue with.
