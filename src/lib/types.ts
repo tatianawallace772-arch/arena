@@ -1,4 +1,4 @@
-export type MapStyle = 'voyager' | 'satellite' | 'terrain';
+export type MapStyle = 'carto' | 'openstreetmap' | 'satellite' | 'terrain';
 
 export interface LayerState {
   showCorridors: boolean;

@@ -1,8 +1,8 @@
 # Interstate — a Google-Maps-style highway explorer
 
-An interactive map of the U.S. Interstate system built with **React 19**, **Leaflet**, and an
-**OpenStreetMap** basemap, on top of the [OpenInterstate](https://openinterstate.org/) exit and
-place dataset.
+An interactive map of the U.S. Interstate system built with **React 19**, **Leaflet**, and
+[OpenInterstate](https://openinterstate.org/) exit and place data. Standard OpenStreetMap tiles are
+the default basemap, with CARTO Voyager available as an optional style when configured.
 
 ![stack](https://img.shields.io/badge/React-19-blue) ![stack](https://img.shields.io/badge/Leaflet-1.9-blue)
 
@@ -15,7 +15,8 @@ place dataset.
 | **Exit card** | Services at the exit (gas, food, lodging, EV charging, rest area, park, dog park, travel center), nearby exits with distances, and one-tap directions. |
 | **Directions** | OSRM routing with drive / walk / bike profiles, turn-by-turn steps, a **Exits along route** tab, and GPX export. Includes a bundled Miami → Manhattan demo route so the panel works fully offline. |
 | **Exit guide** | Corridor picker plus northbound/southbound scrubbing of upcoming exits with per-exit service chips — the "read the road ahead" view. |
-| **Layers** | Map / Satellite / Terrain basemaps, corridor, exit, place, rest-area and notable-place toggles, and a place-type filter. |
+| **Layers** | OpenStreetMap / CARTO Voyager / Satellite / Terrain basemaps, corridor, exit, place, rest-area and notable-place toggles, and a place-type filter. |
+| **Typography** | Switch between locally bundled Google Fonts (Inter, Manrope, Roboto Flex), or upload a custom WOFF2/WOFF/TTF/OTF font saved in this browser. |
 | **Deep links** | `?exit=<id>`, `?place=<id>`, and `?lat/&lon/&zoom` URL parameters restore the exact view. |
 | **Saved & recent** | Star exits and places; recent searches persist in `localStorage`. |
 
@@ -29,6 +30,12 @@ npm run preview    # serve the production build
 ```
 
 Node 20+ is recommended. Everything runs client-side — there is no backend.
+
+To enable CARTO Voyager, set `VITE_CARTO_API_KEY` in `.env.local` (see `.env.example`). The app
+builds the CARTO tile URL automatically and adds it to the map-style selector; OpenStreetMap stays
+the default. The key is included in browser requests, so restrict its allowed origins in the CARTO
+dashboard. Add the same variable to your deployment's build-time environment (for example,
+Vercel) to enable CARTO there.
 
 ## Data
 
@@ -49,7 +56,7 @@ The binary parsers live in `src/data/parser.ts`; spatial indexing and search in 
 
 - **Map data** © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the Open Database License (ODbL).
 - **Exit & place data** © [OpenInterstate](https://openinterstate.org/).
-- **Basemap tiles** © CARTO / Esri, © OpenStreetMap contributors.
+- **CARTO Voyager tiles** © [CARTO](https://carto.com/attributions) and [OpenStreetMap contributors](https://www.openstreetmap.org/copyright). Satellite imagery © Esri; terrain tiles © OpenTopoMap.
 - **Routing** © OSRM, © OpenStreetMap contributors.
 - **Rest-area truck counts** — FHWA, public domain.
 
@@ -61,7 +68,7 @@ src/
   data/                binary parsers, spatial index, search
   lib/                 geo helpers, routing client, corridor logic, shared types
   components/          MapView, SearchBar, SearchResults, ExitCard, PlaceCard,
-                       LocationCard, DirectionsPanel, MapControls, DriveMode, overlays
+                       LocationCard, DirectionsPanel, MapControls, FontPicker, DriveMode, overlays
   styles/global.css    design tokens + map, marker, drive-mode and responsive styles
 ```
 

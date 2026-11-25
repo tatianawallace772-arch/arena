@@ -36,6 +36,7 @@ import { corridorBounds } from './lib/corridor';
 import { buildGpx, fetchRoute, geocode, loadDemoRoute, matchExitsToRoute, reverseGeocode, type GeocodeResult, type TravelMode } from './lib/routing';
 import { formatCoordinate, downloadFile } from './lib/geo';
 import type { LayerState, MapStyle, UserLocation } from './lib/types';
+import { DEFAULT_MAP_STYLE } from './lib/mapConfig';
 import {
   loadRecent,
   loadSaved,
@@ -73,7 +74,7 @@ export default function App() {
   // ---------- Map ----------
   const mapRef = useRef<MapViewHandle>(null);
   const mapCenterRef = useRef<{ lat: number; lon: number } | null>(null);
-  const [mapStyle, setMapStyle] = useState<MapStyle>('voyager');
+  const [mapStyle, setMapStyle] = useState<MapStyle>(DEFAULT_MAP_STYLE);
   const [layers, setLayers] = useState<LayerState>({
     showCorridors: true,
     showExits: true,
@@ -968,12 +969,15 @@ export default function App() {
           </div>
 
           <div className="map-attribution">
-            <span>©</span>
-            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a>
             <span>·</span>
             <a href="https://openinterstate.org/" target="_blank" rel="noreferrer">OpenInterstate</a>
             <span>·</span>
-            <span>Basemap © CARTO / Esri</span>
+            {mapStyle === 'carto' ? (
+              <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">© CARTO</a>
+            ) : (
+              <span>{mapStyle === 'satellite' ? 'Imagery © Esri' : mapStyle === 'terrain' ? 'Terrain © OpenTopoMap' : 'OpenStreetMap tiles'}</span>
+            )}
           </div>
         </div>
       )}

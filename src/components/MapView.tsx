@@ -12,6 +12,7 @@ import type { InterstateIndex } from '../data/index';
 import type { RouteExit, RouteResult } from '../lib/routing';
 import { CATEGORY_META } from './Icons';
 import type { LayerState, MapStyle, UserLocation } from '../lib/types';
+import { CARTO_API_KEY, HAS_CARTO_API_KEY } from '../lib/mapConfig';
 
 export interface MapViewHandle {
   flyTo: (lat: number, lon: number, zoom?: number) => void;
@@ -61,20 +62,31 @@ interface HoverState {
 }
 
 const TILE_ATTRIBUTION = {
-  voyager:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  carto:
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+  openstreetmap:
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   satellite: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
   terrain:
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM &middot; &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)',
 };
 
 function makeTileLayer(style: MapStyle): L.TileLayer {
+  if (style === 'carto' && HAS_CARTO_API_KEY) {
+    const url = `https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${encodeURIComponent(CARTO_API_KEY)}`;
+    return L.tileLayer(url, {
+      maxZoom: 20,
+      referrerPolicy: 'strict-origin-when-cross-origin',
+      attribution: TILE_ATTRIBUTION.carto,
+    });
+  }
   if (style === 'satellite') {
     return L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       {
         maxZoom: 19,
         maxNativeZoom: 19,
+        referrerPolicy: 'strict-origin-when-cross-origin',
         attribution: TILE_ATTRIBUTION.satellite,
       },
     );
@@ -84,13 +96,17 @@ function makeTileLayer(style: MapStyle): L.TileLayer {
       maxZoom: 19,
       maxNativeZoom: 17,
       subdomains: 'abc',
+      referrerPolicy: 'strict-origin-when-cross-origin',
       attribution: TILE_ATTRIBUTION.terrain,
     });
   }
-  return L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    maxZoom: 20,
-    subdomains: 'abcd',
-    attribution: TILE_ATTRIBUTION.voyager,
+  return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    maxNativeZoom: 19,
+    // OSM's public tile service requires a Referer; make it explicit even
+    // when the hosting platform applies a more restrictive page-level policy.
+    referrerPolicy: 'strict-origin-when-cross-origin',
+    attribution: TILE_ATTRIBUTION.openstreetmap,
   });
 }
 
@@ -126,7 +142,6 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(props, 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const tileRef = useRef<L.TileLayer | null>(null);
-  const labelRef = useRef<L.TileLayer | null>(null);
   const corridorRef = useRef<L.LayerGroup | null>(null);
   const routeRef = useRef<L.LayerGroup | null>(null);
   const locationRef = useRef<L.LayerGroup | null>(null);
@@ -532,19 +547,8 @@ const MapView = forwardRef<MapViewHandle, MapViewProps>(function MapView(props, 
     const map = mapRef.current;
     if (!map) return;
     if (tileRef.current) map.removeLayer(tileRef.current);
-    if (labelRef.current) map.removeLayer(labelRef.current);
-    labelRef.current = null;
     const layer = makeTileLayer(mapStyle).addTo(map);
     tileRef.current = layer;
-    if (mapStyle === 'satellite') {
-      const labels = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd',
-        attribution: '',
-        opacity: 0.9,
-      }).addTo(map);
-      labelRef.current = labels;
-    }
     map.getContainer().style.background = mapStyle === 'satellite' ? '#0d1a26' : '#e9e5dc';
   }, [mapStyle]);
 

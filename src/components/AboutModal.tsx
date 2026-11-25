@@ -22,9 +22,9 @@ export default function AboutModal({ onClose }: { onClose: () => void }) {
             derived from OpenStreetMap and released under the Open Database License (ODbL 1.0).
           </li>
           <li>
-            Basemap, geocoding and routing: <a href="https://www.openstreetmap.org/" target="_blank" rel="noreferrer">OpenStreetMap</a> contributors,
-            CARTO basemaps, Esri World Imagery, OpenTopoMap, Photon and Nominatim. Routing by the
-            OSRM demo server.
+            Basemaps: <a href="https://carto.com/basemaps/" target="_blank" rel="noreferrer">CARTO Voyager</a> or standard
+            <a href="https://www.openstreetmap.org/" target="_blank" rel="noreferrer"> OpenStreetMap</a> tiles, plus Esri World Imagery and OpenTopoMap.
+            Geocoding uses Photon and Nominatim; routing uses the OSRM demo server.
           </li>
           <li>Rest areas and service plazas: OpenStreetMap, with truck parking counts from FHWA.</li>
           <li>Notable places: Wikidata (CC0).</li>
@@ -44,6 +44,10 @@ export default function AboutModal({ onClose }: { onClose: () => void }) {
           <div className="attribution-card">
             <strong>OpenInterstate</strong>
             <span>Exit, corridor and reachability data, ODbL 1.0. openinterstate.org</span>
+          </div>
+          <div className="attribution-card">
+            <strong>Basemap © CARTO</strong>
+            <span>Voyager tiles, with OpenStreetMap attribution. carto.com/attributions</span>
           </div>
           <div className="attribution-card">
             <strong>Imagery © Esri</strong>

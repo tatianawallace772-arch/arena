@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Layers, LocateFixed, Minus, Plus } from 'lucide-react';
 import type { LayerState, MapStyle, UserLocation } from '../lib/types';
+import { HAS_CARTO_API_KEY } from '../lib/mapConfig';
 import { CategoryIcon } from './Icons';
+import FontPicker from './FontPicker';
 
 const STYLES: Array<{ id: MapStyle; label: string; thumb: string }> = [
-  { id: 'voyager', label: 'Map', thumb: 'thumb-map' },
+  { id: 'openstreetmap', label: 'OpenStreetMap', thumb: 'thumb-map' },
+  ...(HAS_CARTO_API_KEY ? [{ id: 'carto' as const, label: 'CARTO Voyager', thumb: 'thumb-map' }] : []),
   { id: 'satellite', label: 'Satellite', thumb: 'thumb-satellite' },
   { id: 'terrain', label: 'Terrain', thumb: 'thumb-terrain' },
 ];
@@ -100,6 +103,11 @@ export default function MapControls({
               </button>
             ))}
           </div>
+
+          <div className="popover-title" style={{ marginBottom: 5 }}>
+            Typography
+          </div>
+          <FontPicker />
 
           <div className="popover-title" style={{ marginBottom: 3 }}>
             Layers
