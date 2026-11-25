@@ -18,8 +18,9 @@ sticker art; countdowns; confetti; and everything saved locally in the browser.
 | **Countdowns** | “Cookie Countdowns” card with days-remaining for any date, plus a live gingerbread-season counter. |
 | **Search** | `⌘K` / `Ctrl+K` finds events by title, note or date. |
 | **Persistence** | Events, stickers, settings and countdowns live in `localStorage` and sync across tabs. JSON export/import for backup. |
-| **Keyboard** | `N` new event · `T` today · `←/→` change month · `M/W/D/A/Y` switch view · `Delete` remove selected sticker · `Esc` close. |
+| **Keyboard** | `N` new event · `T` today · `←/→` change month · `M/W/D/A/Y` switch view · `S` mute sounds · `P` toggle soundtrack · `Delete` remove selected sticker · `Esc` close. |
 | **Celebration** | Confetti of cookies, snowflakes and candy canes on every save (toggleable). |
+| **Web Audio** | Fully synthesised sound effects (candy-cane “ting” on save, cookie press on sticker drop, sprinkle snipped on delete…) plus a generative music-box soundtrack with three moods. Volume sliders, a sound-test grid, and `S` / `P` toggles. No audio files, no network requests. |
 
 ## Getting started
 
@@ -38,6 +39,21 @@ Node 20+ recommended. There is no backend — all state is client-side.
 character cut out of the supplied artwork with a threshold + largest-component
 matte, so they can sit on the gingerbread paper without a coloured halo.
 `public/img/poster.jpg` is the promotional art used for the pinboard banner.
+
+## Sound design
+
+All audio is generated at runtime with the Web Audio API — the app ships zero audio
+files. `lib/audio.ts` owns a single `BakeryAudio` engine:
+
+- **Effects** are short oscillator + filtered-noise recipes (`tap`, `save`, `place`,
+  `delete`, `toggle`, `open`, `close`, `error`, `celebrate`), each with an
+  attack/release envelope, stereo panning and optional bell partials so nothing clicks.
+- **Music** is a generative 3/4 music-box loop: a pentatonic melody over a bass note and
+  sleigh-bell shimmer, scheduled ahead of time on a 200 ms lookahead ticker so timing
+  stays sample-accurate. Three moods (`gingerbread`, `frost`, `quiet`) change key, tempo
+  and bell density. Opening the event editor or settings ducks the loop to 35%.
+- The `AudioContext` is created lazily on the first gesture (browser autoplay rules), and
+  `useCalendarAudio` keeps volumes/mute state in sync with the saved settings.
 
 ## Project layout
 
@@ -61,6 +77,8 @@ src/gingerbread/
     data.ts               colors, stickers, holidays, sample plans
     types.ts              shared types
     useLocal.ts           persistent state + JSON helpers
+    audio.ts              Web Audio engine (effects + generative soundtrack)
+    useCalendarAudio.ts   binds the engine to saved settings
   styles/gingerbread.css  the whole design system
 ```
 

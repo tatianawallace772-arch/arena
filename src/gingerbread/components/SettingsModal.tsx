@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
-import { Download, RotateCcw, Trash2, Upload, X } from 'lucide-react';
-import type { Settings } from '../lib/types';
+import { useEffect, useRef, useState } from 'react';
+import { Download, Music2, Pause, Play, RotateCcw, Trash2, Upload, Volume2, VolumeX, X } from 'lucide-react';
+import type { AudioMood, Settings } from '../lib/types';
+import { bakeryAudio, type SfxName } from '../lib/audio';
 import { ART_STICKERS, GLYPH_STICKERS, ALL_STICKERS } from '../lib/data';
 
 interface Props {
@@ -27,6 +28,38 @@ export default function SettingsModal({
   onClearAll,
 }: Props) {
   const [confirmReset, setConfirmReset] = useState(false);
+  const [draftVolumes, setDraftVolumes] = useState({
+    sfx: settings.sfxVolume,
+    music: settings.musicVolume,
+  });
+  const previewTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    setDraftVolumes({ sfx: settings.sfxVolume, music: settings.musicVolume });
+  }, [settings.sfxVolume, settings.musicVolume]);
+
+  const preview = (name: SfxName) => {
+    bakeryAudio.setSfxVolume(draftVolumes.sfx);
+    bakeryAudio.play(name);
+  };
+
+  const onSfxSlide = (v: number) => {
+    setDraftVolumes((d) => ({ ...d, sfx: v }));
+    bakeryAudio.setSfxVolume(v);
+    if (previewTimer.current) window.clearTimeout(previewTimer.current);
+    previewTimer.current = window.setTimeout(() => bakeryAudio.play('place'), 120);
+  };
+
+  const onMusicSlide = (v: number) => {
+    setDraftVolumes((d) => ({ ...d, music: v }));
+    bakeryAudio.setMusicVolume(v);
+  };
+
+  const MOODS: { id: AudioMood; label: string; blurb: string }[] = [
+    { id: 'gingerbread', label: 'Gingerbread', blurb: 'Cozy 3/4 waltz, warm celesta' },
+    { id: 'frost', label: 'Frost', blurb: 'Slower, airier, more sleigh bells' },
+    { id: 'quiet', label: 'Quiet Bakery', blurb: 'Barely-there music-box hum' },
+  ];
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -90,6 +123,126 @@ export default function SettingsModal({
             />
             Sprinkle confetti on save
           </label>
+
+          {/* ---------------- Web Audio ---------------- */}
+          <div className="card" style={{ boxShadow: 'none' }}>
+            <div className="card-head">
+              <span aria-hidden>🔊</span>
+              <span className="card-title">Sound &amp; music</span>
+              <span className="spacer" />
+              <span className="smallcaps">Web Audio</span>
+            </div>
+            <div className="card-body" style={{ display: 'grid', gap: 13 }}>
+              <div className="audio-row">
+                <button
+                  className={`icon-btn ${settings.soundOn ? 'is-on' : ''}`}
+                  aria-pressed={settings.soundOn}
+                  aria-label={settings.soundOn ? 'Mute interface sounds' : 'Unmute interface sounds'}
+                  onClick={() => {
+                    onChange({ soundOn: !settings.soundOn });
+                    if (!settings.soundOn) window.setTimeout(() => preview('tap'), 40);
+                  }}
+                >
+                  {settings.soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
+                </button>
+                <div className="audio-row-body">
+                  <div className="audio-row-title">Interface sounds</div>
+                  <div className="audio-row-sub">Candy-cane pops, cookie presses, sprinkle snips</div>
+                  <input
+                    type="range"
+                    className="slider"
+                    min={0}
+                    max={100}
+                    value={Math.round(draftVolumes.sfx * 100)}
+                    aria-label="Sound effect volume"
+                    disabled={!settings.soundOn}
+                    onChange={(e) => onSfxSlide(Number(e.target.value) / 100)}
+                    onPointerUp={() => onChange({ sfxVolume: draftVolumes.sfx })}
+                    onKeyUp={() => onChange({ sfxVolume: draftVolumes.sfx })}
+                  />
+                </div>
+                <span className="vol-read">{Math.round(draftVolumes.sfx * 100)}</span>
+              </div>
+
+              <div className="audio-row">
+                <button
+                  className={`icon-btn ${settings.musicOn ? 'is-on' : ''}`}
+                  aria-pressed={settings.musicOn}
+                  aria-label={settings.musicOn ? 'Pause soundtrack' : 'Play soundtrack'}
+                  onClick={() => onChange({ musicOn: !settings.musicOn })}
+                >
+                  {settings.musicOn ? <Pause size={16} /> : <Play size={16} />}
+                </button>
+                <div className="audio-row-body">
+                  <div className="audio-row-title">
+                    Gingerbread soundtrack
+                    {settings.musicOn && (
+                      <span className="eq inline" aria-hidden>
+                        <i />
+                        <i />
+                        <i />
+                      </span>
+                    )}
+                  </div>
+                  <div className="audio-row-sub">Generative music-box loop — no audio files, all synthesised</div>
+                  <input
+                    type="range"
+                    className="slider"
+                    min={0}
+                    max={100}
+                    value={Math.round(draftVolumes.music * 100)}
+                    aria-label="Music volume"
+                    disabled={!settings.musicOn}
+                    onChange={(e) => onMusicSlide(Number(e.target.value) / 100)}
+                    onPointerUp={() => onChange({ musicVolume: draftVolumes.music })}
+                    onKeyUp={() => onChange({ musicVolume: draftVolumes.music })}
+                  />
+                </div>
+                <span className="vol-read">{Math.round(draftVolumes.music * 100)}</span>
+              </div>
+
+              <div className="field">
+                <label>Soundtrack mood</label>
+                <div className="mood-row">
+                  {MOODS.map((m) => (
+                    <button
+                      key={m.id}
+                      className={`mood ${settings.mood === m.id ? 'active' : ''}`}
+                      onClick={() => onChange({ mood: m.id })}
+                      title={m.blurb}
+                    >
+                      <Music2 size={13} />
+                      <b>{m.label}</b>
+                      <span>{m.blurb}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="field">
+                <label>Try the sounds</label>
+                <div className="sfx-grid">
+                  {(
+                    [
+                      ['tap', 'Tap', '👆'],
+                      ['save', 'Save', '✅'],
+                      ['place', 'Sticker', '🍪'],
+                      ['delete', 'Delete', '🧹'],
+                      ['open', 'Open', '📂'],
+                      ['close', 'Close', '📁'],
+                      ['error', 'Oops', '⚠️'],
+                      ['celebrate', 'Party', '🎉'],
+                    ] as [SfxName, string, string][]
+                  ).map(([id, label, glyph]) => (
+                    <button key={id} className="sfx-btn" onClick={() => preview(id)} disabled={!settings.soundOn}>
+                      <span aria-hidden>{glyph}</span>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="card" style={{ boxShadow: 'none' }}>
             <div className="card-head">

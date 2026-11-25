@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Download, Plus, Search, Settings, Sparkles, Upload, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Music2, Plus, Search, Settings, Sparkles, Upload, Volume2, VolumeX, X } from 'lucide-react';
 import { MONTH_NAMES, monthLabel, monthIndexFromAnchor, monthFromIndex } from '../lib/calendar';
 import { EVENT_COLORS, stickerById } from '../lib/data';
 import type { CalendarEvent, MonthRef, ViewMode } from '../lib/types';
@@ -25,6 +25,11 @@ interface Props {
   onImport: () => void;
   onCelebrate: () => void;
   onToday: () => void;
+  soundOn: boolean;
+  musicOn: boolean;
+  onToggleSound: () => void;
+  onToggleMusic: () => void;
+  onOpenAudio: () => void;
 }
 
 export default function TopBar({
@@ -40,6 +45,11 @@ export default function TopBar({
   onImport,
   onCelebrate,
   onToday,
+  soundOn,
+  musicOn,
+  onToggleSound,
+  onToggleMusic,
+  onOpenAudio,
 }: Props) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -205,6 +215,29 @@ export default function TopBar({
         <Plus size={15} /> Event
       </button>
 
+      <div className="audio-cluster" role="group" aria-label="Sound">
+        <button
+          className={`icon-btn ${soundOn ? 'is-on' : ''}`}
+          title={soundOn ? 'Mute interface sounds (S)' : 'Unmute interface sounds (S)'}
+          aria-pressed={soundOn}
+          aria-label={soundOn ? 'Mute interface sounds' : 'Unmute interface sounds'}
+          onClick={onToggleSound}
+        >
+          {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
+        </button>
+        <button
+          className={`icon-btn music-btn ${musicOn ? 'is-on' : ''}`}
+          title={musicOn ? 'Pause the gingerbread soundtrack' : 'Play the gingerbread soundtrack'}
+          aria-pressed={musicOn}
+          aria-label={musicOn ? 'Pause soundtrack' : 'Play soundtrack'}
+          onClick={onToggleMusic}
+          onDoubleClick={onOpenAudio}
+        >
+          <Music2 size={16} />
+          {musicOn && <span className="eq" aria-hidden><i /><i /><i /></span>}
+        </button>
+      </div>
+
       <button className="icon-btn" title="Celebrate!" aria-label="Throw confetti" onClick={onCelebrate}>
         <Sparkles size={16} />
       </button>
@@ -214,7 +247,7 @@ export default function TopBar({
       <button className="icon-btn" title="Import calendar (.json)" aria-label="Import" onClick={onImport}>
         <Upload size={16} />
       </button>
-      <button className="icon-btn" title="Settings" aria-label="Settings" onClick={onSettings}>
+      <button className="icon-btn" title="Sound &amp; settings" aria-label="Sound and settings" onClick={onSettings}>
         <Settings size={16} />
       </button>
     </header>

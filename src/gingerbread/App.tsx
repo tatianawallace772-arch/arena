@@ -10,6 +10,8 @@ import StickerTray from './components/StickerTray';
 import EventModal, { type EventDraft } from './components/EventModal';
 import SettingsModal from './components/SettingsModal';
 import { downloadJSON, readFileAsText, uid, usePersistentState } from './lib/useLocal';
+import { useCalendarAudio } from './lib/useCalendarAudio';
+import { bakeryAudio, type SfxName } from './lib/audio';
 import { toISO, monthFromIndex, firstOfMonth, monthIndexFromAnchor } from './lib/calendar';
 import { seedEvents, stickerById } from './lib/data';
 import type { CalendarEvent, Countdown, MonthRef, PlacedSticker, Settings, ViewMode } from './lib/types';
@@ -19,6 +21,11 @@ const DEFAULT_SETTINGS: Settings = {
   showHolidays: true,
   density: 'cozy',
   celebration: true,
+  soundOn: true,
+  sfxVolume: 0.5,
+  musicOn: false,
+  musicVolume: 0.22,
+  mood: 'gingerbread',
 };
 
 const SEED_COUNTDOWNS: Countdown[] = [
@@ -40,7 +47,14 @@ export default function App() {
   const [selected, setSelected] = usePersistentState<string>('gb.selected', toISO(now));
   const [events, setEvents] = usePersistentState<CalendarEvent[]>('gb.events', seedEvents);
   const [stickers, setStickers] = usePersistentState<PlacedSticker[]>('gb.stickers', []);
-  const [settings, setSettings] = usePersistentState<Settings>('gb.settings', DEFAULT_SETTINGS);
+  // Stored settings are merged over the defaults so calendars saved before the
+  // audio features existed pick up sound/music preferences cleanly.
+  const [storedSettings, setSettings] = usePersistentState<Partial<Settings>>('gb.settings', DEFAULT_SETTINGS);
+  const settings: Settings = useMemo(() => ({ ...DEFAULT_SETTINGS, ...storedSettings }), [storedSettings]);
+  const updateSettings = useCallback(
+    (patch: Partial<Settings>) => setSettings((prev) => ({ ...DEFAULT_SETTINGS, ...prev, ...patch })),
+    [setSettings],
+  );
   const [countdowns, setCountdowns] = usePersistentState<Countdown[]>('gb.countdowns', SEED_COUNTDOWNS);
   const [editableStickers, setEditableStickers] = usePersistentState<boolean>('gb.stickersEditable', true);
   const [selectedSticker, setSelectedSticker] = useState<string | null>(null);
@@ -52,9 +66,34 @@ export default function App() {
 
   const today = useMemo(() => new Date(), []);
 
-  const say = useCallback((msg: string, glyph = '🍪') => {
+  // ---- Web Audio -------------------------------------------------------
+  const { sfx, unlock, toggleMusic } = useCalendarAudio(settings);
+  const [musicPlaying, setMusicPlaying] = useState(false);
+
+  // The first click/keypress anywhere unlocks the AudioContext.
+  useEffect(() => {
+    const onFirst = () => unlock();
+    window.addEventListener('pointerdown', onFirst, { once: true });
+    window.addEventListener('keydown', onFirst, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', onFirst);
+      window.removeEventListener('keydown', onFirst);
+    };
+  }, [unlock]);
+
+  useEffect(() => {
+    setMusicPlaying(bakeryAudio.isMusicOn);
+  }, [settings.musicOn, settings.mood]);
+
+  // Duck the soundtrack while a dialog is open.
+  useEffect(() => {
+    bakeryAudio.duck(Boolean(draft) || settingsOpen);
+  }, [draft, settingsOpen]);
+
+  const say = useCallback((msg: string, glyph = '🍪', sound: SfxName = 'tap') => {
     setToast({ id: uid('toast'), msg, glyph });
-  }, []);
+    sfx(sound);
+  }, [sfx]);
 
   useEffect(() => {
     if (!toast) return;
@@ -63,6 +102,7 @@ export default function App() {
   }, [toast]);
 
   const celebrate = useCallback(() => {
+    sfx('celebrate');
     const glyphs = ['🍪', '❄️', '✨', '🍬', '⭐', '🎀', '🎄', '🧁'];
     const pieces = Array.from({ length: 46 }, (_, i) => ({
       left: Math.random() * 100,
@@ -72,7 +112,7 @@ export default function App() {
     }));
     setConfetti({ id: Date.now(), pieces });
     setTimeout(() => setConfetti(null), 4600);
-  }, []);
+  }, [sfx]);
 
   // Seed a few stickers on the very first visit only.
   const [seeded, setSeeded] = usePersistentState<boolean>('gb.stickersSeeded', false);
@@ -116,11 +156,11 @@ export default function App() {
     (next: EventDraft) => {
       if (next.id) {
         setEvents((list) => list.map((e) => (e.id === next.id ? ({ ...e, ...next } as CalendarEvent) : e)));
-        say('Plan updated', '✏️');
+        say('Plan updated', '✏️', 'save');
       } else {
         const created: CalendarEvent = { ...next, id: uid('ev') } as CalendarEvent;
         setEvents((list) => [...list, created]);
-        say('Plan pinned to the calendar', '📌');
+        say('Plan pinned to the calendar', '📌', 'save');
       }
       setDraft(null);
       if (settings.celebration) celebrate();
@@ -132,7 +172,7 @@ export default function App() {
     if (!draft?.id) return;
     setEvents((list) => list.filter((e) => e.id !== draft.id));
     setDraft(null);
-    say('Plan removed', '🧹');
+    say('Plan removed', '🧹', 'delete');
   }, [draft, say, setEvents]);
 
   const placeSticker = useCallback(
@@ -155,7 +195,7 @@ export default function App() {
       setSelectedSticker(placed.id);
       setEditableStickers(true);
       if (settings.celebration) celebrate();
-      say(`${st.name} added to ${iso}`, '✨');
+      say(`${st.name} added to ${iso}`, '✨', 'place');
     },
     [celebrate, selected, setEditableStickers, setStickers, settings.celebration, say, stickers],
   );
@@ -178,12 +218,12 @@ export default function App() {
   const clearMonthStickers = useCallback(() => {
     const prefix = `${currentMonth.year}-${String(currentMonth.month + 1).padStart(2, '0')}`;
     setStickers((list) => list.filter((s) => !s.date.startsWith(prefix)));
-    say('Stickers cleared from this month', '🧹');
+    say('Stickers cleared from this month', '🧹', 'delete');
   }, [currentMonth, say, setStickers]);
 
   const clearDayStickers = useCallback(() => {
     setStickers((list) => list.filter((s) => s.date !== selected));
-    say('Stickers cleared from this day', '🧹');
+    say('Stickers cleared from this day', '🧹', 'delete');
   }, [say, selected, setStickers]);
 
   const shuffleStickers = useCallback(() => {
@@ -200,7 +240,7 @@ export default function App() {
           : s,
       ),
     );
-    say('Scattered the sticker sheet', '✨');
+    say('Scattered the sticker sheet', '✨', 'place');
   }, [currentMonth, say, setStickers]);
 
   const exportAll = useCallback(() => {
@@ -213,7 +253,7 @@ export default function App() {
       countdowns,
       settings,
     });
-    say('Exported your calendar', '⬇️');
+    say('Exported your calendar', '⬇️', 'save');
   }, [countdowns, events, say, settings, stickers]);
 
   const importFile = useCallback(
@@ -230,9 +270,9 @@ export default function App() {
         if (Array.isArray(data.stickers)) setStickers(data.stickers);
         if (Array.isArray(data.countdowns)) setCountdowns(data.countdowns);
         if (data.settings) setSettings({ ...DEFAULT_SETTINGS, ...data.settings });
-        say('Calendar imported', '📥');
+        say('Calendar imported', '📥', 'save');
       } catch {
-        say('That file could not be read', '⚠️');
+        say('That file could not be read', '⚠️', 'error');
       }
     },
     [say, setCountdowns, setEvents, setSettings, setStickers],
@@ -241,7 +281,7 @@ export default function App() {
   const resetSample = useCallback(() => {
     setEvents(seedEvents);
     setCountdowns(SEED_COUNTDOWNS);
-    say('Sample plans restored', '🍪');
+    say('Sample plans restored', '🍪', 'place');
   }, [say, setCountdowns, setEvents]);
 
   const clearAll = useCallback(() => {
@@ -249,7 +289,7 @@ export default function App() {
     setStickers([]);
     setCountdowns([]);
     setSettingsOpen(false);
-    say('Everything cleared — fresh cookie sheet', '🧼');
+    say('Everything cleared — fresh cookie sheet', '🧼', 'delete');
   }, [say, setCountdowns, setEvents, setSettingsOpen, setStickers]);
 
   const addCountdown = useCallback(() => {
@@ -257,7 +297,7 @@ export default function App() {
       ...list,
       { id: uid('cd'), label: 'New countdown', date: selected, emoji: '🍪' },
     ]);
-    say('Countdown added', '⏳');
+    say('Countdown added', '⏳', 'place');
   }, [say, selected, setCountdowns]);
 
   const removeCountdown = useCallback(
@@ -312,6 +352,12 @@ export default function App() {
         case 'backspace':
           if (selectedSticker) removeSticker(selectedSticker);
           break;
+        case 's':
+          updateSettings({ soundOn: !settings.soundOn });
+          break;
+        case 'p':
+          updateSettings({ musicOn: !settings.musicOn });
+          break;
         case 'escape':
           setSelectedSticker(null);
           setDraft(null);
@@ -331,6 +377,7 @@ export default function App() {
     selected,
     selectedSticker,
     setCurrentMonth,
+    setSettings,
     setView,
   ]);
 
@@ -358,6 +405,21 @@ export default function App() {
         onImport={() => fileRef.current?.click()}
         onCelebrate={celebrate}
         onToday={gotoToday}
+        soundOn={settings.soundOn}
+        musicOn={musicPlaying}
+        onToggleSound={() => {
+          updateSettings({ soundOn: !settings.soundOn });
+        }}
+        onToggleMusic={() => {
+          const next = !musicPlaying;
+          updateSettings({ musicOn: next });
+          setMusicPlaying(next);
+          if (next) bakeryAudio.startMusic(settings.mood);
+          else bakeryAudio.stopMusic();
+          if (next) say('Gingerbread soundtrack on', '🎵', 'open');
+          else say('Soundtrack paused', '🔇', 'close');
+        }}
+        onOpenAudio={() => setSettingsOpen(true)}
       />
 
       <Sidebar
@@ -436,7 +498,7 @@ export default function App() {
           onClearSelectedDay={clearDayStickers}
           onClearAll={() => {
             setStickers([]);
-            say('Sticker sheet cleared', '🧹');
+            say('Sticker sheet cleared', '🧹', 'delete');
           }}
         />
       </main>
@@ -447,7 +509,7 @@ export default function App() {
       {settingsOpen && (
         <SettingsModal
           settings={settings}
-          onChange={(patch) => setSettings((s) => ({ ...s, ...patch }))}
+          onChange={updateSettings}
           onClose={() => setSettingsOpen(false)}
           eventCount={events.length}
           stickerCount={stickers.length}

@@ -42,11 +42,18 @@ export type ViewMode = 'month' | 'week' | 'day' | 'year' | 'agenda';
 
 export type Density = 'cozy' | 'compact';
 
+export type AudioMood = 'gingerbread' | 'frost' | 'quiet';
+
 export interface Settings {
   weekStartsOn: WeekStart;
   showHolidays: boolean;
   density: Density;
   celebration: boolean;
+  soundOn: boolean;
+  sfxVolume: number;
+  musicOn: boolean;
+  musicVolume: number;
+  mood: AudioMood;
 }
 
 export interface Countdown {
