@@ -9,12 +9,15 @@ import YearView from './components/YearView';
 import StickerTray from './components/StickerTray';
 import EventModal, { type EventDraft } from './components/EventModal';
 import SettingsModal from './components/SettingsModal';
+import CustomTrackPanel from './components/CustomTrackPanel';
 import { downloadJSON, readFileAsText, uid, usePersistentState } from './lib/useLocal';
 import { useCalendarAudio } from './lib/useCalendarAudio';
 import { bakeryAudio, type SfxName } from './lib/audio';
+import { releaseTrackUrl, useCustomTrack } from './lib/useCustomTrack';
+import { deleteTrack } from './lib/tracks';
 import { toISO, monthFromIndex, firstOfMonth, monthIndexFromAnchor } from './lib/calendar';
 import { seedEvents, stickerById } from './lib/data';
-import type { CalendarEvent, Countdown, MonthRef, PlacedSticker, Settings, ViewMode } from './lib/types';
+import type { CalendarEvent, Countdown, MonthRef, PlacedSticker, Settings, TrackMeta, ViewMode } from './lib/types';
 
 const DEFAULT_SETTINGS: Settings = {
   weekStartsOn: 0,
@@ -26,6 +29,11 @@ const DEFAULT_SETTINGS: Settings = {
   musicOn: false,
   musicVolume: 0.22,
   mood: 'gingerbread',
+  trackMode: 'synth',
+  trackId: null,
+  shuffleTracks: false,
+  repeatTracks: 'all',
+  trackLibrary: [],
 };
 
 const SEED_COUNTDOWNS: Countdown[] = [
@@ -67,7 +75,7 @@ export default function App() {
   const today = useMemo(() => new Date(), []);
 
   // ---- Web Audio -------------------------------------------------------
-  const { sfx, unlock, toggleMusic } = useCalendarAudio(settings);
+  const { sfx, unlock } = useCalendarAudio(settings);
   const [musicPlaying, setMusicPlaying] = useState(false);
 
   // The first click/keypress anywhere unlocks the AudioContext.
@@ -81,19 +89,51 @@ export default function App() {
     };
   }, [unlock]);
 
-  useEffect(() => {
-    setMusicPlaying(bakeryAudio.isMusicOn);
-  }, [settings.musicOn, settings.mood]);
-
   // Duck the soundtrack while a dialog is open.
   useEffect(() => {
     bakeryAudio.duck(Boolean(draft) || settingsOpen);
   }, [draft, settingsOpen]);
 
+  const sayRef = useRef<(msg: string, glyph?: string, sound?: SfxName) => void>(() => {});
+  const setTrackLibrary = useCallback((next: TrackMeta[]) => updateSettings({ trackLibrary: next }), [updateSettings]);
+  const selectTrack = useCallback((id: string) => updateSettings({ trackId: id }), [updateSettings]);
+  const reportTrackError = useCallback((message: string) => sayRef.current(message, '⚠️', 'error'), []);
+
+  // ---- Custom soundtrack (uploaded files) -----------------------------
+  const customTrack = useCustomTrack({
+    enabled: settings.musicOn,
+    volume: settings.musicVolume,
+    mode: settings.trackMode,
+    trackId: settings.trackId,
+    shuffle: settings.shuffleTracks,
+    repeat: settings.repeatTracks,
+    library: settings.trackLibrary,
+    onLibraryChange: setTrackLibrary,
+    onTrackSelect: selectTrack,
+    onError: reportTrackError,
+  });
+
+  useEffect(() => {
+    setMusicPlaying(settings.musicOn && (settings.trackMode === 'custom'
+      ? customTrack.status === 'playing'
+      : bakeryAudio.isMusicOn));
+  }, [settings.musicOn, settings.mood, settings.trackMode, customTrack.status]);
+
+  // Only one source may play: the synth loop or the uploaded file.
+  useEffect(() => {
+    if (settings.musicOn && settings.trackMode === 'custom') bakeryAudio.stopMusic();
+    if (settings.musicOn && settings.trackMode === 'synth') void customTrack.pause();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.musicOn, settings.trackMode]);
+
   const say = useCallback((msg: string, glyph = '🍪', sound: SfxName = 'tap') => {
     setToast({ id: uid('toast'), msg, glyph });
     sfx(sound);
   }, [sfx]);
+
+  useEffect(() => {
+    sayRef.current = say;
+  }, [say]);
 
   useEffect(() => {
     if (!toast) return;
@@ -251,7 +291,7 @@ export default function App() {
       events,
       stickers,
       countdowns,
-      settings,
+      settings: { ...settings, trackMode: 'synth', trackId: null, trackLibrary: [] },
     });
     say('Exported your calendar', '⬇️', 'save');
   }, [countdowns, events, say, settings, stickers]);
@@ -376,9 +416,10 @@ export default function App() {
     removeSticker,
     selected,
     selectedSticker,
+    settings,
     setCurrentMonth,
-    setSettings,
     setView,
+    updateSettings,
   ]);
 
   const monthStickers = useMemo(
@@ -414,10 +455,25 @@ export default function App() {
           const next = !musicPlaying;
           updateSettings({ musicOn: next });
           setMusicPlaying(next);
-          if (next) bakeryAudio.startMusic(settings.mood);
-          else bakeryAudio.stopMusic();
-          if (next) say('Gingerbread soundtrack on', '🎵', 'open');
-          else say('Soundtrack paused', '🔇', 'close');
+          if (next) {
+            if (settings.trackMode === 'custom') {
+              if (settings.trackLibrary.length === 0) {
+                say('Upload a track in Settings first', '🎧', 'error');
+                updateSettings({ musicOn: false });
+                setMusicPlaying(false);
+                return;
+              }
+              void customTrack.play();
+              say('Playing your soundtrack', '🎧', 'open');
+            } else {
+              bakeryAudio.startMusic(settings.mood);
+              say('Gingerbread soundtrack on', '🎵', 'open');
+            }
+          } else {
+            bakeryAudio.stopMusic();
+            void customTrack.pause();
+            say('Soundtrack paused', '🔇', 'close');
+          }
         }}
         onOpenAudio={() => setSettingsOpen(true)}
       />
@@ -517,6 +573,72 @@ export default function App() {
           onExport={exportAll}
           onImport={() => fileRef.current?.click()}
           onClearAll={clearAll}
+          trackPanel={
+            <CustomTrackPanel
+              settings={settings}
+              onChange={updateSettings}
+              playing={customTrack.status === 'playing'}
+              status={customTrack.status}
+              currentTime={customTrack.currentTime}
+              duration={customTrack.duration}
+              loadedTrack={customTrack.loadedTrack}
+              onToggle={() => {
+                if (customTrack.status === 'playing') {
+                  customTrack.pause();
+                  updateSettings({ musicOn: false });
+                  setMusicPlaying(false);
+                } else {
+                  updateSettings({ trackMode: 'custom', musicOn: true });
+                  setMusicPlaying(true);
+                  void customTrack.play();
+                }
+              }}
+              onStop={customTrack.stop}
+              onPrevious={customTrack.previous}
+              onNext={customTrack.next}
+              onSeek={customTrack.seek}
+              onAddFiles={(files) => {
+                void customTrack.addFiles(files).then((added) => {
+                  if (added.length) {
+                    const first = added[0];
+                    updateSettings({ trackMode: 'custom', trackId: first.id });
+                    say(`Added ${added.length} track${added.length > 1 ? 's' : ''}`, '🎧', 'save');
+                  }
+                });
+              }}
+              onPlayTrack={(id) => {
+                const meta = settings.trackLibrary.find((t) => t.id === id);
+                if (!meta) return;
+                if (customTrack.loadedId === id && customTrack.status === 'playing') {
+                  customTrack.pause();
+                  updateSettings({ musicOn: false });
+                  setMusicPlaying(false);
+                  return;
+                }
+                updateSettings({ trackMode: 'custom', trackId: id, musicOn: true });
+                setMusicPlaying(true);
+              }}
+              onRemoveTrack={(id) => {
+                void deleteTrack(id).catch(() => undefined);
+                releaseTrackUrl(id);
+                const next = settings.trackLibrary.filter((t) => t.id !== id);
+                updateSettings({
+                  trackLibrary: next,
+                  ...(settings.trackId === id ? { trackId: next[0]?.id ?? null } : {}),
+                  ...(next.length === 0 ? { trackMode: 'synth' as const } : {}),
+                });
+                say('Track removed', '🗑️', 'delete');
+              }}
+              onMoveTrack={(id, delta) => {
+                const list = [...settings.trackLibrary];
+                const i = list.findIndex((t) => t.id === id);
+                const j = i + delta;
+                if (i < 0 || j < 0 || j >= list.length) return;
+                [list[i], list[j]] = [list[j], list[i]];
+                updateSettings({ trackLibrary: list });
+              }}
+            />
+          }
         />
       )}
 

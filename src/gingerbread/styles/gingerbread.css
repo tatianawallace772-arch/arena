@@ -2354,3 +2354,84 @@ kbd {
     padding-top: 0;
   }
 }
+
+/* Custom soundtrack library */
+.dropzone {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 68px;
+  padding: 12px 14px;
+  border: 2px dashed var(--cookie-300);
+  border-radius: 13px;
+  color: var(--pine-deep);
+  background: linear-gradient(145deg, var(--cookie-50), #fffaf0);
+  cursor: pointer;
+  transition: border-color .15s, background .15s, transform .15s;
+}
+.dropzone:hover, .dropzone.over {
+  border-color: var(--pine);
+  background: #f3faef;
+  transform: translateY(-1px);
+}
+.dropzone > div { display: grid; gap: 3px; }
+.dropzone b { font-size: 12px; }
+.dropzone span { color: var(--cookie-600); font-size: 10.5px; line-height: 1.4; }
+.now-playing {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  padding: 11px;
+  border: 1px solid var(--cookie-200);
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fff, var(--cookie-50));
+}
+.np-art {
+  display: grid;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 12px;
+  background: radial-gradient(circle, #fff8df, #ead4a7);
+  box-shadow: inset 0 0 0 1px rgba(123, 79, 36, .12);
+}
+.np-disc { font-size: 22px; }
+.np-disc.spin { animation: np-spin 3.5s linear infinite; }
+@keyframes np-spin { to { transform: rotate(360deg); } }
+.np-body { min-width: 0; flex: 1; display: grid; gap: 5px; }
+.np-title, .track-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 800; color: var(--cookie-900); }
+.np-sub, .track-sub { color: var(--cookie-600); font-size: 10px; }
+.np-body .slider { width: 100%; height: 13px; }
+.np-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.track-list { display: grid; gap: 5px; }
+.track-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid var(--cookie-200);
+  border-radius: 11px;
+  background: #fffdf8;
+}
+.track-row.current { border-color: var(--pine); background: #f2f8ed; }
+.track-play {
+  display: grid;
+  flex: 0 0 27px;
+  width: 27px;
+  height: 27px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--pine);
+}
+.track-meta { min-width: 0; flex: 1; }
+.track-tools { display: flex; align-items: center; gap: 0; }
+.track-tools .btn { min-width: 26px; padding: 4px; }
+@media (max-width: 520px) {
+  .dropzone span { max-width: 230px; }
+  .track-tools .btn { min-width: 23px; }
+  .now-playing { align-items: flex-start; }
+}

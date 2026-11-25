@@ -53,6 +53,8 @@ class BakeryAudio {
   private sfxBus: GainNode | null = null;
   private musicBus: GainNode | null = null;
   private musicFilter: BiquadFilterNode | null = null;
+  private trackBus: GainNode | null = null;
+  private attachedElements = new WeakSet<HTMLMediaElement>();
   private musicTimer: number | null = null;
   private noiseBuffer: AudioBuffer | null = null;
 
@@ -93,6 +95,11 @@ class BakeryAudio {
       this.musicBus.gain.value = 0;
       this.musicBus.connect(this.musicFilter);
       this.musicFilter.connect(this.master);
+
+      // Bus for user-supplied audio files (custom soundtrack).
+      this.trackBus = this.ctx.createGain();
+      this.trackBus.gain.value = this.musicVolume * this.duckFactor;
+      this.trackBus.connect(this.master);
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
     return this.ctx;
@@ -115,9 +122,40 @@ class BakeryAudio {
 
   setMusicVolume(v: number) {
     this.musicVolume = clamp01(v);
-    if (this.musicBus && this.ctx && this.musicOn) {
-      this.musicBus.gain.setTargetAtTime(this.musicVolume, this.ctx.currentTime, 0.15);
+    if (this.ctx && this.musicBus && this.musicOn) {
+      this.musicBus.gain.setTargetAtTime(this.musicVolume * this.duckFactor, this.ctx.currentTime, 0.15);
     }
+    if (this.ctx && this.trackBus) {
+      this.trackBus.gain.setTargetAtTime(this.musicVolume * this.duckFactor, this.ctx.currentTime, 0.12);
+    }
+  }
+
+  /** Route an <audio>/<video> element through the shared music volume + ducking. */
+  attachMediaElement(el: HTMLMediaElement): boolean {
+    const ctx = this.ensure();
+    if (!ctx || !this.trackBus) return false;
+    if (this.attachedElements.has(el)) return true;
+    try {
+      const source = ctx.createMediaElementSource(el);
+      source.connect(this.trackBus);
+      this.attachedElements.add(el);
+      return true;
+    } catch {
+      // Already attached to another context, or media is not CORS-clean.
+      return false;
+    }
+  }
+
+  /** Set the volume of the custom-track bus without touching the synth loop. */
+  setTrackVolume(v: number) {
+    this.musicVolume = clamp01(v);
+    if (this.ctx && this.trackBus) {
+      this.trackBus.gain.setTargetAtTime(this.musicVolume * this.duckFactor, this.ctx.currentTime, 0.12);
+    }
+  }
+
+  get context(): AudioContext | null {
+    return this.ensure();
   }
 
   setMood(mood: MusicMood) {
@@ -391,7 +429,7 @@ class BakeryAudio {
     this.nextNoteTime = ctx.currentTime + 0.15;
     this.musicBus.gain.cancelScheduledValues(ctx.currentTime);
     this.musicBus.gain.setValueAtTime(0.0001, ctx.currentTime);
-    this.musicBus.gain.exponentialRampToValueAtTime(this.musicVolume, ctx.currentTime + 1.6);
+    this.musicBus.gain.exponentialRampToValueAtTime(Math.max(0.0001, this.musicVolume * this.duckFactor), ctx.currentTime + 1.6);
     this.scheduleStep();
     this.musicTimer = window.setInterval(() => this.scheduleStep(), 200);
   }
@@ -415,10 +453,18 @@ class BakeryAudio {
     return this.musicOn;
   }
 
-  /** Duck the soundtrack while a modal is open. */
+  private duckFactor = 1;
+
+  /** Duck both the synth loop and any custom track while a dialog is open. */
   duck(on: boolean) {
-    if (!this.ctx || !this.musicBus || !this.musicOn) return;
-    this.musicBus.gain.setTargetAtTime(on ? this.musicVolume * 0.35 : this.musicVolume, this.ctx.currentTime, 0.2);
+    this.duckFactor = on ? 0.35 : 1;
+    if (!this.ctx) return;
+    if (this.musicBus && this.musicOn) {
+      this.musicBus.gain.setTargetAtTime(this.musicVolume * this.duckFactor, this.ctx.currentTime, 0.2);
+    }
+    if (this.trackBus) {
+      this.trackBus.gain.setTargetAtTime(this.musicVolume * this.duckFactor, this.ctx.currentTime, 0.2);
+    }
   }
 
   dispose() {
@@ -428,6 +474,9 @@ class BakeryAudio {
     this.master = null;
     this.sfxBus = null;
     this.musicBus = null;
+    this.musicFilter = null;
+    this.trackBus = null;
+    this.attachedElements = new WeakSet<HTMLMediaElement>();
   }
 }
 

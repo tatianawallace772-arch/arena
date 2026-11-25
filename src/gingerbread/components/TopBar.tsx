@@ -227,7 +227,7 @@ export default function TopBar({
         </button>
         <button
           className={`icon-btn music-btn ${musicOn ? 'is-on' : ''}`}
-          title={musicOn ? 'Pause the gingerbread soundtrack' : 'Play the gingerbread soundtrack'}
+          title={musicOn ? 'Pause soundtrack' : 'Play soundtrack'}
           aria-pressed={musicOn}
           aria-label={musicOn ? 'Pause soundtrack' : 'Play soundtrack'}
           onClick={onToggleMusic}

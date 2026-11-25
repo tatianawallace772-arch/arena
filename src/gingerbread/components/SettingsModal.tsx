@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Download, Music2, Pause, Play, RotateCcw, Trash2, Upload, Volume2, VolumeX, X } from 'lucide-react';
 import type { AudioMood, Settings } from '../lib/types';
 import { bakeryAudio, type SfxName } from '../lib/audio';
@@ -14,6 +14,8 @@ interface Props {
   onExport: () => void;
   onImport: () => void;
   onClearAll: () => void;
+  /** Custom soundtrack panel, rendered inside the sound section. */
+  trackPanel?: ReactNode;
 }
 
 export default function SettingsModal({
@@ -26,6 +28,7 @@ export default function SettingsModal({
   onExport,
   onImport,
   onClearAll,
+  trackPanel,
 }: Props) {
   const [confirmReset, setConfirmReset] = useState(false);
   const [draftVolumes, setDraftVolumes] = useState({
@@ -184,7 +187,11 @@ export default function SettingsModal({
                       </span>
                     )}
                   </div>
-                  <div className="audio-row-sub">Generative music-box loop — no audio files, all synthesised</div>
+                  <div className="audio-row-sub">
+                    {settings.trackMode === 'custom'
+                      ? `Your uploaded track${settings.trackLibrary.length === 1 ? '' : 's'} (${settings.trackLibrary.length})`
+                      : 'Generative music-box loop — no audio files, all synthesised'}
+                  </div>
                   <input
                     type="range"
                     className="slider"
@@ -243,6 +250,8 @@ export default function SettingsModal({
               </div>
             </div>
           </div>
+
+          {trackPanel}
 
           <div className="card" style={{ boxShadow: 'none' }}>
             <div className="card-head">

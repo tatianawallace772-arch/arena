@@ -8,6 +8,7 @@ interface AudioSettings {
   musicOn: boolean;
   musicVolume: number;
   mood: AudioMood;
+  trackMode: Settings['trackMode'];
 }
 
 /**
@@ -23,7 +24,7 @@ export function useCalendarAudio(settings: Settings) {
     bakeryAudio.setMusicVolume(settings.musicVolume);
     bakeryAudio.setMood(settings.mood);
 
-    if (settings.musicOn) {
+    if (settings.musicOn && settings.trackMode === 'synth') {
       bakeryAudio.startMusic(settings.mood);
     } else {
       bakeryAudio.stopMusic();
@@ -42,7 +43,7 @@ export function useCalendarAudio(settings: Settings) {
   /** Browsers need a gesture before audio may start — used on first interaction. */
   const unlock = useCallback(() => {
     const s = settingsRef.current;
-    if (s.musicOn) bakeryAudio.startMusic(s.mood);
+    if (s.musicOn && s.trackMode === 'synth') bakeryAudio.startMusic(s.mood);
   }, []);
 
   return { sfx, unlock, toggleMusic: () => bakeryAudio.toggleMusic(settings.mood) };

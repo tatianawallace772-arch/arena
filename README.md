@@ -20,7 +20,21 @@ sticker art; countdowns; confetti; and everything saved locally in the browser.
 | **Persistence** | Events, stickers, settings and countdowns live in `localStorage` and sync across tabs. JSON export/import for backup. |
 | **Keyboard** | `N` new event · `T` today · `←/→` change month · `M/W/D/A/Y` switch view · `S` mute sounds · `P` toggle soundtrack · `Delete` remove selected sticker · `Esc` close. |
 | **Celebration** | Confetti of cookies, snowflakes and candy canes on every save (toggleable). |
-| **Web Audio** | Fully synthesised sound effects (candy-cane “ting” on save, cookie press on sticker drop, sprinkle snipped on delete…) plus a generative music-box soundtrack with three moods. Volume sliders, a sound-test grid, and `S` / `P` toggles. No audio files, no network requests. |
+| **Web Audio** | Synthesised sound effects plus a generative music-box soundtrack with three moods. Volume sliders, a sound-test grid, and `S` / `P` toggles. |
+
+## Custom soundtrack
+
+In **Settings → Sound & music → Custom soundtrack**, drop in or browse for MP3,
+M4A, AAC, OGG, Opus, WAV, FLAC or WebM audio. The browser's audio decoder is
+checked before accepting a file; files are limited to 25 MB each. The player has
+seek, previous/next, shuffle, repeat and a track list, and custom music replaces
+the generated synth loop. Choose **Synth loop** any time to switch back.
+
+Audio files are stored locally in the browser's IndexedDB; only small track
+metadata is kept with calendar settings. Nothing is uploaded. Audio binaries are
+not included in JSON calendar exports; clearing browser site data removes saved
+tracks, so keep the original audio files as your backup.
+The music-volume control and modal ducking also apply to custom tracks.
 
 ## Getting started
 
@@ -42,8 +56,9 @@ matte, so they can sit on the gingerbread paper without a coloured halo.
 
 ## Sound design
 
-All audio is generated at runtime with the Web Audio API — the app ships zero audio
-files. `lib/audio.ts` owns a single `BakeryAudio` engine:
+Sound effects and the built-in soundtrack are generated at runtime with the Web
+Audio API. Uploaded custom soundtrack files are stored on-device in IndexedDB.
+`lib/audio.ts` owns a single `BakeryAudio` engine:
 
 - **Effects** are short oscillator + filtered-noise recipes (`tap`, `save`, `place`,
   `delete`, `toggle`, `open`, `close`, `error`, `celebrate`), each with an
@@ -51,7 +66,7 @@ files. `lib/audio.ts` owns a single `BakeryAudio` engine:
 - **Music** is a generative 3/4 music-box loop: a pentatonic melody over a bass note and
   sleigh-bell shimmer, scheduled ahead of time on a 200 ms lookahead ticker so timing
   stays sample-accurate. Three moods (`gingerbread`, `frost`, `quiet`) change key, tempo
-  and bell density. Opening the event editor or settings ducks the loop to 35%.
+  and bell density. Opening the event editor or settings ducks either soundtrack source to 35%.
 - The `AudioContext` is created lazily on the first gesture (browser autoplay rules), and
   `useCalendarAudio` keeps volumes/mute state in sync with the saved settings.
 
@@ -77,7 +92,9 @@ src/gingerbread/
     data.ts               colors, stickers, holidays, sample plans
     types.ts              shared types
     useLocal.ts           persistent state + JSON helpers
-    audio.ts              Web Audio engine (effects + generative soundtrack)
+    audio.ts              Web Audio engine (effects + both soundtrack buses)
+    tracks.ts             supported formats + IndexedDB storage
+    useCustomTrack.ts     custom audio player + Media Session controls
     useCalendarAudio.ts   binds the engine to saved settings
   styles/gingerbread.css  the whole design system
 ```

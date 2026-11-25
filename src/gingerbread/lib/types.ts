@@ -44,6 +44,18 @@ export type Density = 'cozy' | 'compact';
 
 export type AudioMood = 'gingerbread' | 'frost' | 'quiet';
 
+/** Where the soundtrack comes from: the built-in synth loop or an uploaded file. */
+export type TrackMode = 'synth' | 'custom';
+
+export interface TrackMeta {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  duration: number;
+  addedAt: number;
+}
+
 export interface Settings {
   weekStartsOn: WeekStart;
   showHolidays: boolean;
@@ -54,6 +66,14 @@ export interface Settings {
   musicOn: boolean;
   musicVolume: number;
   mood: AudioMood;
+  /** Which soundtrack source is active. */
+  trackMode: TrackMode;
+  /** Selected custom track id (null = first in the library). */
+  trackId: string | null;
+  shuffleTracks: boolean;
+  repeatTracks: 'off' | 'all' | 'one';
+  /** Lightweight metadata for uploaded audio files, stored in IndexedDB. */
+  trackLibrary: TrackMeta[];
 }
 
 export interface Countdown {
