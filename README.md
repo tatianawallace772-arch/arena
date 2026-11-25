@@ -17,6 +17,10 @@ A fast, dependency-free static site modelled on the ubuntu.com layout — black 
 | `community.html` | Contribute, roadmap, support, disclaimer |
 | `404.html` | Custom 404 |
 
+> The website describes Dubuntu 26.04 LTS “Dub Jam”; the ISO builder defaults to
+> a real, bootable Ubuntu 24.04 (`noble`) base. See
+> [docs/BUILDING.md § Version naming](docs/BUILDING.md#version-naming).
+
 Assets live in `assets/css/style.css`, `assets/js/app.js`, `assets/img/`.
 
 ## Run locally
@@ -29,6 +33,40 @@ python3 dev-server.py 8000
 `dev-server.py` reproduces Vercel's clean-URL behaviour, so `/download` serves
 `download.html` just like production. There is no npm install and no build step:
 edit HTML/CSS/JS and refresh.
+
+## Build the Dubuntu live ISO
+
+The ISO is built with **live-build** on Ubuntu 24.04 (`noble`), branding applied
+inside the chroot, and lands as a hybrid BIOS + UEFI image:
+
+```bash
+sudo apt update
+sudo apt install -y live-build debootstrap squashfs-tools xorriso isolinux \
+  grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed shim-signed mtools dosfstools
+sudo ./scripts/build.sh
+# Output: build/out/dubuntu-24.04-amd64.iso  (+ .sha256 and SHA256SUMS)
+```
+
+`./scripts/build.sh --install-deps` performs the apt step. Not on Ubuntu 24.04
+(Debian, Fedora, macOS, CI)? Use the container path instead:
+
+```bash
+./scripts/build-in-docker.sh
+```
+
+Full details — requirements, options, environment overrides, customisation,
+VM testing, USB writing and troubleshooting — are in
+[docs/BUILDING.md](docs/BUILDING.md).
+
+| Path | Purpose |
+|------|---------|
+| `scripts/build.sh` | One-command builder (root, preflight checks, publish + checksums) |
+| `scripts/build-in-docker.sh` + `scripts/Dockerfile.build` | Build in an Ubuntu 24.04 container |
+| `auto/config` | `lb config` settings: suite, mirror, boot args, ISO metadata |
+| `config/package-lists/dubuntu.list.chroot` | Packages baked into the squashfs |
+| `config/hooks/normal/` | Branding (`os-release`, motd, wallpaper, dconf) and cleanup hooks |
+| `config/includes.chroot/` | Files copied into the image (logo, wallpaper) |
+| `build/` | Git-ignored build tree, `out/` ISO, `build.log` |
 
 ## Deployment status
 

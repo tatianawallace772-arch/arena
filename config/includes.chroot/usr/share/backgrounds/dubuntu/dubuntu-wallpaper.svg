@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 2560 1440">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d0d10"/>
+      <stop offset="0.55" stop-color="#141118"/>
+      <stop offset="1" stop-color="#2a1409"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.72" cy="0.28" r="0.55">
+      <stop offset="0" stop-color="#ff5a1f" stop-opacity="0.55"/>
+      <stop offset="0.5" stop-color="#ff5a1f" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#ff5a1f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="arc" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff5a1f"/>
+      <stop offset="0.6" stop-color="#f5b301"/>
+      <stop offset="1" stop-color="#16a34a"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="2560" height="1440" fill="url(#bg)"/>
+  <rect width="2560" height="1440" fill="url(#glow)"/>
+
+  <!-- concentric dub rings -->
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="2">
+    <circle cx="1880" cy="470" r="240"/>
+    <circle cx="1880" cy="470" r="360"/>
+    <circle cx="1880" cy="470" r="480"/>
+    <circle cx="1880" cy="470" r="600"/>
+  </g>
+
+  <!-- accent arc -->
+  <path d="M1880 230a240 240 0 0 1 0 480" fill="none" stroke="url(#arc)" stroke-width="26" stroke-linecap="round"/>
+  <circle cx="1880" cy="470" r="72" fill="#ff5a1f"/>
+  <circle cx="2100" cy="470" r="28" fill="#f5b301"/>
+
+  <!-- wordmark -->
+  <g font-family="Ubuntu, DejaVu Sans, sans-serif" fill="#ffffff">
+    <text x="220" y="700" font-size="170" font-weight="700" letter-spacing="-6">dubuntu</text>
+    <text x="226" y="770" font-size="46" fill="#ff8f5f" letter-spacing="2">Ubuntu, remixed.</text>
+    <text x="226" y="1230" font-size="34" fill="#ffffff" fill-opacity="0.55">unofficial community remix · not affiliated with Canonical Ltd.</text>
+  </g>
+
+  <!-- equaliser motif -->
+  <g fill="#ff5a1f" fill-opacity="0.85">
+    <rect x="226" y="840" width="26" height="120" rx="12"/>
+    <rect x="272" y="884" width="26" height="76" rx="12"/>
+    <rect x="318" y="812" width="26" height="148" rx="12"/>
+    <rect x="364" y="900" width="26" height="60" rx="12"/>
+    <rect x="410" y="860" width="26" height="100" rx="12"/>
+  </g>
+</svg>

@@ -1,0 +1,39 @@
+#!/bin/sh
+# auto/config — live-build configuration for Dubuntu.
+#
+# Executed automatically by `lb config` (called from scripts/build.sh).
+# Everything can be overridden with environment variables, e.g.:
+#
+#   sudo DUBUNTU_MIRROR=https://mirror.example.ubuntu.com/ubuntu/ ./scripts/build.sh
+#
+set -eu
+
+DUBUNTU_VERSION="${DUBUNTU_VERSION:-24.04}"
+DUBUNTU_DISTRIBUTION="${DUBUNTU_DISTRIBUTION:-noble}"
+DUBUNTU_ARCH="${DUBUNTU_ARCH:-amd64}"
+DUBUNTU_MIRROR="${DUBUNTU_MIRROR:-http://archive.ubuntu.com/ubuntu/}"
+DUBUNTU_SECURITY_MIRROR="${DUBUNTU_SECURITY_MIRROR:-http://security.ubuntu.com/ubuntu/}"
+DUBUNTU_VOLUME_ID="${DUBUNTU_VOLUME_ID:-DUBUNTU_$(echo "$DUBUNTU_VERSION" | tr -d '.')}"
+
+lb config noauto \
+  --mode ubuntu \
+  --distribution "$DUBUNTU_DISTRIBUTION" \
+  --architectures "$DUBUNTU_ARCH" \
+  --binary-images iso-hybrid \
+  --archive-areas "main restricted universe multiverse" \
+  --linux-flavours generic \
+  --linux-packages "linux-image" \
+  --mirror-bootstrap "$DUBUNTU_MIRROR" \
+  --mirror-chroot "$DUBUNTU_MIRROR" \
+  --mirror-chroot-security "$DUBUNTU_SECURITY_MIRROR" \
+  --keyring-packages "ubuntu-keyring" \
+  --apt-options "--yes --option Acquire::Retries=5" \
+  --apt-http-timeout 60 \
+  --debian-installer none \
+  --bootappend-live "boot=live components quiet splash username=dubuntu hostname=dubuntu locales=en_US.UTF-8 keyboard-layouts=us" \
+  --iso-application "Dubuntu ${DUBUNTU_VERSION} LTS" \
+  --iso-preparer "Dubuntu Community <hello@dubuntu.org>" \
+  --iso-publisher "Dubuntu Community - https://dubuntu.org" \
+  --iso-volume "$DUBUNTU_VOLUME_ID" \
+  --checksums sha256 \
+  "${@}"

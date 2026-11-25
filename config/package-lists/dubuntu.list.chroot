@@ -1,0 +1,61 @@
+# Dubuntu live image — package selection (chroot stage).
+#
+# Keep this list inside the Ubuntu 24.04 (noble) archive. Everything here is
+# installed into the squashfs root filesystem that ships on the ISO.
+
+## --- Base Ubuntu system -------------------------------------------------
+ubuntu-standard
+ubuntu-desktop-minimal
+language-pack-en
+fonts-ubuntu
+fonts-noto-core
+
+## --- Dubuntu desktop shell & tooling -----------------------------------
+gnome-tweaks
+gnome-shell-extensions
+gnome-shell-extension-dashtodock
+gnome-shell-extension-appindicator
+dconf-cli
+dconf-gsettings-backend
+
+## --- Everyday apps ------------------------------------------------------
+# Ubuntu 24.04 ships Firefox and Thunderbird as *snaps*; their .deb names are
+# transitional shims that fail inside a chroot. Real .deb browsers/mail clients
+# are used here instead — the snap versions install fine on first boot.
+epiphany-browser
+evolution
+libreoffice-calc
+libreoffice-writer
+libreoffice-impress
+vlc
+gimp
+rhythmbox
+gnome-disk-utility
+file-roller
+p7zip-full
+zip
+unzip
+curl
+wget
+git
+htop
+nano
+vim-tiny
+
+## --- Package managers ---------------------------------------------------
+# snapd's post-install script is a known chroot troublemaker. live-build's
+# policy-rc.d keeps services from starting, which normally lets it install; if
+# it fails, drop snapd from this list and `snap install` after first boot.
+snapd
+flatpak
+gnome-software
+gnome-software-plugin-flatpak
+gnome-software-plugin-snap
+
+## --- Install / rescue helpers ------------------------------------------
+gparted
+testdisk
+rsync
+openssh-client
+cryptsetup
+lvm2

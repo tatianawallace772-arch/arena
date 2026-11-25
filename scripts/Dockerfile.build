@@ -1,0 +1,41 @@
+# Dubuntu ISO build container.
+#
+# Ubuntu 24.04 (noble) with the full live-build toolchain, so the ISO builds the
+# same way on any host (Debian, Fedora, macOS with Docker Desktop, CI).
+#
+#   docker build -t dubuntu-iso-builder -f scripts/Dockerfile.build scripts/
+#   ./scripts/build-in-docker.sh
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    LC_ALL=C.UTF-8 \
+    LANG=C.UTF-8
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      live-build \
+      debootstrap \
+      squashfs-tools \
+      xorriso \
+      isolinux \
+      syslinux-common \
+      grub-pc-bin \
+      grub-efi-amd64-bin \
+      grub-efi-amd64-signed \
+      shim-signed \
+      ubuntu-keyring \
+      mtools \
+      dosfstools \
+      rsync \
+      ca-certificates \
+      git \
+      curl \
+      fdisk \
+      kmod \
+      udev \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+CMD ["./scripts/build.sh"]

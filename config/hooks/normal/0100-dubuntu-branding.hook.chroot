@@ -1,0 +1,150 @@
+#!/bin/sh
+# 0100-dubuntu-branding.hook.chroot
+#
+# Runs inside the chroot during `lb build`. Rebrands the live system files and
+# installs the Dubuntu wallpaper / accent colours as GNOME defaults.
+set -eu
+
+VERSION="${DUBUNTU_VERSION:-24.04}"
+UBUNTU_CODENAME="${DUBUNTU_DISTRIBUTION:-noble}"
+CODENAME="${DUBUNTU_CODENAME:-Dub Jam}"
+
+echo "I: Dubuntu branding — ${VERSION} LTS (${CODENAME})"
+
+## --- /etc/os-release ----------------------------------------------------
+cat > /etc/os-release <<EOF
+PRETTY_NAME="Dubuntu ${VERSION} LTS (${CODENAME})"
+NAME="Dubuntu"
+VERSION_ID="${VERSION}"
+VERSION="${VERSION} LTS (${CODENAME})"
+VERSION_CODENAME=${UBUNTU_CODENAME}
+ID=dubuntu
+ID_LIKE="ubuntu debian"
+HOME_URL="https://dubuntu.org/"
+SUPPORT_URL="https://dubuntu.org/community#support"
+BUG_REPORT_URL="https://dubuntu.org/community#support"
+PRIVACY_POLICY_URL="https://dubuntu.org/"
+UBUNTU_CODENAME=${UBUNTU_CODENAME}
+LOGO=dubuntu-logo
+EOF
+
+## --- /etc/lsb-release ---------------------------------------------------
+cat > /etc/lsb-release <<EOF
+DISTRIB_ID=Dubuntu
+DISTRIB_RELEASE=${VERSION}
+DISTRIB_CODENAME=${UBUNTU_CODENAME}
+DISTRIB_DESCRIPTION="Dubuntu ${VERSION} LTS (${CODENAME})"
+EOF
+
+## --- /etc/dubuntu-release ----------------------------------------------
+cat > /etc/dubuntu-release <<EOF
+DUBUNTU_VERSION="${VERSION}"
+DUBUNTU_CODENAME="${CODENAME}"
+DUBUNTU_FLAVOUR="desktop"
+DUBUNTU_HOMEPAGE="https://dubuntu.org/"
+DUBUNTU_BASE_UBUNTU="${UBUNTU_CODENAME}"
+EOF
+
+## --- Console identity ---------------------------------------------------
+cat > /etc/issue <<EOF
+Dubuntu ${VERSION} LTS (${CODENAME}) \n \l
+
+EOF
+
+cat > /etc/issue.net <<EOF
+Dubuntu ${VERSION} LTS (${CODENAME})
+EOF
+
+cat > /etc/motd <<EOF
+
+    ██████╗ ██╗   ██╗██████╗ ██╗   ██╗███╗   ██╗████████╗██╗   ██╗
+    ██╔══██╗██║   ██║██╔══██╗██║   ██║████╗  ██║╚══██╔══╝██║   ██║
+    ██║  ██║██║   ██║██████╔╝██║   ██║██╔██╗ ██║   ██║   ██║   ██║
+    ██║  ██║██║   ██║██╔══██╗██║   ██║██║╚██╗██║   ██║   ██║   ██║
+    ██████╔╝╚██████╔╝██████╔╝╚██████╔╝██║ ╚████║   ██║   ╚██████╔╝
+    ╚═════╝  ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝   ╚═╝    ╚═════╝
+                  Ubuntu, remixed. · ${VERSION} LTS "${CODENAME}"
+
+  Unofficial community remix — not affiliated with Canonical Ltd.
+  Docs & support .... https://dubuntu.org
+  Update ............ sudo apt update && sudo apt full-upgrade
+
+EOF
+
+## --- Default hostname ---------------------------------------------------
+echo "dubuntu" > /etc/hostname
+if grep -q '^127\.0\.1\.1' /etc/hosts 2>/dev/null; then
+  sed -i 's/^127\.0\.1\.1.*/127.0.1.1\tdubuntu/' /etc/hosts
+else
+  printf '127.0.1.1\tdubuntu\n' >> /etc/hosts
+fi
+
+## --- Dubuntu logo -------------------------------------------------------
+mkdir -p /usr/share/pixmaps
+if [ -f /usr/share/dubuntu/dubuntu-logo.svg ]; then
+  cp /usr/share/dubuntu/dubuntu-logo.svg /usr/share/pixmaps/dubuntu-logo.svg
+  cp /usr/share/dubuntu/dubuntu-logo.svg /usr/share/pixmaps/dubuntu-logo-icon.svg
+fi
+
+## --- Wallpaper + GNOME defaults ----------------------------------------
+WALLPAPER_DIR=/usr/share/backgrounds/dubuntu
+if [ -f "$WALLPAPER_DIR/dubuntu-wallpaper.svg" ]; then
+  # A PNG fallback keeps older GNOME/ubiquity-style consumers happy.
+  if command -v rsvg-convert >/dev/null 2>&1; then
+    rsvg-convert -w 2560 -h 1440 "$WALLPAPER_DIR/dubuntu-wallpaper.svg" \
+      -o "$WALLPAPER_DIR/dubuntu-wallpaper.png" || true
+  fi
+
+  mkdir -p /etc/dconf/profile /etc/dconf/db/local.d
+  cat > /etc/dconf/profile/user <<'EOF'
+user-db:user
+system-db:local
+EOF
+
+  WALLPAPER_URI="file://$WALLPAPER_DIR/dubuntu-wallpaper"
+  if [ -f "$WALLPAPER_DIR/dubuntu-wallpaper.png" ]; then
+    WALLPAPER_URI="${WALLPAPER_URI}.png"
+  else
+    WALLPAPER_URI="${WALLPAPER_URI}.svg"
+  fi
+
+  cat > /etc/dconf/db/local.d/00-dubuntu <<EOF
+[org/gnome/desktop/background]
+picture-uri='${WALLPAPER_URI}'
+picture-uri-dark='${WALLPAPER_URI}'
+picture-options='zoom'
+
+[org/gnome/desktop/interface]
+color-scheme='prefer-dark'
+accent-color='orange'
+
+[org/gnome/desktop/screensaver]
+picture-uri='${WALLPAPER_URI}'
+
+[org/gnome/shell]
+favorite-apps=['firefox.desktop', 'org.gnome.Nautilus.desktop', 'org.gnome.Terminal.desktop', 'snap-store_ubuntu-software.desktop', 'libreoffice-writer.desktop', 'vlc.desktop']
+EOF
+
+  if command -v dconf >/dev/null 2>&1; then
+    dconf update || true
+  fi
+fi
+
+## --- Skeleton desktop files --------------------------------------------
+mkdir -p /etc/skel/Desktop /etc/skel/.config
+cat > /etc/skel/Desktop/dubuntu-website.desktop <<'EOF'
+[Desktop Entry]
+Type=Link
+Name=Dubuntu.org
+Comment=Downloads, docs and community
+URL=https://dubuntu.org
+Icon=firefox
+EOF
+chmod 0755 /etc/skel/Desktop/dubuntu-website.desktop
+
+## --- Apt sources banner -------------------------------------------------
+if [ -f /etc/apt/sources.list ]; then
+  cp /etc/apt/sources.list /etc/apt/sources.list.dubuntu-original 2>/dev/null || true
+fi
+
+echo "I: Dubuntu branding complete"

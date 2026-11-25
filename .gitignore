@@ -71,3 +71,6 @@ Testing/
 # Vercel build output
 dist/
 .vercel/
+
+# ISO build output
+build/

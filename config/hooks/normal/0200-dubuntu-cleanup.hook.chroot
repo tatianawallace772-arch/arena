@@ -1,0 +1,27 @@
+#!/bin/sh
+# 0200-dubuntu-cleanup.hook.chroot
+#
+# Trims caches and build leftovers so the squashfs stays as small as possible.
+set -eu
+
+echo "I: Dubuntu cleanup"
+
+apt-get -y autoremove --purge || true
+apt-get -y clean || true
+
+rm -rf /var/lib/apt/lists/* \
+       /var/cache/apt/archives/*.deb \
+       /var/cache/apt/archives/partial/* \
+       /var/cache/debconf/*.dat-old \
+       /tmp/* /var/tmp/* \
+       /var/log/apt/*.log* \
+       /root/.bash_history /root/.wget-hsts
+
+find /var/log -type f -exec truncate -s 0 {} + 2>/dev/null || true
+find / -xdev -name '*.pyc' -delete 2>/dev/null || true
+
+# machine-id must be empty so every live boot generates its own
+: > /etc/machine-id
+rm -f /var/lib/dbus/machine-id
+
+exit 0
