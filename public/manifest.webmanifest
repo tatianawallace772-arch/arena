@@ -1,0 +1,14 @@
+{
+  "name": "Junction — people, posts, and places",
+  "short_name": "Junction",
+  "description": "A fully functional social network demo with feeds, stories, messenger, groups, watch, marketplace and a facebook-scraper importer.",
+  "start_url": "/#/",
+  "display": "standalone",
+  "background_color": "#f2f1ee",
+  "theme_color": "#c8553d",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

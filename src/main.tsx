@@ -1,14 +1,13 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import 'leaflet/dist/leaflet.css';
-import '@fontsource-variable/inter';
-import '@fontsource-variable/manrope';
-import '@fontsource-variable/roboto-flex';
-import './styles/global.css';
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 import App from './App';
+import { StoreProvider } from './lib/store';
+import './styles/global.css';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <StoreProvider>
+      <App />
+    </StoreProvider>
+  </StrictMode>,
 );

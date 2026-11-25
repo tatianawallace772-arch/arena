@@ -1,0 +1,143 @@
+{
+  "format": "junction-fb-bundle",
+  "version": 1,
+  "source": "facebook-scraper",
+  "generatedAt": "2026-11-25T18:47:35+00:00",
+  "query": {
+    "kind": "page",
+    "target": "ridgeandriver",
+    "pages": 2
+  },
+  "page": {
+    "id": "ridgeandriver",
+    "name": "Ridge & River",
+    "handle": "ridgeandriver",
+    "avatar": "/assets/avatars/daniel.jpg",
+    "url": "https://www.facebook.com/ridgeandriver",
+    "likes": 48712,
+    "followers": 51003,
+    "about": "Guided hikes, trip reports and camp recipes from the San Juan Mountains. Sample bundle for Junction."
+  },
+  "posts": [
+    {
+      "id": "122084712345678901",
+      "at": 1795615175727,
+      "text": "This week’s window seat view. We’re in the middle of a run of clear mornings over the San Juan range — if you’ve been waiting for a sign to get outside, this is the sign.\n\nPost the view from your morning run and tag the page. We’ll share our favorites on Friday.",
+      "images": [
+        "/assets/photos/hike.jpg"
+      ],
+      "video": null,
+      "link": null,
+      "reactions": {
+        "like": 1842,
+        "love": 612,
+        "wow": 96,
+        "care": 24
+      },
+      "commentsCount": 143,
+      "shares": 61,
+      "url": "https://www.facebook.com/ridgeandriver/posts/122084712345678901"
+    },
+    {
+      "id": "122084712345678902",
+      "at": 1795537415727,
+      "text": "Recipe drop: the camp stove elote we made on last month’s trip. Charred over the fire, lime crema, cotija, chili. Full recipe is linked below — print it, don’t screenshot it.",
+      "images": [
+        "/assets/photos/tacos.jpg"
+      ],
+      "video": null,
+      "link": {
+        "url": "https://www.facebook.com/ridgeandriver/notes/camp-stove-elote",
+        "title": "Camp stove elote, for four people and one pot",
+        "desc": "Everything you need fits in a single dry bag."
+      },
+      "reactions": {
+        "like": 981,
+        "love": 402,
+        "haha": 33
+      },
+      "commentsCount": 88,
+      "shares": 120,
+      "url": "https://www.facebook.com/ridgeandriver/posts/122084712345678902"
+    },
+    {
+      "id": "122084712345678903",
+      "at": 1795425095727,
+      "text": "Trail conditions update: the upper ridge is dry, the north face still holds snow. Microspikes recommended above 10,000 ft. Trailhead parking fills by 7:15 — carpool if you can.",
+      "images": [],
+      "video": null,
+      "link": {
+        "url": "https://www.facebook.com/ridgeandriver/posts/conditions",
+        "title": "Current trail conditions",
+        "desc": "Updated every Thursday through October."
+      },
+      "reactions": {
+        "like": 311,
+        "care": 41
+      },
+      "commentsCount": 19,
+      "shares": 44,
+      "url": "https://www.facebook.com/ridgeandriver/posts/122084712345678903"
+    },
+    {
+      "id": "122084712345678904",
+      "at": 1795286855727,
+      "text": "Sunrise, no filter, one thermos between six of us. See you Saturday.",
+      "images": [
+        "/assets/photos/coast.jpg"
+      ],
+      "video": "/assets/videos/demo.mp4",
+      "link": null,
+      "reactions": {
+        "like": 2204,
+        "love": 1330,
+        "wow": 210,
+        "haha": 12
+      },
+      "commentsCount": 261,
+      "shares": 301,
+      "url": "https://www.facebook.com/ridgeandriver/posts/122084712345678904"
+    },
+    {
+      "id": "122084712345678905",
+      "at": 1795096775727,
+      "text": "Our guide team is growing. We’re looking for two people who know these mountains, can read weather, and will happily explain why the last mile is the best mile. Details in the listing.",
+      "images": [
+        "/assets/photos/bike.jpg"
+      ],
+      "video": null,
+      "link": {
+        "url": "https://www.facebook.com/ridgeandriver/jobs",
+        "title": "Seasonal guide positions — San Juan Mountains",
+        "desc": "Applications close the end of the month."
+      },
+      "reactions": {
+        "like": 402,
+        "love": 61,
+        "wow": 8
+      },
+      "commentsCount": 54,
+      "shares": 71,
+      "url": "https://www.facebook.com/ridgeandriver/posts/122084712345678905"
+    },
+    {
+      "id": "122084712345678906",
+      "at": 1794811655727,
+      "text": "Throwback to the first trip we ever ran: four people, borrowed tents, and a rainstorm that lasted exactly as long as breakfast. Thank you to everyone who has come out since.",
+      "images": [
+        "/assets/photos/lake.jpg",
+        "/assets/photos/garden.jpg"
+      ],
+      "video": null,
+      "link": null,
+      "reactions": {
+        "like": 1204,
+        "love": 388,
+        "care": 92
+      },
+      "commentsCount": 176,
+      "shares": 38,
+      "url": "https://www.facebook.com/ridgeandriver/posts/122084712345678906"
+    }
+  ]
+}
