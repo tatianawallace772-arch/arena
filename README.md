@@ -1,24 +1,25 @@
-# Interstate — a Google-Maps-style highway explorer
+# 🍪 Gingerbread Calendar
 
-An interactive map of the U.S. Interstate system built with **React 19**, **Leaflet**, and
-[OpenInterstate](https://openinterstate.org/) exit and place data. Standard OpenStreetMap tiles are
-the default basemap, with CARTO Voyager available as an optional style when configured.
+A cookie-decorated planner with **Gingerbread Starr Nova** stickers, built with
+React 19 + TypeScript + Vite. Month, week, day, agenda and year views; drag-and-drop
+sticker art; countdowns; confetti; and everything saved locally in the browser.
 
-![stack](https://img.shields.io/badge/React-19-blue) ![stack](https://img.shields.io/badge/Leaflet-1.9-blue)
+![stack](https://img.shields.io/badge/React-19-blue) ![stack](https://img.shields.io/badge/Vite-6-purple)
 
 ## What it does
 
 | Feature | Notes |
 | --- | --- |
-| **Interstate network** | 643 corridors drawn as cased blue lines over an OSM basemap, with exit and place points rendered on a canvas overlay so 38k exits stay smooth. |
-| **Search** | Type `I-95 exit 123`, `Buc-ee's`, `Exit 4A`, or any place name. Exits and places come from the local OpenInterstate snapshot; everything else falls through to Photon (OSM) geocoding. |
-| **Exit card** | Services at the exit (gas, food, lodging, EV charging, rest area, park, dog park, travel center), nearby exits with distances, and one-tap directions. |
-| **Directions** | OSRM routing with drive / walk / bike profiles, turn-by-turn steps, a **Exits along route** tab, and GPX export. Includes a bundled Miami → Manhattan demo route so the panel works fully offline. |
-| **Exit guide** | Corridor picker plus northbound/southbound scrubbing of upcoming exits with per-exit service chips — the "read the road ahead" view. |
-| **Layers** | OpenStreetMap / CARTO Voyager / Satellite / Terrain basemaps, corridor, exit, place, rest-area and notable-place toggles, and a place-type filter. |
-| **Typography** | Switch between locally bundled Google Fonts (Inter, Manrope, Roboto Flex), or upload a custom WOFF2/WOFF/TTF/OTF font saved in this browser. |
-| **Deep links** | `?exit=<id>`, `?place=<id>`, and `?lat/&lon/&zoom` URL parameters restore the exact view. |
-| **Saved & recent** | Star exits and places; recent searches persist in `localStorage`. |
+| **Five views** | Month canvas, week time-grid, single-day sheet, grouped agenda and a 12-month cookie year. |
+| **Sticker art** | The two supplied Starr Nova illustrations are matted to transparent PNGs and render on any day at any size/tilt. 16 cookie glyph stickers round out the sheet. |
+| **Drag & drop stickers** | Unlock “Editing” on the month canvas, then drag a sticker to move it (even between days) or grab its corner to resize. Double-click tilts it 15°. |
+| **Events** | Title, date, start/end time, icing colour, optional sticker badge, notes and a done toggle. Double-click a day to add one. |
+| **Holidays** | 18 baked-in holidays flagged with a dashed cookie outline and glyph (can be toggled off). |
+| **Countdowns** | “Cookie Countdowns” card with days-remaining for any date, plus a live gingerbread-season counter. |
+| **Search** | `⌘K` / `Ctrl+K` finds events by title, note or date. |
+| **Persistence** | Events, stickers, settings and countdowns live in `localStorage` and sync across tabs. JSON export/import for backup. |
+| **Keyboard** | `N` new event · `T` today · `←/→` change month · `M/W/D/A/Y` switch view · `Delete` remove selected sticker · `Esc` close. |
+| **Celebration** | Confetti of cookies, snowflakes and candy canes on every save (toggleable). |
 
 ## Getting started
 
@@ -29,50 +30,43 @@ npm run build      # typecheck + production bundle into dist/
 npm run preview    # serve the production build
 ```
 
-Node 20+ is recommended. Everything runs client-side — there is no backend.
+Node 20+ recommended. There is no backend — all state is client-side.
 
-To enable CARTO Voyager, set `VITE_CARTO_API_KEY` in `.env.local` (see `.env.example`). The app
-builds the CARTO tile URL automatically and adds it to the map-style selector; OpenStreetMap stays
-the default. The key is included in browser requests, so restrict its allowed origins in the CARTO
-dashboard. Add the same variable to your deployment's build-time environment (for example,
-Vercel) to enable CARTO there.
+## Sticker assets
 
-## Data
-
-The app ships a prebuilt snapshot in `public/data/`:
-
-| File | Contents |
-| --- | --- |
-| `interstates.eax` | Binary `EAX1` bundle: exits, places, and exit↔place links (12 MB). |
-| `corridors.eac` | Binary `EAC1` bundle: corridor geometry (2.3 MB). |
-| `restareas.json` | 1,338 rest areas with truck-parking counts (FHWA, public domain). |
-| `stations.json` | 19,679 fuel/charging stations keyed by OSM node id. |
-| `discover.json` | 1,620 notable places (CC0). |
-| `demo-route.json` | Sample Miami → Manhattan route used when OSRM is unreachable. |
-
-The binary parsers live in `src/data/parser.ts`; spatial indexing and search in `src/data/index.ts`.
-
-## Attribution
-
-- **Map data** © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the Open Database License (ODbL).
-- **Exit & place data** © [OpenInterstate](https://openinterstate.org/).
-- **CARTO Voyager tiles** © [CARTO](https://carto.com/attributions) and [OpenStreetMap contributors](https://www.openstreetmap.org/copyright). Satellite imagery © Esri; terrain tiles © OpenTopoMap.
-- **Routing** © OSRM, © OpenStreetMap contributors.
-- **Rest-area truck counts** — FHWA, public domain.
+`public/stickers/nova-hero.png` and `public/stickers/nova-card.png` are the
+character cut out of the supplied artwork with a threshold + largest-component
+matte, so they can sit on the gingerbread paper without a coloured halo.
+`public/img/poster.jpg` is the promotional art used for the pinboard banner.
 
 ## Project layout
 
 ```
-src/
-  App.tsx              root orchestrator: loading, search, panels, routing, share state
-  data/                binary parsers, spatial index, search
-  lib/                 geo helpers, routing client, corridor logic, shared types
-  components/          MapView, SearchBar, SearchResults, ExitCard, PlaceCard,
-                       LocationCard, DirectionsPanel, MapControls, FontPicker, DriveMode, overlays
-  styles/global.css    design tokens + map, marker, drive-mode and responsive styles
+src/gingerbread/
+  App.tsx                 app shell, state, shortcuts
+  components/
+    TopBar.tsx            month switching, search, view switch, tools
+    Sidebar.tsx           mini month, stats, countdowns, coming up
+    MonthView.tsx         the month canvas + sticker layer
+    StickerCanvas.tsx     positioned drag/resize sticker layer
+    WeekView.tsx          hour grid with all-day lane and now line
+    DayView.tsx           single-day sheet + sticker panel
+    AgendaView.tsx        grouped list for the month
+    YearView.tsx          12 mini months
+    StickerTray.tsx       drawer of art + cookie stickers
+    EventModal.tsx        create/edit an event
+    SettingsModal.tsx     week start, density, holidays, data tools
+  lib/
+    calendar.ts           dates, grids, countdown helpers
+    data.ts               colors, stickers, holidays, sample plans
+    types.ts              shared types
+    useLocal.ts           persistent state + JSON helpers
+  styles/gingerbread.css  the whole design system
 ```
 
-## License
+## Design notes
 
-Code in this repository is released under the MIT license. Data retains the licenses listed
-above.
+Gingerbread palette (`--cookie-*`), royal-icing surfaces, peppermint accents, and a
+sprinkle-scattered desk background. Display type is Fredoka (bundled), body type is
+Manrope — both installed locally via `@fontsource-variable`, so no network fonts
+are fetched at runtime.
