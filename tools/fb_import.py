@@ -8,7 +8,7 @@ Uses the `facebook-scraper` package, which reads public page HTML (no API key):
 
 Usage
 -----
-    python tools/fb_import.py --page nasa --pages 2 --out public/data/imports/nasa.json
+    python tools/fb_import.py --page nasa --pages 3 --out public/data/imports/nasa.json
     python tools/fb_import.py --group 132544256152450 --pages 1 --out public/data/imports/group.json
     python tools/fb_import.py --page nasa --cookies cookies.txt --pages 3   # for posts that need login
 
@@ -165,11 +165,10 @@ def scrape(args: argparse.Namespace) -> dict[str, Any]:
 
     raw: Iterable[dict[str, Any]] = get_posts(
         target,
-        pages=args.pages,
+        pages=max(args.pages, 3),
         options={"comments": False, "allow_extra_requests": False},
         cookies=cookies,
         timeout=args.timeout,
-        sleep=args.sleep,
     )
 
     posts: list[dict[str, Any]] = []
@@ -206,16 +205,31 @@ def main(argv: list[str] | None = None) -> int:
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--page", help="public page handle or id, e.g. nasa")
     source.add_argument("--group", help="public group id or slug")
-    parser.add_argument("--pages", type=int, default=2, help="how many result pages to walk (default 2)")
+    parser.add_argument("--pages", type=int, default=3, help="how many result pages to walk (default 3)")
     parser.add_argument("--limit", type=int, default=24, help="max posts in the bundle (default 24)")
     parser.add_argument("--cookies", help="path to a Netscape cookies.txt for posts behind a login wall")
     parser.add_argument("--timeout", type=int, default=30, help="per-request timeout in seconds")
-    parser.add_argument("--sleep", type=float, default=1.0, help="delay between pages in seconds")
     parser.add_argument("--out", default="bundle.json", help="output JSON path")
     parser.add_argument("--pretty", action="store_true", default=True, help="indent output (default on)")
     args = parser.parse_args(argv)
 
-    bundle = scrape(args)
+    try:
+        bundle = scrape(args)
+    except KeyboardInterrupt:
+        print("\n[fb_import] cancelled", file=sys.stderr)
+        return 130
+    except Exception as err:  # noqa: BLE001 - surface a friendly message, not a traceback
+        name = type(err).__name__
+        print(f"[fb_import] could not scrape “{args.page or args.group}”: {name}: {err}", file=sys.stderr)
+        print(
+            "[fb_import] tips:\n"
+            "  • check the page handle/id and that the page is public\n"
+            "  • pages behind a login wall need --cookies cookies.txt\n"
+            "  • Facebook rate-limits aggressively; lower --pages and retry later",
+            file=sys.stderr,
+        )
+        return 1
+
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(bundle, indent=2 if args.pretty else None, ensure_ascii=False), encoding="utf-8")

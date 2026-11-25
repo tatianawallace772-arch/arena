@@ -62,7 +62,7 @@ which reads public page HTML without an API key.
 pip install facebook-scraper
 
 # 2. scrape a public page (or group) into a bundle
-python tools/fb_import.py --page nasa --pages 2 --out public/data/imports/nasa.json
+python tools/fb_import.py --page nasa --pages 3 --out public/data/imports/nasa.json
 python tools/fb_import.py --group 132544256152450 --pages 1 --out public/data/imports/group.json
 python tools/fb_import.py --page nasa --cookies cookies.txt   # for pages that need a login wall
 
