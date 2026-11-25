@@ -54,6 +54,7 @@ export function useCustomTrack({
   const loadedRef = useRef<string | null>(null);
   const loadingRef = useRef<{ id: string; promise: Promise<void> } | null>(null);
   const requestedRef = useRef<string | null>(null);
+  const routedRef = useRef(false);
   const loadedTrack = loadedId ? library.find((t) => t.id === loadedId) ?? null : null;
   const active = mode === 'custom' && enabled;
 
@@ -82,19 +83,21 @@ export function useCustomTrack({
       setStatus('loading');
       const pending = (async () => {
         try {
-          const blob = await getTrack(meta.id);
-          if (requestedRef.current !== meta.id) return;
-          if (!blob) {
-            onError?.('That track is no longer stored in this browser.');
-            setStatus('error');
-            return;
-          }
           let url = objectUrls.get(meta.id);
           if (!url) {
+            const blob = await getTrack(meta.id);
+            if (requestedRef.current !== meta.id) return;
+            if (!blob) {
+              onError?.('That track is no longer stored in this browser.');
+              setStatus('error');
+              return;
+            }
             url = URL.createObjectURL(blob);
             objectUrls.set(meta.id, url);
           }
-          bakeryAudio.attachMediaElement(el);
+          if (requestedRef.current !== meta.id) return;
+          // Source loading stays native and lazy. The Web Audio graph is
+          // connected synchronously by play(), inside the user's gesture.
           if (el.src !== url) {
             el.src = url;
             el.load();
@@ -136,42 +139,55 @@ export function useCustomTrack({
 
   /* ------------------------------------------------- loading library */
   useEffect(() => {
+    if (library.length === 0) {
+      unload();
+      return;
+    }
+    const wanted = library.find((t) => t.id === trackId) ?? library[0];
+    // Prepare the selected element source ahead of the Play gesture. This keeps
+    // the eventual media play() synchronous and allowed by browser policies.
+    if (loadedRef.current !== wanted.id) void load(wanted);
     if (!active) {
       const el = elRef.current;
       if (el) {
         el.pause();
         setStatus((s) => (s === 'playing' ? 'paused' : s));
       }
-      return;
     }
-    if (library.length === 0) {
-      unload();
-      return;
-    }
-    const wanted = library.find((t) => t.id === trackId) ?? library[0];
-    if (loadedRef.current !== wanted.id) void load(wanted);
   }, [active, library, load, trackId, unload]);
 
   /* -------------------------------------------------- transport control */
-  const play = useCallback(async () => {
+  const play = useCallback(async (requestedId?: string | null) => {
     const el = getEl();
     if (!el) return false;
-    if (!loadedRef.current) {
-      const first = library.find((t) => t.id === trackId) ?? library[0];
-      if (!first) return false;
-      await load(first);
+
+    // Create/resume the AudioContext synchronously in the user's click handler,
+    // before IndexedDB introduces an async boundary. Otherwise browsers may
+    // treat the eventual play() as unsolicited autoplay and block it.
+    routedRef.current = bakeryAudio.attachMediaElement(el);
+    el.muted = false;
+    el.volume = routedRef.current ? 1 : volume;
+
+    const target = library.find((t) => t.id === (requestedId ?? trackId)) ?? library[0];
+    if (!target) return false;
+    if (loadedRef.current !== target.id) {
+      const pending = load(target);
+      // For an already-cached file load() installs its object URL immediately,
+      // so play() still runs inside the original user gesture.
+      if (loadedRef.current !== target.id) await pending;
     }
-    bakeryAudio.attachMediaElement(el);
+    if (loadedRef.current !== target.id) return false;
+
     try {
       await el.play();
       setStatus('playing');
       return true;
     } catch {
-      onError?.('Playback was blocked — press play again.');
+      onError?.('Playback was blocked — press Play once more to allow audio.');
       setStatus('error');
       return false;
     }
-  }, [getEl, library, load, onError, trackId]);
+  }, [getEl, library, load, onError, trackId, volume]);
 
   const pause = useCallback(() => {
     elRef.current?.pause();
@@ -193,10 +209,9 @@ export function useCustomTrack({
     const nextIndex = (index + direction + library.length) % library.length;
     const next = library[nextIndex];
     onTrackSelect(next.id);
-    void load(next).then(() => {
-      if (active) void elRef.current?.play().catch(() => undefined);
-    });
-  }, [active, library, load, onTrackSelect]);
+    if (active) void play(next.id);
+    else void load(next);
+  }, [active, library, load, onTrackSelect, play]);
 
   const stop = useCallback(() => {
     const el = elRef.current;
@@ -256,7 +271,11 @@ export function useCustomTrack({
       const target = next ?? (repeat === 'all' ? library[0] : undefined);
       if (target) {
         onTrackSelect(target.id);
-        void load(target).then(() => elRef.current?.play().catch(() => undefined));
+        if (active) {
+          void play(target.id);
+        } else {
+          void load(target);
+        }
         return;
       }
       setStatus('paused');
@@ -289,7 +308,7 @@ export function useCustomTrack({
       el.removeEventListener('ended', onEnded);
       el.removeEventListener('error', onErr);
     };
-  }, [getEl, library, load, onError, onTrackSelect, repeat, shuffle]);
+  }, [active, getEl, library, load, onError, onTrackSelect, play, repeat, shuffle]);
 
   /* ---------------------------------------------------------- MediaSession */
   useEffect(() => {
@@ -343,7 +362,10 @@ export function useCustomTrack({
   useEffect(() => {
     bakeryAudio.setTrackVolume(volume);
     const el = elRef.current;
-    if (el) el.muted = volume === 0;
+    if (el) {
+      el.muted = false;
+      el.volume = routedRef.current ? 1 : volume;
+    }
   }, [volume]);
 
   /* -------------------------------------------------- add files to library */
@@ -369,6 +391,7 @@ export function useCustomTrack({
           onError?.(`Could not store “${file.name}” — browser storage may be full.`);
           continue;
         }
+        objectUrls.set(id, URL.createObjectURL(file));
         accepted.push({
           id,
           name: file.name.replace(/\.[^.]+$/, ''),

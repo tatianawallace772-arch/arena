@@ -463,7 +463,7 @@ export default function App() {
                 setMusicPlaying(false);
                 return;
               }
-              void customTrack.play();
+              void customTrack.play(settings.trackId);
               say('Playing your soundtrack', '🎧', 'open');
             } else {
               bakeryAudio.startMusic(settings.mood);
@@ -576,7 +576,12 @@ export default function App() {
           trackPanel={
             <CustomTrackPanel
               settings={settings}
-              onChange={updateSettings}
+              onChange={(patch) => {
+                updateSettings(patch);
+                if (patch.trackMode === 'custom' && settings.musicOn) {
+                  void customTrack.play(settings.trackId);
+                }
+              }}
               playing={customTrack.status === 'playing'}
               status={customTrack.status}
               currentTime={customTrack.currentTime}
@@ -590,7 +595,7 @@ export default function App() {
                 } else {
                   updateSettings({ trackMode: 'custom', musicOn: true });
                   setMusicPlaying(true);
-                  void customTrack.play();
+                  void customTrack.play(settings.trackId);
                 }
               }}
               onStop={customTrack.stop}
@@ -617,6 +622,7 @@ export default function App() {
                 }
                 updateSettings({ trackMode: 'custom', trackId: id, musicOn: true });
                 setMusicPlaying(true);
+                void customTrack.play(id);
               }}
               onRemoveTrack={(id) => {
                 void deleteTrack(id).catch(() => undefined);
