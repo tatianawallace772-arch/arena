@@ -138,7 +138,7 @@ Type=Link
 Name=Dubuntu.org
 Comment=Downloads, docs and community
 URL=https://dubuntu.org
-Icon=firefox
+Icon=web-browser
 EOF
 chmod 0755 /etc/skel/Desktop/dubuntu-website.desktop
 
