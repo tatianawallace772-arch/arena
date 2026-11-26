@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   Flag,
+  Gamepad2,
   GitBranch,
   Image as ImageIcon,
   Layers,
@@ -123,6 +124,9 @@ export function App() {
   projectRef.current = project;
 
   const [workspaceRevision, setWorkspaceRevision] = useState<number>(0);
+  const [arcadePadOpen, setArcadePadOpen] = useState<boolean>(() =>
+    (loadInitialProject().enabledExtensions ?? []).includes('gamepad')
+  );
   const [focusExtensionTrigger, setFocusExtensionTrigger] = useState<{
     id: ExtensionId;
     seq: number;
@@ -198,6 +202,9 @@ export function App() {
       },
       onScreenFlash: (color) => {
         stageRef.current?.flashScreen(color);
+      },
+      onVirtualPadChange: (vis) => {
+        setArcadePadOpen(vis);
       },
       onToast: (msg) => {
         setStageToast(msg);
@@ -482,6 +489,9 @@ export function App() {
     setProject(fresh);
     setSelectedSpriteId(fresh.sprites[0]?.id ?? '');
     setSelectedWidgetId(fresh.widgets[0]?.id ?? null);
+    const hasPad = (fresh.enabledExtensions ?? []).includes('gamepad');
+    setArcadePadOpen(hasPad);
+    if (vmRef.current) vmRef.current.virtualPadVisible = hasPad;
     setWorkspaceRevision((r) => r + 1);
     setActiveTab('code');
   };
@@ -492,6 +502,10 @@ export function App() {
       if (cur.includes(id)) return prev;
       return { ...prev, enabledExtensions: [...cur, id] };
     });
+    if (id === 'gamepad') {
+      setArcadePadOpen(true);
+      if (vmRef.current) vmRef.current.virtualPadVisible = true;
+    }
     setActiveModal(null);
     setActiveTab('code');
     setFocusExtensionTrigger((prev) => ({ id, seq: (prev?.seq ?? 0) + 1 }));
@@ -502,11 +516,17 @@ export function App() {
       const cur = prev.enabledExtensions ?? DEFAULT_ENABLED_EXTENSIONS;
       return { ...prev, enabledExtensions: cur.filter((x) => x !== id) };
     });
+    if (id === 'gamepad') {
+      setArcadePadOpen(false);
+      if (vmRef.current) vmRef.current.virtualPadVisible = false;
+    }
   }, []);
 
   const handleEnableAllExtensions = useCallback(() => {
     const allIds = SCRATCH_EXTENSIONS.map((e) => e.id);
     setProject((prev) => ({ ...prev, enabledExtensions: allIds }));
+    setArcadePadOpen(true);
+    if (vmRef.current) vmRef.current.virtualPadVisible = true;
     setActiveModal(null);
     setActiveTab('code');
   }, []);
@@ -809,6 +829,21 @@ export function App() {
                 <Zap size={14} />
                 {turboMode && <span>Turbo</span>}
               </button>
+              <button
+                type="button"
+                className={`pad-toggle-btn ${arcadePadOpen ? 'active' : ''}`}
+                onClick={() => {
+                  setArcadePadOpen((prev) => {
+                    const next = !prev;
+                    if (vmRef.current) vmRef.current.virtualPadVisible = next;
+                    return next;
+                  });
+                }}
+                title="Show / Hide On-Stage Arcade D-Pad & A/B Controller"
+              >
+                <Gamepad2 size={14} />
+                <span>Pad</span>
+              </button>
               {threadCount > 0 && (
                 <span className="threads-badge">{threadCount} active</span>
               )}
@@ -875,7 +910,7 @@ export function App() {
             stageToast={stageToast}
             camera={vmRef.current?.camera}
             videoSensing={vmRef.current?.video}
-            virtualPadVisible={vmRef.current?.virtualPadVisible}
+            virtualPadVisible={arcadePadOpen}
             onVirtualPadButton={(btn, down) => vmRef.current?.setVirtualPadButton(btn, down)}
             onVideoMetricsUpdate={(motion, dir) =>
               vmRef.current?.updateVideoMetrics(motion, dir)
@@ -1162,6 +1197,9 @@ export function App() {
             setProject(normalized);
             setSelectedSpriteId(normalized.sprites[0]?.id ?? '');
             setSelectedWidgetId(normalized.widgets[0]?.id ?? null);
+            const hasPad = (normalized.enabledExtensions ?? []).includes('gamepad');
+            setArcadePadOpen(hasPad);
+            if (vmRef.current) vmRef.current.virtualPadVisible = hasPad;
             setWorkspaceRevision((r) => r + 1);
           }}
         />

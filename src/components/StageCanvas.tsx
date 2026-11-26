@@ -111,6 +111,7 @@ export const StageCanvas = React.forwardRef<StageCanvasHandle, StageCanvasProps>
     const [flashState, setFlashState] = useState<{ color: string; key: number } | null>(null);
     const [askInput, setAskInput] = useState('');
     const [webcamStatus, setWebcamStatus] = useState<'off' | 'live' | 'sim'>('off');
+    const [pressedPadBtns, setPressedPadBtns] = useState<Record<string, boolean>>({});
     const lastSimPointerRef = useRef<{ x: number; y: number; t: number } | null>(null);
     const simMotionDecayRef = useRef(0);
 
@@ -436,18 +437,40 @@ export const StageCanvas = React.forwardRef<StageCanvasHandle, StageCanvasProps>
       ? `scale(${camera.zoom / 100}) translate(${-camera.x}px, ${camera.y}px)`
       : undefined;
 
+    const setPadBtnState = (btn: string, isDown: boolean) => {
+      setPressedPadBtns((prev) =>
+        Boolean(prev[btn]) === isDown ? prev : { ...prev, [btn]: isDown }
+      );
+      onVirtualPadButton?.(btn, isDown);
+    };
+
     const bindPadBtn = (btn: string) => ({
-      onPointerDown: (e: React.PointerEvent) => {
+      onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
         e.stopPropagation();
         e.preventDefault();
-        onVirtualPadButton?.(btn, true);
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          // ignore
+        }
+        setPadBtnState(btn, true);
       },
-      onPointerUp: (e: React.PointerEvent) => {
+      onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
         e.stopPropagation();
-        onVirtualPadButton?.(btn, false);
+        try {
+          if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+          }
+        } catch {
+          // ignore
+        }
+        setPadBtnState(btn, false);
       },
-      onPointerLeave: () => {
-        onVirtualPadButton?.(btn, false);
+      onPointerCancel: () => {
+        setPadBtnState(btn, false);
+      },
+      onLostPointerCapture: () => {
+        setPadBtnState(btn, false);
       },
     });
 
@@ -799,25 +822,55 @@ export const StageCanvas = React.forwardRef<StageCanvasHandle, StageCanvasProps>
           {virtualPadVisible && (
             <div className="stage-arcade-pad" aria-label="On-stage arcade controller">
               <div className="arcade-dpad">
-                <button type="button" className="dpad-btn up" {...bindPadBtn('up')}>
+                <button
+                  type="button"
+                  className={`dpad-btn up ${pressedPadBtns.up ? 'is-pressed' : ''}`}
+                  title="D-Pad Up (ArrowUp / W)"
+                  {...bindPadBtn('up')}
+                >
                   ▲
                 </button>
-                <button type="button" className="dpad-btn left" {...bindPadBtn('left')}>
+                <button
+                  type="button"
+                  className={`dpad-btn left ${pressedPadBtns.left ? 'is-pressed' : ''}`}
+                  title="D-Pad Left (ArrowLeft / A)"
+                  {...bindPadBtn('left')}
+                >
                   ◀
                 </button>
                 <div className="dpad-center" />
-                <button type="button" className="dpad-btn right" {...bindPadBtn('right')}>
+                <button
+                  type="button"
+                  className={`dpad-btn right ${pressedPadBtns.right ? 'is-pressed' : ''}`}
+                  title="D-Pad Right (ArrowRight / D)"
+                  {...bindPadBtn('right')}
+                >
                   ▶
                 </button>
-                <button type="button" className="dpad-btn down" {...bindPadBtn('down')}>
+                <button
+                  type="button"
+                  className={`dpad-btn down ${pressedPadBtns.down ? 'is-pressed' : ''}`}
+                  title="D-Pad Down (ArrowDown / S)"
+                  {...bindPadBtn('down')}
+                >
                   ▼
                 </button>
               </div>
               <div className="arcade-ab">
-                <button type="button" className="ab-btn btn-b" {...bindPadBtn('B')}>
+                <button
+                  type="button"
+                  className={`ab-btn btn-b ${pressedPadBtns.B ? 'is-pressed' : ''}`}
+                  title="Arcade B Button (X / Shift)"
+                  {...bindPadBtn('B')}
+                >
                   B
                 </button>
-                <button type="button" className="ab-btn btn-a" {...bindPadBtn('A')}>
+                <button
+                  type="button"
+                  className={`ab-btn btn-a ${pressedPadBtns.A ? 'is-pressed' : ''}`}
+                  title="Arcade A Button (Space / Z)"
+                  {...bindPadBtn('A')}
+                >
                   A
                 </button>
               </div>

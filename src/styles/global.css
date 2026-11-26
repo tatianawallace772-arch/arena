@@ -2444,10 +2444,10 @@ select {
 
 .stage-arcade-pad {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
-  z-index: 42;
+  left: 14px;
+  right: 14px;
+  bottom: 14px;
+  z-index: 52;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -2457,76 +2457,91 @@ select {
 .arcade-dpad {
   pointer-events: auto;
   position: relative;
-  width: 92px;
-  height: 92px;
+  width: 98px;
+  height: 98px;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
 }
 
 .dpad-btn {
   position: absolute;
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(15, 23, 42, 0.72);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255, 255, 255, 0.42);
+  background: rgba(15, 23, 42, 0.84);
+  backdrop-filter: blur(6px);
   color: #f8fafc;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
   display: grid;
   place-items: center;
   cursor: pointer;
   user-select: none;
+  touch-action: none;
+  transition: transform 80ms ease, background 80ms ease, box-shadow 80ms ease;
 }
 
-.dpad-btn:active {
+.dpad-btn:hover {
+  background: rgba(30, 41, 59, 0.94);
+  border-color: rgba(244, 114, 182, 0.75);
+}
+
+.dpad-btn:active,
+.dpad-btn.is-pressed {
   background: #ec4899;
+  border-color: #fbcfe8;
+  box-shadow: 0 0 14px rgba(236, 72, 153, 0.75);
+  transform: scale(0.93);
 }
 
 .dpad-btn.up {
   top: 0;
-  left: 31px;
+  left: 33px;
 }
 .dpad-btn.down {
   bottom: 0;
-  left: 31px;
+  left: 33px;
 }
 .dpad-btn.left {
   left: 0;
-  top: 31px;
+  top: 33px;
 }
 .dpad-btn.right {
   right: 0;
-  top: 31px;
+  top: 33px;
 }
 
 .dpad-center {
   position: absolute;
-  top: 31px;
-  left: 31px;
-  width: 30px;
-  height: 30px;
-  background: rgba(15, 23, 42, 0.6);
-  border-radius: 4px;
+  top: 33px;
+  left: 33px;
+  width: 32px;
+  height: 32px;
+  background: rgba(15, 23, 42, 0.78);
+  border-radius: 5px;
 }
 
 .arcade-ab {
   pointer-events: auto;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   padding-bottom: 6px;
 }
 
 .ab-btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 999px;
-  border: 2px solid rgba(255, 255, 255, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.55);
   color: #ffffff;
   font-weight: 900;
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
   user-select: none;
+  touch-action: none;
+  transition: transform 80ms ease, box-shadow 80ms ease;
 }
 
 .ab-btn.btn-a {
@@ -2538,7 +2553,42 @@ select {
   background: linear-gradient(135deg, #6366f1, #4f46e5);
 }
 
-.ab-btn:active {
-  transform: scale(0.92);
+.ab-btn.btn-a:active,
+.ab-btn.btn-a.is-pressed {
+  transform: translateY(-10px) scale(0.9);
+  box-shadow: 0 0 18px rgba(236, 72, 153, 0.85);
+}
+
+.ab-btn.btn-b:active,
+.ab-btn.btn-b.is-pressed {
+  transform: scale(0.9);
+  box-shadow: 0 0 18px rgba(99, 102, 241, 0.85);
+}
+
+.pad-toggle-btn {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.pad-toggle-btn:hover {
+  border-color: #ec4899;
+  color: #ec4899;
+}
+
+.pad-toggle-btn.active {
+  background: rgba(236, 72, 153, 0.16);
+  border-color: #ec4899;
+  color: #ec4899;
 }
 

@@ -269,6 +269,124 @@ export const SPRITE_LIBRARY: LibrarySpriteItem[] = [
     ],
     defaultSounds: [BUILTIN_SOUNDS[6], BUILTIN_SOUNDS[4]],
   },
+  {
+    id: 'lib-potion-flask',
+    name: 'Reaction Flask',
+    category: 'Featured',
+    defaultSize: 92,
+    costumes: [
+      {
+        id: 'cost-flask-empty',
+        name: 'Empty Beaker',
+        dataUrl: svgToDataUrl(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140">
+            <ellipse cx="70" cy="124" rx="44" ry="8" fill="#0F172A" opacity="0.35"/>
+            <path d="M54 22 L86 22 L86 46 L114 106 Q120 120 104 122 L36 122 Q20 120 26 106 L54 46 Z"
+              fill="#E0F2FE" fill-opacity="0.28" stroke="#93C5FD" stroke-width="4.5" stroke-linejoin="round"/>
+            <rect x="48" y="16" width="44" height="9" rx="4.5" fill="#DBEAFE" stroke="#60A5FA" stroke-width="3.5"/>
+            <line x1="82" y1="68" x2="92" y2="68" stroke="#BAE6FD" stroke-width="3" stroke-linecap="round"/>
+            <line x1="87" y1="84" x2="99" y2="84" stroke="#BAE6FD" stroke-width="3" stroke-linecap="round"/>
+            <line x1="92" y1="100" x2="105" y2="100" stroke="#BAE6FD" stroke-width="3" stroke-linecap="round"/>
+            <path d="M42 96 L56 62" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.65"/>
+          </svg>
+        `),
+      },
+      {
+        id: 'cost-flask-cyan',
+        name: 'Frost Cyan Reagent',
+        dataUrl: svgToDataUrl(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140">
+            <defs>
+              <linearGradient id="fc" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#67E8F9"/>
+                <stop offset="100%" stop-color="#0284C7"/>
+              </linearGradient>
+            </defs>
+            <ellipse cx="70" cy="124" rx="46" ry="9" fill="#22D3EE" opacity="0.32"/>
+            <path d="M39 78 Q55 72 70 78 T101 78 L113 106 Q119 119 103 121 L37 121 Q21 119 27 106 Z" fill="url(#fc)"/>
+            <path d="M54 22 L86 22 L86 46 L114 106 Q120 120 104 122 L36 122 Q20 120 26 106 L54 46 Z"
+              fill="none" stroke="#BAE6FD" stroke-width="4.5" stroke-linejoin="round"/>
+            <rect x="48" y="16" width="44" height="9" rx="4.5" fill="#DBEAFE" stroke="#38BDF8" stroke-width="3.5"/>
+            <circle cx="56" cy="98" r="5" fill="#ECFEFF" opacity="0.85"/>
+            <circle cx="76" cy="88" r="3.5" fill="#ECFEFF" opacity="0.9"/>
+            <circle cx="68" cy="64" r="4" fill="#67E8F9"/>
+            <path d="M42 96 L56 62" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+          </svg>
+        `),
+      },
+      {
+        id: 'cost-flask-berry',
+        name: 'Starberry Magenta',
+        dataUrl: svgToDataUrl(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140">
+            <defs>
+              <linearGradient id="fb" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#F472B6"/>
+                <stop offset="100%" stop-color="#9333EA"/>
+              </linearGradient>
+            </defs>
+            <ellipse cx="70" cy="124" rx="46" ry="9" fill="#EC4899" opacity="0.35"/>
+            <path d="M37 74 Q55 80 70 74 T103 74 L113 106 Q119 119 103 121 L37 121 Q21 119 27 106 Z" fill="url(#fb)"/>
+            <path d="M54 22 L86 22 L86 46 L114 106 Q120 120 104 122 L36 122 Q20 120 26 106 L54 46 Z"
+              fill="none" stroke="#FBCFE8" stroke-width="4.5" stroke-linejoin="round"/>
+            <rect x="48" y="16" width="44" height="9" rx="4.5" fill="#FCE7F3" stroke="#F472B6" stroke-width="3.5"/>
+            <circle cx="62" cy="102" r="5.5" fill="#FDF2F8" opacity="0.85"/>
+            <circle cx="82" cy="92" r="4" fill="#FDF2F8" opacity="0.85"/>
+            <circle cx="72" cy="56" r="4.5" fill="#F472B6"/>
+            <path d="M42 96 L56 62" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.7"/>
+          </svg>
+        `),
+      },
+      {
+        id: 'cost-flask-solar',
+        name: 'Solar Gold Catalyst',
+        dataUrl: svgToDataUrl(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140">
+            <defs>
+              <linearGradient id="fs" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#FDE047"/>
+                <stop offset="100%" stop-color="#EA580C"/>
+              </linearGradient>
+            </defs>
+            <ellipse cx="70" cy="124" rx="46" ry="9" fill="#F59E0B" opacity="0.38"/>
+            <path d="M36 72 Q54 66 70 72 T104 72 L113 106 Q119 119 103 121 L37 121 Q21 119 27 106 Z" fill="url(#fs)"/>
+            <path d="M54 22 L86 22 L86 46 L114 106 Q120 120 104 122 L36 122 Q20 120 26 106 L54 46 Z"
+              fill="none" stroke="#FEF08A" stroke-width="4.5" stroke-linejoin="round"/>
+            <rect x="48" y="16" width="44" height="9" rx="4.5" fill="#FEF9C3" stroke="#FBBF24" stroke-width="3.5"/>
+            <circle cx="54" cy="98" r="5" fill="#FEFCE8" opacity="0.9"/>
+            <circle cx="80" cy="86" r="4.5" fill="#FEFCE8" opacity="0.9"/>
+            <polygon points="70,42 73,50 81,50 75,55 77,63 70,58 63,63 65,55 59,50 67,50" fill="#FDE047"/>
+            <path d="M42 96 L56 62" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.75"/>
+          </svg>
+        `),
+      },
+      {
+        id: 'cost-flask-rainbow',
+        name: 'Rainbow Supernova Elixir',
+        dataUrl: svgToDataUrl(`
+          <svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140">
+            <defs>
+              <linearGradient id="fr" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#22D3EE"/>
+                <stop offset="48%" stop-color="#EC4899"/>
+                <stop offset="100%" stop-color="#FACC15"/>
+              </linearGradient>
+            </defs>
+            <circle cx="70" cy="82" r="52" fill="#E879F9" opacity="0.22"/>
+            <path d="M43 64 Q58 58 70 64 T97 64 L113 106 Q119 119 103 121 L37 121 Q21 119 27 106 Z" fill="url(#fr)"/>
+            <path d="M54 22 L86 22 L86 46 L114 106 Q120 120 104 122 L36 122 Q20 120 26 106 L54 46 Z"
+              fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linejoin="round"/>
+            <rect x="48" y="16" width="44" height="9" rx="4.5" fill="#FFFFFF" stroke="#C084FC" stroke-width="3.5"/>
+            <polygon points="70,30 74,40 85,41 77,48 79,59 70,53 61,59 63,48 55,41 66,40" fill="#FEF08A" stroke="#CA8A04" stroke-width="1.5"/>
+            <circle cx="52" cy="98" r="5.5" fill="#FFFFFF" opacity="0.9"/>
+            <circle cx="84" cy="94" r="5" fill="#FFFFFF" opacity="0.9"/>
+            <circle cx="68" cy="78" r="4" fill="#FFFFFF" opacity="0.9"/>
+          </svg>
+        `),
+      },
+    ],
+    defaultSounds: [BUILTIN_SOUNDS[4], BUILTIN_SOUNDS[0], BUILTIN_SOUNDS[8]],
+  },
 ];
 
 export const BACKDROP_LIBRARY: BackdropModel[] = [
@@ -423,6 +541,54 @@ export const BACKDROP_LIBRARY: BackdropModel[] = [
           <line x1="200" y1="360" x2="-80" y2="600"/>
           <line x1="440" y1="360" x2="720" y2="600"/>
         </g>
+      </svg>
+    `),
+  },
+  {
+    id: 'bg-chemist-lab',
+    name: 'Star Chemist Lab',
+    dataUrl: svgToDataUrl(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="640" height="600" viewBox="0 0 640 600" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="labwall" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#0F172A"/>
+            <stop offset="65%" stop-color="#1E1B4B"/>
+            <stop offset="100%" stop-color="#312E81"/>
+          </linearGradient>
+          <linearGradient id="bench" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#334155"/>
+            <stop offset="18%" stop-color="#1E293B"/>
+            <stop offset="100%" stop-color="#0F172A"/>
+          </linearGradient>
+        </defs>
+        <rect width="640" height="600" fill="url(#labwall)"/>
+        <!-- Subtle hex science pattern -->
+        <g stroke="#6366F1" stroke-opacity="0.16" stroke-width="1.5" fill="none">
+          <circle cx="110" cy="120" r="42"/>
+          <circle cx="530" cy="110" r="54"/>
+          <line x1="68" y1="120" x2="152" y2="120"/>
+          <line x1="110" y1="78" x2="110" y2="162"/>
+        </g>
+        <!-- Chalkboard formula -->
+        <rect x="205" y="64" width="230" height="108" rx="12" fill="#064E3B" stroke="#92400E" stroke-width="6"/>
+        <text x="228" y="104" fill="#A7F3D0" font-family="monospace" font-size="17" font-weight="bold">⚗️ STAR LAB H₂O+</text>
+        <text x="228" y="132" fill="#FDE68A" font-family="monospace" font-size="14">Frost + Berry + Solar</text>
+        <text x="242" y="154" fill="#FBCFE8" font-family="monospace" font-size="13">= Supernova Elixir ✨</text>
+        <!-- Left & Right Reagent Shelves -->
+        <rect x="26" y="152" width="146" height="10" rx="5" fill="#475569"/>
+        <rect x="468" y="152" width="146" height="10" rx="5" fill="#475569"/>
+        <!-- Glowing Reagent Bottles -->
+        <rect x="46" y="114" width="24" height="38" rx="6" fill="#22D3EE" opacity="0.85"/>
+        <rect x="84" y="106" width="26" height="46" rx="8" fill="#EC4899" opacity="0.85"/>
+        <rect x="124" y="118" width="22" height="34" rx="6" fill="#FACC15" opacity="0.85"/>
+        <rect x="488" y="112" width="24" height="40" rx="6" fill="#A855F7" opacity="0.85"/>
+        <rect x="526" y="104" width="26" height="48" rx="8" fill="#34D399" opacity="0.85"/>
+        <rect x="566" y="116" width="22" height="36" rx="6" fill="#FB923C" opacity="0.85"/>
+        <!-- Lab Bench Countertop -->
+        <rect x="0" y="388" width="640" height="212" fill="url(#bench)"/>
+        <rect x="0" y="384" width="640" height="10" fill="#38BDF8" opacity="0.45"/>
+        <!-- Bunsen Burner Pad under Flask -->
+        <ellipse cx="360" cy="408" rx="56" ry="11" fill="#0EA5E9" opacity="0.28"/>
       </svg>
     `),
   },

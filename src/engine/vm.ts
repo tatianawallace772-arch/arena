@@ -43,6 +43,7 @@ export interface VMCallbacks {
   onSpawnParticles: (kind: ParticleKind, count: number, x: number, y: number) => void;
   onScreenShake: (intensity: number) => void;
   onScreenFlash?: (color: string) => void;
+  onVirtualPadChange?: (visible: boolean) => void;
   onToast: (message: string) => void;
   onAskPrompt: (question: string, spriteName: string) => Promise<string>;
   onSwitchBackdrop: (nameOrNext: string, isNext: boolean) => void;
@@ -205,14 +206,36 @@ export class ScratchAppVM {
   }
 
   public setVirtualPadButton(button: string, down: boolean): void {
+    const keyMap: Record<string, string> = {
+      up: 'ArrowUp',
+      down: 'ArrowDown',
+      left: 'ArrowLeft',
+      right: 'ArrowRight',
+      A: ' ',
+      B: 'x',
+    };
+    const mappedKey = keyMap[button];
+
     if (down) {
       const wasDown = this.virtualPadButtons.has(button);
       this.virtualPadButtons.add(button);
+      if (mappedKey) {
+        this.pressedKeys.add(mappedKey);
+        this.pressedKeys.add(mappedKey.toLowerCase());
+      }
       if (!wasDown) {
+        void audioEngine.playPreset('click', button === 'A' ? 1.25 : 1.0, 1.3);
         this.triggerGamepadButton(button);
+        if (mappedKey) {
+          this.triggerKeyPressed(mappedKey);
+        }
       }
     } else {
       this.virtualPadButtons.delete(button);
+      if (mappedKey) {
+        this.pressedKeys.delete(mappedKey);
+        this.pressedKeys.delete(mappedKey.toLowerCase());
+      }
     }
     this.callbacks.onStateChange();
   }
@@ -1276,10 +1299,13 @@ export class ScratchAppVM {
         }
 
         // ---- GAMEPAD & ARCADE PAD EXTENSION ----
-        case 'gamepad_show_virtual':
-          this.virtualPadVisible = f.STATE !== 'hide';
+        case 'gamepad_show_virtual': {
+          const vis = f.STATE !== 'hide';
+          this.virtualPadVisible = vis;
+          this.callbacks.onVirtualPadChange?.(vis);
           this.callbacks.onStateChange();
           break;
+        }
 
         // ---- EVENTS ----
         case 'event_broadcast':

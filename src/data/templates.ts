@@ -1049,6 +1049,752 @@ export function createExtensionsShowcaseTemplate(): ProjectModel {
   };
 }
 
+export function createChemistMixerLabTemplate(): ProjectModel {
+  // ---- Sprite 1: Gingerbread Star (Master Chemist) ----
+  const chemistStartHat: BlocklyBlockNode = {
+    type: 'event_whenflagclicked',
+    x: 28,
+    y: 26,
+    next: {
+      block: chain([
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'frost' },
+          inputs: { VALUE: numInput(0) },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'berry' },
+          inputs: { VALUE: numInput(0) },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'solar' },
+          inputs: { VALUE: numInput(0) },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'potions_made' },
+          inputs: { VALUE: numInput(0) },
+        },
+        { type: 'music_setinstrument', fields: { INSTRUMENT: 'marimba' } },
+        { type: 'tts_setvoice', fields: { VOICE: 'alto' } },
+        { type: 'motion_gotoxy', inputs: { X: numInput(-115), Y: numInput(-2) } },
+        { type: 'looks_switchcostumeto', fields: { COSTUME: 'Star Wand' } },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_formula' },
+          inputs: { TEXT: strInput('🧪 Lab Ready — Add Drops & Click Brew!') },
+        },
+        {
+          type: 'looks_sayforsecs',
+          inputs: {
+            MESSAGE: strInput('Mix Frost, Berry & Solar drops, adjust Heat, then Brew! 🧪✨'),
+            SECS: numInput(2.4),
+          },
+        },
+      ]),
+    },
+  };
+
+  const totalDropsExpr = (): BlocklyBlockNode => ({
+    type: 'operator_add',
+    inputs: {
+      NUM1: blockInput({
+        type: 'operator_add',
+        inputs: {
+          NUM1: blockInput({ type: 'data_variable', fields: { VARIABLE: 'frost' } }),
+          NUM2: blockInput({ type: 'data_variable', fields: { VARIABLE: 'berry' } }),
+        },
+      }),
+      NUM2: blockInput({ type: 'data_variable', fields: { VARIABLE: 'solar' } }),
+    },
+  });
+
+  const allThreeMixedExpr = (): BlocklyBlockNode => ({
+    type: 'operator_and',
+    inputs: {
+      OPERAND1: blockInput({
+        type: 'operator_gt',
+        inputs: {
+          OPERAND1: blockInput({ type: 'data_variable', fields: { VARIABLE: 'frost' } }),
+          OPERAND2: numInput(0),
+        },
+      }),
+      OPERAND2: blockInput({
+        type: 'operator_and',
+        inputs: {
+          OPERAND1: blockInput({
+            type: 'operator_gt',
+            inputs: {
+              OPERAND1: blockInput({ type: 'data_variable', fields: { VARIABLE: 'berry' } }),
+              OPERAND2: numInput(0),
+            },
+          }),
+          OPERAND2: blockInput({
+            type: 'operator_gt',
+            inputs: {
+              OPERAND1: blockInput({ type: 'data_variable', fields: { VARIABLE: 'solar' } }),
+              OPERAND2: numInput(0),
+            },
+          }),
+        },
+      }),
+    },
+  });
+
+  const brewBtnHat: BlocklyBlockNode = {
+    type: 'appui_when_clicked',
+    x: 470,
+    y: 26,
+    fields: { WIDGET: 'btn_brew' },
+    next: {
+      block: chain([
+        { type: 'event_broadcast', fields: { MESSAGE: 'brew_reaction' } },
+        {
+          type: 'control_if_else',
+          inputs: {
+            CONDITION: blockInput({
+              type: 'operator_equals',
+              inputs: {
+                OPERAND1: blockInput(totalDropsExpr()),
+                OPERAND2: numInput(0),
+              },
+            }),
+            SUBSTACK: {
+              block: chain([
+                { type: 'sound_play', fields: { SOUND: 'Bubble Pop' } },
+                {
+                  type: 'looks_sayforsecs',
+                  inputs: {
+                    MESSAGE: strInput('Add Frost, Berry, or Solar drops first! 🧪'),
+                    SECS: numInput(1.8),
+                  },
+                },
+              ]),
+            },
+            SUBSTACK2: {
+              block: {
+                type: 'control_if_else',
+                inputs: {
+                  CONDITION: blockInput({
+                    type: 'operator_gt',
+                    inputs: {
+                      OPERAND1: blockInput({
+                        type: 'appui_get_value',
+                        fields: { WIDGET: 'sld_heat' },
+                      }),
+                      OPERAND2: numInput(85),
+                    },
+                  }),
+                  SUBSTACK: {
+                    block: chain([
+                      { type: 'fx_flash', fields: { COLOR: '#FF6B6B' } },
+                      { type: 'fx_screenshake', inputs: { INTENSITY: numInput(14) } },
+                      {
+                        type: 'music_playdrum',
+                        fields: { DRUM: 'crash' },
+                        inputs: { BEATS: numInput(0.4) },
+                      },
+                      { type: 'looks_switchcostumeto', fields: { COSTUME: 'Peace Pose' } },
+                      {
+                        type: 'appui_set_text',
+                        fields: { WIDGET: 'lbl_formula' },
+                        inputs: { TEXT: strInput('💥 OVERHEAT KABOOM! Lower Burner Heat!') },
+                      },
+                      {
+                        type: 'tts_speak',
+                        inputs: { TEXT: strInput('Kaboom! Too much burner heat!') },
+                      },
+                      {
+                        type: 'data_setvariableto',
+                        fields: { VARIABLE: 'frost' },
+                        inputs: { VALUE: numInput(0) },
+                      },
+                      {
+                        type: 'data_setvariableto',
+                        fields: { VARIABLE: 'berry' },
+                        inputs: { VALUE: numInput(0) },
+                      },
+                      {
+                        type: 'data_setvariableto',
+                        fields: { VARIABLE: 'solar' },
+                        inputs: { VALUE: numInput(0) },
+                      },
+                    ]),
+                  },
+                  SUBSTACK2: {
+                    block: {
+                      type: 'control_if_else',
+                      inputs: {
+                        CONDITION: blockInput(allThreeMixedExpr()),
+                        SUBSTACK: {
+                          block: chain([
+                            { type: 'looks_switchcostumeto', fields: { COSTUME: 'Happy Cheer' } },
+                            { type: 'fx_flash', fields: { COLOR: '#FEF08A' } },
+                            { type: 'fx_camera_zoom', inputs: { ZOOM: numInput(116) } },
+                            { type: 'sound_play', fields: { SOUND: 'Victory Fanfare' } },
+                            {
+                              type: 'data_changevariableby',
+                              fields: { VARIABLE: 'potions_made' },
+                              inputs: { VALUE: numInput(1) },
+                            },
+                            {
+                              type: 'storage_save',
+                              inputs: {
+                                VALUE: blockInput({
+                                  type: 'data_variable',
+                                  fields: { VARIABLE: 'potions_made' },
+                                }),
+                                KEY: strInput('chemist_potions'),
+                              },
+                            },
+                            {
+                              type: 'appui_set_text',
+                              fields: { WIDGET: 'lbl_formula' },
+                              inputs: { TEXT: strInput('🌈 EUREKA! Rainbow Supernova Elixir! ⭐') },
+                            },
+                            {
+                              type: 'appui_toast',
+                              inputs: { MESSAGE: strInput('🏆 Legendary Supernova Elixir Brewed!') },
+                            },
+                            {
+                              type: 'tts_speak',
+                              inputs: { TEXT: strInput('Eureka! Rainbow Supernova Elixir!') },
+                            },
+                            { type: 'fx_camera_reset' },
+                          ]),
+                        },
+                        SUBSTACK2: {
+                          block: {
+                            type: 'control_if_else',
+                            inputs: {
+                              CONDITION: blockInput({
+                                type: 'operator_and',
+                                inputs: {
+                                  OPERAND1: blockInput({
+                                    type: 'operator_gt',
+                                    inputs: {
+                                      OPERAND1: blockInput({
+                                        type: 'data_variable',
+                                        fields: { VARIABLE: 'frost' },
+                                      }),
+                                      OPERAND2: numInput(0),
+                                    },
+                                  }),
+                                  OPERAND2: blockInput({
+                                    type: 'operator_gt',
+                                    inputs: {
+                                      OPERAND1: blockInput({
+                                        type: 'data_variable',
+                                        fields: { VARIABLE: 'berry' },
+                                      }),
+                                      OPERAND2: numInput(0),
+                                    },
+                                  }),
+                                },
+                              }),
+                              SUBSTACK: {
+                                block: chain([
+                                  {
+                                    type: 'looks_switchcostumeto',
+                                    fields: { COSTUME: 'Star Wand' },
+                                  },
+                                  { type: 'sound_play', fields: { SOUND: 'Magic Chime' } },
+                                  {
+                                    type: 'data_changevariableby',
+                                    fields: { VARIABLE: 'potions_made' },
+                                    inputs: { VALUE: numInput(1) },
+                                  },
+                                  {
+                                    type: 'appui_set_text',
+                                    fields: { WIDGET: 'lbl_formula' },
+                                    inputs: {
+                                      TEXT: strInput('🔮 Brewed: Anti-Gravity Levitation Serum!'),
+                                    },
+                                  },
+                                  {
+                                    type: 'motion_glidesecstoxy',
+                                    inputs: {
+                                      SECS: numInput(0.45),
+                                      X: numInput(-115),
+                                      Y: numInput(38),
+                                    },
+                                  },
+                                  {
+                                    type: 'tts_speak',
+                                    inputs: { TEXT: strInput('Whoa! Anti gravity levitation!') },
+                                  },
+                                  {
+                                    type: 'motion_glidesecstoxy',
+                                    inputs: {
+                                      SECS: numInput(0.5),
+                                      X: numInput(-115),
+                                      Y: numInput(-2),
+                                    },
+                                  },
+                                ]),
+                              },
+                              SUBSTACK2: {
+                                block: chain([
+                                  {
+                                    type: 'looks_switchcostumeto',
+                                    fields: { COSTUME: 'Happy Cheer' },
+                                  },
+                                  { type: 'sound_play', fields: { SOUND: 'Happy Cheer' } },
+                                  {
+                                    type: 'fx_particles',
+                                    fields: { KIND: 'stars' },
+                                    inputs: { COUNT: numInput(20) },
+                                  },
+                                  {
+                                    type: 'data_changevariableby',
+                                    fields: { VARIABLE: 'potions_made' },
+                                    inputs: { VALUE: numInput(1) },
+                                  },
+                                  {
+                                    type: 'appui_set_text',
+                                    fields: { WIDGET: 'lbl_formula' },
+                                    inputs: {
+                                      TEXT: strInput('🌟 Brewed: Sparkling Starlight Tonic!'),
+                                    },
+                                  },
+                                  {
+                                    type: 'looks_sayforsecs',
+                                    inputs: {
+                                      MESSAGE: strInput(
+                                        'Sparkling Tonic! Try mixing all 3 reagents together! ✨'
+                                      ),
+                                      SECS: numInput(2.2),
+                                    },
+                                  },
+                                ]),
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ]),
+    },
+  };
+
+  // ---- Sprite 2: Reaction Flask (Bubbling Beaker) ----
+  const flaskStartHat: BlocklyBlockNode = {
+    type: 'event_whenflagclicked',
+    x: 28,
+    y: 26,
+    next: {
+      block: chain([
+        { type: 'motion_gotoxy', inputs: { X: numInput(22), Y: numInput(-10) } },
+        { type: 'looks_setsizeto', inputs: { SIZE: numInput(94) } },
+        { type: 'looks_switchcostumeto', fields: { COSTUME: 'Empty Beaker' } },
+      ]),
+    },
+  };
+
+  const addFrostHat: BlocklyBlockNode = {
+    type: 'appui_when_clicked',
+    x: 28,
+    y: 210,
+    fields: { WIDGET: 'btn_frost' },
+    next: {
+      block: chain([
+        {
+          type: 'data_changevariableby',
+          fields: { VARIABLE: 'frost' },
+          inputs: { VALUE: numInput(1) },
+        },
+        { type: 'looks_switchcostumeto', fields: { COSTUME: 'Frost Cyan Reagent' } },
+        { type: 'music_playnote', fields: { NOTE: '64' }, inputs: { BEATS: numInput(0.2) } },
+        { type: 'fx_particles', fields: { KIND: 'snow' }, inputs: { COUNT: numInput(14) } },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_formula' },
+          inputs: {
+            TEXT: blockInput({
+              type: 'operator_join',
+              inputs: {
+                STRING1: strInput('💧 Added Frost Reagent! Drops: '),
+                STRING2: blockInput({ type: 'data_variable', fields: { VARIABLE: 'frost' } }),
+              },
+            }),
+          },
+        },
+      ]),
+    },
+  };
+
+  const addBerryHat: BlocklyBlockNode = {
+    type: 'appui_when_clicked',
+    x: 430,
+    y: 26,
+    fields: { WIDGET: 'btn_berry' },
+    next: {
+      block: chain([
+        {
+          type: 'data_changevariableby',
+          fields: { VARIABLE: 'berry' },
+          inputs: { VALUE: numInput(1) },
+        },
+        { type: 'looks_switchcostumeto', fields: { COSTUME: 'Starberry Magenta' } },
+        { type: 'music_playnote', fields: { NOTE: '67' }, inputs: { BEATS: numInput(0.2) } },
+        { type: 'fx_particles', fields: { KIND: 'hearts' }, inputs: { COUNT: numInput(14) } },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_formula' },
+          inputs: {
+            TEXT: blockInput({
+              type: 'operator_join',
+              inputs: {
+                STRING1: strInput('🌸 Added Starberry Elixir! Drops: '),
+                STRING2: blockInput({ type: 'data_variable', fields: { VARIABLE: 'berry' } }),
+              },
+            }),
+          },
+        },
+      ]),
+    },
+  };
+
+  const addSolarHat: BlocklyBlockNode = {
+    type: 'appui_when_clicked',
+    x: 430,
+    y: 265,
+    fields: { WIDGET: 'btn_solar' },
+    next: {
+      block: chain([
+        {
+          type: 'data_changevariableby',
+          fields: { VARIABLE: 'solar' },
+          inputs: { VALUE: numInput(1) },
+        },
+        { type: 'looks_switchcostumeto', fields: { COSTUME: 'Solar Gold Catalyst' } },
+        { type: 'music_playnote', fields: { NOTE: '72' }, inputs: { BEATS: numInput(0.2) } },
+        { type: 'fx_particles', fields: { KIND: 'stars' }, inputs: { COUNT: numInput(16) } },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_formula' },
+          inputs: {
+            TEXT: blockInput({
+              type: 'operator_join',
+              inputs: {
+                STRING1: strInput('⚡ Added Solar Catalyst! Drops: '),
+                STRING2: blockInput({ type: 'data_variable', fields: { VARIABLE: 'solar' } }),
+              },
+            }),
+          },
+        },
+      ]),
+    },
+  };
+
+  const rinseHat: BlocklyBlockNode = {
+    type: 'appui_when_clicked',
+    x: 28,
+    y: 470,
+    fields: { WIDGET: 'btn_rinse' },
+    next: {
+      block: chain([
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'frost' },
+          inputs: { VALUE: numInput(0) },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'berry' },
+          inputs: { VALUE: numInput(0) },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'solar' },
+          inputs: { VALUE: numInput(0) },
+        },
+        { type: 'looks_switchcostumeto', fields: { COSTUME: 'Empty Beaker' } },
+        { type: 'fx_camera_reset' },
+        { type: 'sound_play', fields: { SOUND: 'Bubble Pop' } },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_formula' },
+          inputs: { TEXT: strInput('🧼 Beaker Rinsed — Ready for Next Formula!') },
+        },
+      ]),
+    },
+  };
+
+  const flaskBrewBroadcastHat: BlocklyBlockNode = {
+    type: 'event_whenbroadcastreceived',
+    x: 430,
+    y: 505,
+    fields: { MESSAGE: 'brew_reaction' },
+    next: {
+      block: {
+        type: 'control_if_else',
+        inputs: {
+          CONDITION: blockInput({
+            type: 'operator_gt',
+            inputs: {
+              OPERAND1: blockInput({ type: 'appui_get_value', fields: { WIDGET: 'sld_heat' } }),
+              OPERAND2: numInput(85),
+            },
+          }),
+          SUBSTACK: {
+            block: chain([
+              { type: 'looks_switchcostumeto', fields: { COSTUME: 'Empty Beaker' } },
+              { type: 'fx_particles', fields: { KIND: 'fire' }, inputs: { COUNT: numInput(36) } },
+            ]),
+          },
+          SUBSTACK2: {
+            block: {
+              type: 'control_if_else',
+              inputs: {
+                CONDITION: blockInput(allThreeMixedExpr()),
+                SUBSTACK: {
+                  block: chain([
+                    {
+                      type: 'looks_switchcostumeto',
+                      fields: { COSTUME: 'Rainbow Supernova Elixir' },
+                    },
+                    {
+                      type: 'fx_particles',
+                      fields: { KIND: 'confetti' },
+                      inputs: { COUNT: numInput(34) },
+                    },
+                    {
+                      type: 'fx_particles',
+                      fields: { KIND: 'magic' },
+                      inputs: { COUNT: numInput(24) },
+                    },
+                  ]),
+                },
+                SUBSTACK2: {
+                  block: {
+                    type: 'fx_particles',
+                    fields: { KIND: 'magic' },
+                    inputs: { COUNT: numInput(20) },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  const gingerChemist = makeBaseSprite('lib-ginger-star', {
+    id: 'sprite-chemist-ginger',
+    name: 'Gingerbread Star',
+    x: -115,
+    y: -2,
+    size: 33,
+    currentCostumeIndex: 1,
+    layerOrder: 2,
+    workspaceState: {
+      blocks: { languageVersion: 0, blocks: [chemistStartHat, brewBtnHat] },
+    },
+  });
+
+  const reactionFlask = makeBaseSprite('lib-potion-flask', {
+    id: 'sprite-reaction-flask',
+    name: 'Reaction Flask',
+    x: 22,
+    y: -10,
+    size: 94,
+    rotationStyle: 'all around',
+    layerOrder: 3,
+    workspaceState: {
+      blocks: {
+        languageVersion: 0,
+        blocks: [flaskStartHat, addFrostHat, addBerryHat, addSolarHat, rinseHat, flaskBrewBroadcastHat],
+      },
+    },
+  });
+
+  const labBackdropIdx = Math.max(
+    0,
+    BACKDROP_LIBRARY.findIndex((b) => b.id === 'bg-chemist-lab')
+  );
+
+  return {
+    version: '1.1.0',
+    title: "Gingerbread Star's Chemist Mixer Lab",
+    author: 'BlockCraft Creator',
+    description:
+      'Mix Frost, Starberry & Solar reagents in the Reaction Flask, tune Burner Heat, and discover magical potions!',
+    stageMode: 'classic',
+    tempo: 124,
+    volume: 85,
+    enabledExtensions: ['appui', 'fx', 'music', 'tts', 'storage'],
+    backdrops: BACKDROP_LIBRARY.map((b) => ({ ...b })),
+    currentBackdropIndex: labBackdropIdx,
+    sprites: [gingerChemist, reactionFlask],
+    widgets: [
+      {
+        id: 'lbl_formula',
+        type: 'label',
+        label: '🧪 Lab Ready — Add Drops & Click Brew!',
+        value: '',
+        x: 34,
+        y: 152,
+        width: 310,
+        height: 30,
+        color: '#0F172A',
+        textColor: '#67E8F9',
+        fontSize: 12,
+        borderRadius: 10,
+        visible: true,
+      },
+      {
+        id: 'sld_heat',
+        type: 'slider',
+        label: '🔥 Burner Heat',
+        value: '55',
+        min: 0,
+        max: 100,
+        x: 156,
+        y: 86,
+        width: 138,
+        height: 36,
+        color: '#F97316',
+        textColor: '#FFFFFF',
+        fontSize: 11,
+        borderRadius: 10,
+        visible: true,
+      },
+      {
+        id: 'btn_rinse',
+        type: 'button',
+        label: '🧼 Rinse Flask',
+        value: '',
+        x: 156,
+        y: 30,
+        width: 122,
+        height: 32,
+        color: '#475569',
+        textColor: '#F8FAFC',
+        fontSize: 12,
+        borderRadius: 10,
+        visible: true,
+      },
+      {
+        id: 'btn_frost',
+        type: 'button',
+        label: '💧 + Frost',
+        value: '',
+        x: -168,
+        y: -148,
+        width: 104,
+        height: 36,
+        color: '#0891B2',
+        textColor: '#FFFFFF',
+        fontSize: 12,
+        borderRadius: 11,
+        visible: true,
+      },
+      {
+        id: 'btn_berry',
+        type: 'button',
+        label: '🌸 + Berry',
+        value: '',
+        x: -56,
+        y: -148,
+        width: 104,
+        height: 36,
+        color: '#DB2777',
+        textColor: '#FFFFFF',
+        fontSize: 12,
+        borderRadius: 11,
+        visible: true,
+      },
+      {
+        id: 'btn_solar',
+        type: 'button',
+        label: '⚡ + Solar',
+        value: '',
+        x: 56,
+        y: -148,
+        width: 104,
+        height: 36,
+        color: '#D97706',
+        textColor: '#FFFFFF',
+        fontSize: 12,
+        borderRadius: 11,
+        visible: true,
+      },
+      {
+        id: 'btn_brew',
+        type: 'button',
+        label: '⚗️ Brew!',
+        value: '',
+        x: 168,
+        y: -148,
+        width: 104,
+        height: 36,
+        color: '#059669',
+        textColor: '#FFFFFF',
+        fontSize: 13,
+        borderRadius: 11,
+        visible: true,
+      },
+    ],
+    variables: [
+      {
+        id: 'var-potions-made',
+        name: 'potions_made',
+        value: 0,
+        visible: true,
+        readout: 'normal',
+        sliderMin: 0,
+        sliderMax: 100,
+        x: -228,
+        y: 156,
+      },
+      {
+        id: 'var-frost',
+        name: 'frost',
+        value: 0,
+        visible: false,
+        readout: 'normal',
+        sliderMin: 0,
+        sliderMax: 50,
+        x: -228,
+        y: 124,
+      },
+      {
+        id: 'var-berry',
+        name: 'berry',
+        value: 0,
+        visible: false,
+        readout: 'normal',
+        sliderMin: 0,
+        sliderMax: 50,
+        x: -228,
+        y: 94,
+      },
+      {
+        id: 'var-solar',
+        name: 'solar',
+        value: 0,
+        visible: false,
+        readout: 'normal',
+        sliderMin: 0,
+        sliderMax: 50,
+        x: -228,
+        y: 64,
+      },
+    ],
+    lists: [],
+  };
+}
+
 export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
   {
     id: 'tpl-ginger-quest',
@@ -1056,6 +1802,14 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     badge: 'Featured Mascot',
     description: 'Catch magic stars with arrow keys or trigger poses & spells via App UI buttons.',
     build: createDefaultProject,
+  },
+  {
+    id: 'tpl-chemist-mixer-lab',
+    name: "Gingerbread Star's Chemist Mixer Lab",
+    badge: 'NEW · Chemist Lab 🧪',
+    description:
+      'Mix Frost, Starberry & Solar reagents in the Reaction Flask, control Burner Heat, and brew elixirs!',
+    build: createChemistMixerLabTemplate,
   },
   {
     id: 'tpl-extensions-arcade',
