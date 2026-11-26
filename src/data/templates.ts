@@ -1795,6 +1795,899 @@ export function createChemistMixerLabTemplate(): ProjectModel {
   };
 }
 
+export function createGingerbreadCalculatorTemplate(): ProjectModel {
+  const SCALE_NOTES = ['60', '62', '64', '65', '67', '69', '71', '72', '74', '76'];
+
+  const startHat: BlocklyBlockNode = {
+    type: 'event_whenflagclicked',
+    x: 28,
+    y: 24,
+    next: {
+      block: chain([
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'display' },
+          inputs: { VALUE: strInput('0') },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'first_num' },
+          inputs: { VALUE: numInput(0) },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'op' },
+          inputs: { VALUE: strInput('none') },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'fresh_entry' },
+          inputs: { VALUE: numInput(1) },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'solved' },
+          inputs: { VALUE: numInput(0) },
+        },
+        { type: 'music_setinstrument', fields: { INSTRUMENT: 'marimba' } },
+        { type: 'tts_setvoice', fields: { VOICE: 'alto' } },
+        { type: 'motion_gotoxy', inputs: { X: numInput(-106), Y: numInput(204) } },
+        { type: 'looks_switchcostumeto', fields: { COSTUME: 'Peace Pose' } },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_screen' },
+          inputs: { TEXT: strInput('0') },
+        },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_tape' },
+          inputs: { TEXT: strInput('🍪 Gingerbread Calculator') },
+        },
+      ]),
+    },
+  };
+
+  const makeDigitHat = (digit: number, bx: number, by: number): BlocklyBlockNode => ({
+    type: 'appui_when_clicked',
+    x: bx,
+    y: by,
+    fields: { WIDGET: `btn_${digit}` },
+    next: {
+      block: chain([
+        {
+          type: 'music_playnote',
+          fields: { NOTE: SCALE_NOTES[digit] ?? '60' },
+          inputs: { BEATS: numInput(0.1) },
+        },
+        {
+          type: 'control_if_else',
+          inputs: {
+            CONDITION: blockInput({
+              type: 'operator_equals',
+              inputs: {
+                OPERAND1: blockInput({ type: 'data_variable', fields: { VARIABLE: 'fresh_entry' } }),
+                OPERAND2: numInput(1),
+              },
+            }),
+            SUBSTACK: {
+              block:
+                digit === 0
+                  ? {
+                      type: 'data_setvariableto',
+                      fields: { VARIABLE: 'display' },
+                      inputs: { VALUE: strInput('0') },
+                    }
+                  : chain([
+                      {
+                        type: 'data_setvariableto',
+                        fields: { VARIABLE: 'display' },
+                        inputs: { VALUE: strInput(String(digit)) },
+                      },
+                      {
+                        type: 'data_setvariableto',
+                        fields: { VARIABLE: 'fresh_entry' },
+                        inputs: { VALUE: numInput(0) },
+                      },
+                    ]),
+            },
+            SUBSTACK2: {
+              block: {
+                type: 'data_setvariableto',
+                fields: { VARIABLE: 'display' },
+                inputs: {
+                  VALUE: blockInput({
+                    type: 'operator_join',
+                    inputs: {
+                      STRING1: blockInput({
+                        type: 'data_variable',
+                        fields: { VARIABLE: 'display' },
+                      }),
+                      STRING2: strInput(String(digit)),
+                    },
+                  }),
+                },
+              },
+            },
+          },
+        },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_screen' },
+          inputs: {
+            TEXT: blockInput({ type: 'data_variable', fields: { VARIABLE: 'display' } }),
+          },
+        },
+      ]),
+    },
+  });
+
+  const dotHat: BlocklyBlockNode = {
+    type: 'appui_when_clicked',
+    x: 460,
+    y: 1220,
+    fields: { WIDGET: 'btn_dot' },
+    next: {
+      block: chain([
+        { type: 'sound_play', fields: { SOUND: 'UI Tap' } },
+        {
+          type: 'control_if_else',
+          inputs: {
+            CONDITION: blockInput({
+              type: 'operator_equals',
+              inputs: {
+                OPERAND1: blockInput({ type: 'data_variable', fields: { VARIABLE: 'fresh_entry' } }),
+                OPERAND2: numInput(1),
+              },
+            }),
+            SUBSTACK: {
+              block: chain([
+                {
+                  type: 'data_setvariableto',
+                  fields: { VARIABLE: 'display' },
+                  inputs: { VALUE: strInput('0.') },
+                },
+                {
+                  type: 'data_setvariableto',
+                  fields: { VARIABLE: 'fresh_entry' },
+                  inputs: { VALUE: numInput(0) },
+                },
+              ]),
+            },
+            SUBSTACK2: {
+              block: {
+                type: 'data_setvariableto',
+                fields: { VARIABLE: 'display' },
+                inputs: {
+                  VALUE: blockInput({
+                    type: 'operator_join',
+                    inputs: {
+                      STRING1: blockInput({
+                        type: 'data_variable',
+                        fields: { VARIABLE: 'display' },
+                      }),
+                      STRING2: strInput('.'),
+                    },
+                  }),
+                },
+              },
+            },
+          },
+        },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_screen' },
+          inputs: {
+            TEXT: blockInput({ type: 'data_variable', fields: { VARIABLE: 'display' } }),
+          },
+        },
+      ]),
+    },
+  };
+
+  const makeOpHat = (
+    btnId: string,
+    opCode: 'add' | 'sub' | 'mul' | 'div',
+    symbol: string,
+    bx: number,
+    by: number
+  ): BlocklyBlockNode => ({
+    type: 'appui_when_clicked',
+    x: bx,
+    y: by,
+    fields: { WIDGET: btnId },
+    next: {
+      block: chain([
+        { type: 'sound_play', fields: { SOUND: 'UI Tap' } },
+        { type: 'looks_switchcostumeto', fields: { COSTUME: 'Star Wand' } },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'first_num' },
+          inputs: {
+            VALUE: blockInput({ type: 'data_variable', fields: { VARIABLE: 'display' } }),
+          },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'op' },
+          inputs: { VALUE: strInput(opCode) },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'fresh_entry' },
+          inputs: { VALUE: numInput(1) },
+        },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_tape' },
+          inputs: {
+            TEXT: blockInput({
+              type: 'operator_join',
+              inputs: {
+                STRING1: blockInput({ type: 'data_variable', fields: { VARIABLE: 'first_num' } }),
+                STRING2: strInput(` ${symbol} `),
+              },
+            }),
+          },
+        },
+      ]),
+    },
+  });
+
+  const clearHat: BlocklyBlockNode = {
+    type: 'appui_when_clicked',
+    x: 28,
+    y: 410,
+    fields: { WIDGET: 'btn_clear' },
+    next: {
+      block: chain([
+        { type: 'sound_play', fields: { SOUND: 'Bubble Pop' } },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'display' },
+          inputs: { VALUE: strInput('0') },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'first_num' },
+          inputs: { VALUE: numInput(0) },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'op' },
+          inputs: { VALUE: strInput('none') },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'fresh_entry' },
+          inputs: { VALUE: numInput(1) },
+        },
+        { type: 'looks_switchcostumeto', fields: { COSTUME: 'Peace Pose' } },
+        { type: 'looks_say', inputs: { MESSAGE: strInput('') } },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_screen' },
+          inputs: { TEXT: strInput('0') },
+        },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_tape' },
+          inputs: { TEXT: strInput('🍪 Cleared — Ready!') },
+        },
+      ]),
+    },
+  };
+
+  const signHat: BlocklyBlockNode = {
+    type: 'appui_when_clicked',
+    x: 28,
+    y: 740,
+    fields: { WIDGET: 'btn_sign' },
+    next: {
+      block: chain([
+        { type: 'sound_play', fields: { SOUND: 'UI Tap' } },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'display' },
+          inputs: {
+            VALUE: blockInput({
+              type: 'operator_subtract',
+              inputs: {
+                NUM1: numInput(0),
+                NUM2: blockInput({ type: 'data_variable', fields: { VARIABLE: 'display' } }),
+              },
+            }),
+          },
+        },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_screen' },
+          inputs: {
+            TEXT: blockInput({ type: 'data_variable', fields: { VARIABLE: 'display' } }),
+          },
+        },
+      ]),
+    },
+  };
+
+  const squareHat: BlocklyBlockNode = {
+    type: 'appui_when_clicked',
+    x: 28,
+    y: 940,
+    fields: { WIDGET: 'btn_sq' },
+    next: {
+      block: chain([
+        { type: 'looks_switchcostumeto', fields: { COSTUME: 'Star Wand' } },
+        { type: 'sound_play', fields: { SOUND: 'Magic Chime' } },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_tape' },
+          inputs: {
+            TEXT: blockInput({
+              type: 'operator_join',
+              inputs: {
+                STRING1: blockInput({ type: 'data_variable', fields: { VARIABLE: 'display' } }),
+                STRING2: strInput('² ='),
+              },
+            }),
+          },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'display' },
+          inputs: {
+            VALUE: blockInput({
+              type: 'operator_multiply',
+              inputs: {
+                NUM1: blockInput({ type: 'data_variable', fields: { VARIABLE: 'display' } }),
+                NUM2: blockInput({ type: 'data_variable', fields: { VARIABLE: 'display' } }),
+              },
+            }),
+          },
+        },
+        {
+          type: 'data_setvariableto',
+          fields: { VARIABLE: 'fresh_entry' },
+          inputs: { VALUE: numInput(1) },
+        },
+        {
+          type: 'data_changevariableby',
+          fields: { VARIABLE: 'solved' },
+          inputs: { VALUE: numInput(1) },
+        },
+        { type: 'fx_particles', fields: { KIND: 'stars' }, inputs: { COUNT: numInput(16) } },
+        {
+          type: 'appui_set_text',
+          fields: { WIDGET: 'lbl_screen' },
+          inputs: {
+            TEXT: blockInput({ type: 'data_variable', fields: { VARIABLE: 'display' } }),
+          },
+        },
+      ]),
+    },
+  };
+
+  const equalsHat: BlocklyBlockNode = {
+    type: 'appui_when_clicked',
+    x: 920,
+    y: 24,
+    fields: { WIDGET: 'btn_eq' },
+    next: {
+      block: chain([
+        {
+          type: 'control_if_else',
+          inputs: {
+            CONDITION: blockInput({
+              type: 'operator_and',
+              inputs: {
+                OPERAND1: blockInput({
+                  type: 'operator_equals',
+                  inputs: {
+                    OPERAND1: blockInput({ type: 'data_variable', fields: { VARIABLE: 'op' } }),
+                    OPERAND2: strInput('div'),
+                  },
+                }),
+                OPERAND2: blockInput({
+                  type: 'operator_equals',
+                  inputs: {
+                    OPERAND1: blockInput({
+                      type: 'data_variable',
+                      fields: { VARIABLE: 'display' },
+                    }),
+                    OPERAND2: numInput(0),
+                  },
+                }),
+              },
+            }),
+            SUBSTACK: {
+              block: chain([
+                { type: 'sound_play', fields: { SOUND: 'Oops Wah' } },
+                { type: 'fx_screenshake', inputs: { INTENSITY: numInput(8) } },
+                {
+                  type: 'appui_set_text',
+                  fields: { WIDGET: 'lbl_screen' },
+                  inputs: { TEXT: strInput('Div by 0! 🍪') },
+                },
+                {
+                  type: 'appui_set_text',
+                  fields: { WIDGET: 'lbl_tape' },
+                  inputs: { TEXT: strInput('⚠️ Cannot divide cookies by 0!') },
+                },
+                {
+                  type: 'data_setvariableto',
+                  fields: { VARIABLE: 'display' },
+                  inputs: { VALUE: strInput('0') },
+                },
+                {
+                  type: 'data_setvariableto',
+                  fields: { VARIABLE: 'op' },
+                  inputs: { VALUE: strInput('none') },
+                },
+                {
+                  type: 'data_setvariableto',
+                  fields: { VARIABLE: 'fresh_entry' },
+                  inputs: { VALUE: numInput(1) },
+                },
+              ]),
+            },
+            SUBSTACK2: {
+              block: chain([
+                {
+                  type: 'control_if',
+                  inputs: {
+                    CONDITION: blockInput({
+                      type: 'operator_equals',
+                      inputs: {
+                        OPERAND1: blockInput({
+                          type: 'data_variable',
+                          fields: { VARIABLE: 'op' },
+                        }),
+                        OPERAND2: strInput('add'),
+                      },
+                    }),
+                    SUBSTACK: {
+                      block: {
+                        type: 'data_setvariableto',
+                        fields: { VARIABLE: 'display' },
+                        inputs: {
+                          VALUE: blockInput({
+                            type: 'operator_add',
+                            inputs: {
+                              NUM1: blockInput({
+                                type: 'data_variable',
+                                fields: { VARIABLE: 'first_num' },
+                              }),
+                              NUM2: blockInput({
+                                type: 'data_variable',
+                                fields: { VARIABLE: 'display' },
+                              }),
+                            },
+                          }),
+                        },
+                      },
+                    },
+                  },
+                },
+                {
+                  type: 'control_if',
+                  inputs: {
+                    CONDITION: blockInput({
+                      type: 'operator_equals',
+                      inputs: {
+                        OPERAND1: blockInput({
+                          type: 'data_variable',
+                          fields: { VARIABLE: 'op' },
+                        }),
+                        OPERAND2: strInput('sub'),
+                      },
+                    }),
+                    SUBSTACK: {
+                      block: {
+                        type: 'data_setvariableto',
+                        fields: { VARIABLE: 'display' },
+                        inputs: {
+                          VALUE: blockInput({
+                            type: 'operator_subtract',
+                            inputs: {
+                              NUM1: blockInput({
+                                type: 'data_variable',
+                                fields: { VARIABLE: 'first_num' },
+                              }),
+                              NUM2: blockInput({
+                                type: 'data_variable',
+                                fields: { VARIABLE: 'display' },
+                              }),
+                            },
+                          }),
+                        },
+                      },
+                    },
+                  },
+                },
+                {
+                  type: 'control_if',
+                  inputs: {
+                    CONDITION: blockInput({
+                      type: 'operator_equals',
+                      inputs: {
+                        OPERAND1: blockInput({
+                          type: 'data_variable',
+                          fields: { VARIABLE: 'op' },
+                        }),
+                        OPERAND2: strInput('mul'),
+                      },
+                    }),
+                    SUBSTACK: {
+                      block: {
+                        type: 'data_setvariableto',
+                        fields: { VARIABLE: 'display' },
+                        inputs: {
+                          VALUE: blockInput({
+                            type: 'operator_multiply',
+                            inputs: {
+                              NUM1: blockInput({
+                                type: 'data_variable',
+                                fields: { VARIABLE: 'first_num' },
+                              }),
+                              NUM2: blockInput({
+                                type: 'data_variable',
+                                fields: { VARIABLE: 'display' },
+                              }),
+                            },
+                          }),
+                        },
+                      },
+                    },
+                  },
+                },
+                {
+                  type: 'control_if',
+                  inputs: {
+                    CONDITION: blockInput({
+                      type: 'operator_equals',
+                      inputs: {
+                        OPERAND1: blockInput({
+                          type: 'data_variable',
+                          fields: { VARIABLE: 'op' },
+                        }),
+                        OPERAND2: strInput('div'),
+                      },
+                    }),
+                    SUBSTACK: {
+                      block: {
+                        type: 'data_setvariableto',
+                        fields: { VARIABLE: 'display' },
+                        inputs: {
+                          VALUE: blockInput({
+                            type: 'operator_divide',
+                            inputs: {
+                              NUM1: blockInput({
+                                type: 'data_variable',
+                                fields: { VARIABLE: 'first_num' },
+                              }),
+                              NUM2: blockInput({
+                                type: 'data_variable',
+                                fields: { VARIABLE: 'display' },
+                              }),
+                            },
+                          }),
+                        },
+                      },
+                    },
+                  },
+                },
+                {
+                  type: 'data_setvariableto',
+                  fields: { VARIABLE: 'op' },
+                  inputs: { VALUE: strInput('none') },
+                },
+                {
+                  type: 'data_setvariableto',
+                  fields: { VARIABLE: 'fresh_entry' },
+                  inputs: { VALUE: numInput(1) },
+                },
+                {
+                  type: 'data_changevariableby',
+                  fields: { VARIABLE: 'solved' },
+                  inputs: { VALUE: numInput(1) },
+                },
+                {
+                  type: 'storage_save',
+                  inputs: {
+                    VALUE: blockInput({ type: 'data_variable', fields: { VARIABLE: 'solved' } }),
+                    KEY: strInput('ginger_calc_solved'),
+                  },
+                },
+                { type: 'looks_switchcostumeto', fields: { COSTUME: 'Happy Cheer' } },
+                { type: 'sound_play', fields: { SOUND: 'Star Coin' } },
+                {
+                  type: 'fx_particles',
+                  fields: { KIND: 'stars' },
+                  inputs: { COUNT: numInput(20) },
+                },
+                {
+                  type: 'appui_set_text',
+                  fields: { WIDGET: 'lbl_screen' },
+                  inputs: {
+                    TEXT: blockInput({ type: 'data_variable', fields: { VARIABLE: 'display' } }),
+                  },
+                },
+                {
+                  type: 'appui_set_text',
+                  fields: { WIDGET: 'lbl_tape' },
+                  inputs: {
+                    TEXT: blockInput({
+                      type: 'operator_join',
+                      inputs: {
+                        STRING1: strInput('⭐ Result = '),
+                        STRING2: blockInput({
+                          type: 'data_variable',
+                          fields: { VARIABLE: 'display' },
+                        }),
+                      },
+                    }),
+                  },
+                },
+              ]),
+            },
+          },
+        },
+      ]),
+    },
+  };
+
+  const speakAnswerHat: BlocklyBlockNode = {
+    type: 'appui_when_clicked',
+    x: 920,
+    y: 960,
+    fields: { WIDGET: 'btn_speak' },
+    next: {
+      block: chain([
+        { type: 'looks_switchcostumeto', fields: { COSTUME: 'Happy Cheer' } },
+        { type: 'tts_setvoice', fields: { VOICE: 'alto' } },
+        {
+          type: 'tts_speak',
+          inputs: {
+            TEXT: blockInput({
+              type: 'operator_join',
+              inputs: {
+                STRING1: strInput('The answer is '),
+                STRING2: blockInput({ type: 'data_variable', fields: { VARIABLE: 'display' } }),
+              },
+            }),
+          },
+        },
+      ]),
+    },
+  };
+
+  const kittenAnswerHat: BlocklyBlockNode = {
+    type: 'appui_when_clicked',
+    x: 920,
+    y: 1170,
+    fields: { WIDGET: 'btn_kitten' },
+    next: {
+      block: chain([
+        { type: 'looks_switchcostumeto', fields: { COSTUME: 'Peace Pose' } },
+        { type: 'fx_particles', fields: { KIND: 'hearts' }, inputs: { COUNT: numInput(14) } },
+        { type: 'tts_setvoice', fields: { VOICE: 'kitten' } },
+        {
+          type: 'tts_speak',
+          inputs: {
+            TEXT: blockInput({
+              type: 'operator_join',
+              inputs: {
+                STRING1: strInput('cookie answer '),
+                STRING2: blockInput({ type: 'data_variable', fields: { VARIABLE: 'display' } }),
+              },
+            }),
+          },
+        },
+      ]),
+    },
+  };
+
+  const digitBlocks = Array.from({ length: 10 }, (_, d) =>
+    makeDigitHat(d, 460, 24 + d * 118)
+  );
+
+  const opBlocks = [
+    makeOpHat('btn_add', 'add', '+', 1420, 24),
+    makeOpHat('btn_sub', 'sub', '−', 1420, 260),
+    makeOpHat('btn_mul', 'mul', '×', 1420, 496),
+    makeOpHat('btn_div', 'div', '÷', 1420, 732),
+  ];
+
+  const gingerCalcSprite = makeBaseSprite('lib-ginger-star', {
+    id: 'sprite-ginger-calc',
+    name: 'Gingerbread Star',
+    x: -106,
+    y: 204,
+    size: 25,
+    currentCostumeIndex: 0,
+    layerOrder: 2,
+    workspaceState: {
+      blocks: {
+        languageVersion: 0,
+        blocks: [
+          startHat,
+          clearHat,
+          signHat,
+          squareHat,
+          ...digitBlocks,
+          dotHat,
+          equalsHat,
+          speakAnswerHat,
+          kittenAnswerHat,
+          ...opBlocks,
+        ],
+      },
+    },
+  });
+
+  const calcBackdropIdx = Math.max(
+    0,
+    BACKDROP_LIBRARY.findIndex((b) => b.id === 'bg-gingerbread-calc')
+  );
+
+  const makeKeyBtn = (
+    id: string,
+    label: string,
+    x: number,
+    y: number,
+    color = '#FFFBEB',
+    textColor = '#451A03',
+    width = 72,
+    height = 46,
+    fontSize = 16
+  ) => ({
+    id,
+    type: 'button' as const,
+    label,
+    value: '',
+    x,
+    y,
+    width,
+    height,
+    color,
+    textColor,
+    fontSize,
+    borderRadius: 13,
+    visible: true,
+  });
+
+  return {
+    version: '1.1.0',
+    title: "Gingerbread Star's Gingerbread Calculator",
+    author: 'BlockCraft Creator',
+    description:
+      'Cozy Gingerbread Smartphone Calculator with decimal math, x² star power, Cloud Save & Kitten/Alto voice readout!',
+    stageMode: 'mobile',
+    tempo: 132,
+    volume: 85,
+    enabledExtensions: ['appui', 'fx', 'music', 'tts', 'storage'],
+    backdrops: BACKDROP_LIBRARY.map((b) => ({ ...b })),
+    currentBackdropIndex: calcBackdropIdx,
+    sprites: [gingerCalcSprite],
+    widgets: [
+      {
+        id: 'lbl_screen',
+        type: 'label',
+        label: '0',
+        value: '',
+        x: 42,
+        y: 218,
+        width: 192,
+        height: 48,
+        color: '#291509',
+        textColor: '#6EE7B7',
+        fontSize: 22,
+        borderRadius: 14,
+        visible: true,
+      },
+      {
+        id: 'lbl_tape',
+        type: 'label',
+        label: '🍪 Gingerbread Calculator',
+        value: '',
+        x: 42,
+        y: 172,
+        width: 192,
+        height: 26,
+        color: '#451A03',
+        textColor: '#FDE68A',
+        fontSize: 11,
+        borderRadius: 9,
+        visible: true,
+      },
+      // Row 1: Utility & Operators
+      makeKeyBtn('btn_clear', 'AC', -120, 108, '#EF4444', '#FFFFFF', 72, 44, 15),
+      makeKeyBtn('btn_sign', '±', -40, 108, '#78350F', '#FEF3C7', 72, 44, 16),
+      makeKeyBtn('btn_sq', 'x²', 40, 108, '#7C3AED', '#FFFFFF', 72, 44, 15),
+      makeKeyBtn('btn_div', '÷', 120, 108, '#D97706', '#FFFFFF', 72, 44, 18),
+      // Row 2: 7 8 9 ×
+      makeKeyBtn('btn_7', '7', -120, 48),
+      makeKeyBtn('btn_8', '8', -40, 48),
+      makeKeyBtn('btn_9', '9', 40, 48),
+      makeKeyBtn('btn_mul', '×', 120, 48, '#D97706', '#FFFFFF', 72, 46, 18),
+      // Row 3: 4 5 6 −
+      makeKeyBtn('btn_4', '4', -120, -12),
+      makeKeyBtn('btn_5', '5', -40, -12),
+      makeKeyBtn('btn_6', '6', 40, -12),
+      makeKeyBtn('btn_sub', '−', 120, -12, '#D97706', '#FFFFFF', 72, 46, 18),
+      // Row 4: 1 2 3 +
+      makeKeyBtn('btn_1', '1', -120, -72),
+      makeKeyBtn('btn_2', '2', -40, -72),
+      makeKeyBtn('btn_3', '3', 40, -72),
+      makeKeyBtn('btn_add', '+', 120, -72, '#D97706', '#FFFFFF', 72, 46, 18),
+      // Row 5: 0 . =
+      makeKeyBtn('btn_0', '0', -120, -132),
+      makeKeyBtn('btn_dot', '.', -40, -132, '#FDE68A', '#451A03', 72, 46, 20),
+      makeKeyBtn('btn_eq', '=', 80, -132, '#10B981', '#FFFFFF', 152, 46, 20),
+      // Row 6: Voice Readout Bar
+      makeKeyBtn('btn_speak', '🗣️ Speak Answer', -44, -194, '#EC4899', '#FFFFFF', 184, 38, 12),
+      makeKeyBtn('btn_kitten', '🐱 Meow!', 108, -194, '#8B5CF6', '#FFFFFF', 96, 38, 12),
+    ],
+    variables: [
+      {
+        id: 'var-calc-solved',
+        name: 'solved',
+        value: 0,
+        visible: true,
+        readout: 'normal',
+        sliderMin: 0,
+        sliderMax: 999,
+        x: -148,
+        y: -252,
+      },
+      {
+        id: 'var-calc-display',
+        name: 'display',
+        value: '0',
+        visible: false,
+        readout: 'normal',
+        sliderMin: 0,
+        sliderMax: 100,
+        x: 0,
+        y: 0,
+      },
+      {
+        id: 'var-calc-first',
+        name: 'first_num',
+        value: 0,
+        visible: false,
+        readout: 'normal',
+        sliderMin: 0,
+        sliderMax: 100,
+        x: 0,
+        y: 0,
+      },
+      {
+        id: 'var-calc-op',
+        name: 'op',
+        value: 'none',
+        visible: false,
+        readout: 'normal',
+        sliderMin: 0,
+        sliderMax: 100,
+        x: 0,
+        y: 0,
+      },
+      {
+        id: 'var-calc-fresh',
+        name: 'fresh_entry',
+        value: 1,
+        visible: false,
+        readout: 'normal',
+        sliderMin: 0,
+        sliderMax: 1,
+        x: 0,
+        y: 0,
+      },
+    ],
+    lists: [],
+  };
+}
+
 export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
   {
     id: 'tpl-ginger-quest',
@@ -1802,6 +2695,14 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     badge: 'Featured Mascot',
     description: 'Catch magic stars with arrow keys or trigger poses & spells via App UI buttons.',
     build: createDefaultProject,
+  },
+  {
+    id: 'tpl-gingerbread-calculator',
+    name: "Gingerbread Star's Gingerbread Calculator",
+    badge: 'NEW · Cookie Calc 🍪',
+    description:
+      'Smartphone Gingerbread Calculator with +, −, ×, ÷, decimals, x², Marimba keypad & Alto/Kitten voice!',
+    build: createGingerbreadCalculatorTemplate,
   },
   {
     id: 'tpl-chemist-mixer-lab',

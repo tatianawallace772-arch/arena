@@ -593,6 +593,39 @@ export const BACKDROP_LIBRARY: BackdropModel[] = [
     `),
   },
   {
+    id: 'bg-gingerbread-calc',
+    name: 'Gingerbread Cookie Bakery',
+    dataUrl: svgToDataUrl(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="640" height="600" viewBox="0 0 640 600" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="gb_bg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#451A03"/>
+            <stop offset="48%" stop-color="#78350F"/>
+            <stop offset="100%" stop-color="#451A03"/>
+          </linearGradient>
+          <linearGradient id="gb_card" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#92400E"/>
+            <stop offset="100%" stop-color="#5C2808"/>
+          </linearGradient>
+        </defs>
+        <rect width="640" height="600" fill="url(#gb_bg)"/>
+        <!-- Warm cookie panel with white royal icing border -->
+        <rect x="136" y="16" width="368" height="568" rx="30" fill="url(#gb_card)" stroke="#FFFBEB" stroke-width="5" stroke-dasharray="18 8"/>
+        <!-- Decorative icing waves along top -->
+        <path d="M148 42 Q175 60 202 42 T256 42 T310 42 T364 42 T418 42 T472 42" fill="none" stroke="#FEF3C7" stroke-width="5" stroke-linecap="round" opacity="0.75"/>
+        <!-- Peppermint & gumdrop accents -->
+        <circle cx="166" cy="558" r="10" fill="#FB7185" opacity="0.8"/>
+        <circle cx="194" cy="558" r="10" fill="#34D399" opacity="0.8"/>
+        <circle cx="446" cy="558" r="10" fill="#FBBF24" opacity="0.8"/>
+        <circle cx="474" cy="558" r="10" fill="#60A5FA" opacity="0.8"/>
+        <!-- Soft sugar sparkles -->
+        <circle cx="180" cy="145" r="2.5" fill="#FDE68A" opacity="0.6"/>
+        <circle cx="465" cy="155" r="3" fill="#FDE68A" opacity="0.6"/>
+        <circle cx="460" cy="390" r="2.5" fill="#FFFBEB" opacity="0.5"/>
+      </svg>
+    `),
+  },
+  {
     id: 'bg-xy-grid',
     name: 'Scratch XY Grid',
     dataUrl: svgToDataUrl(`
