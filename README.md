@@ -26,7 +26,7 @@ sticker art; countdowns; confetti; and everything saved locally in the browser.
 
 In **Settings → Sound & music → Custom soundtrack**, drop in or browse for MP3,
 M4A, AAC, OGG, Opus, WAV, FLAC or WebM audio. The browser's audio decoder is
-checked before accepting a file; files are limited to 25 MB each. The player has
+checked before accepting a file; files up to 1.0 GB each are allowed, subject to available browser storage. The player has
 seek, previous/next, shuffle, repeat and a track list, and custom music replaces
 the generated synth loop. Choose **Synth loop** any time to switch back.
 

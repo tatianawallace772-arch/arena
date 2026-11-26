@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { bakeryAudio } from './audio';
-import { formatBytes, getTrack, probeDuration, putTrack, validateAudioFile } from './tracks';
+import { estimatedFreeBytes, formatBytes, getTrack, probeDuration, putTrack, validateAudioFile } from './tracks';
 import type { TrackMeta } from './tracks';
 
 export type TrackMode = 'synth' | 'custom';
@@ -377,6 +377,11 @@ export function useCustomTrack({
         const problem = validateAudioFile(file);
         if (problem) {
           onError?.(problem);
+          continue;
+        }
+        const freeBytes = await estimatedFreeBytes();
+        if (freeBytes !== null && file.size > freeBytes) {
+          onError?.(`Not enough browser storage for “${file.name}”. Free up space or try a smaller file.`);
           continue;
         }
         const id = `tr-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;

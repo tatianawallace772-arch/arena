@@ -25,8 +25,8 @@ const MIME_BY_EXT: Record<string, string> = {
   flac: 'audio/flac', weba: 'audio/webm', webm: 'audio/webm',
 };
 
-/** Files up to this size are accepted (browser storage is finite). */
-export const MAX_TRACK_BYTES = 25 * 1024 * 1024; // 25 MB
+/** Maximum size for an individual audio file. Browser storage may be lower. */
+export const MAX_TRACK_BYTES = 1024 * 1024 * 1024; // 1.0 GB
 
 /** Formats we can confidently decode in every modern browser. */
 export const SUPPORTED_MIME = new Set([
@@ -117,7 +117,20 @@ export async function clearTracks(): Promise<void> {
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Best-effort free-space estimate; IndexedDB remains the final authority. */
+export async function estimatedFreeBytes(): Promise<number | null> {
+  try {
+    if (typeof navigator === 'undefined' || !navigator.storage?.estimate) return null;
+    const { quota, usage } = await navigator.storage.estimate();
+    if (typeof quota !== 'number' || typeof usage !== 'number') return null;
+    return Math.max(0, quota - usage);
+  } catch {
+    return null;
+  }
 }
 
 export function formatDuration(seconds: number): string {
