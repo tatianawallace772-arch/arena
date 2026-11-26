@@ -1,5 +1,6 @@
 import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { Send } from 'lucide-react';
+import { Camera, Send } from 'lucide-react';
+import type { CameraState, VideoSensingState } from '../engine/vm';
 import {
   type AppWidget,
   type BackdropModel,
@@ -18,12 +19,14 @@ export interface StageCanvasHandle {
     x2: number,
     y2: number,
     color: string,
-    size: number
+    size: number,
+    transparency?: number
   ) => void;
   stampSprite: (sprite: SpriteModel) => void;
   clearPen: () => void;
   spawnParticles: (kind: ParticleKind, count: number, x: number, y: number) => void;
   shakeScreen: (intensity: number) => void;
+  flashScreen: (color: string) => void;
 }
 
 interface StageCanvasProps {
@@ -37,6 +40,11 @@ interface StageCanvasProps {
   selectedWidgetId: string | null;
   askState: { question: string; spriteName: string } | null;
   stageToast: string | null;
+  camera?: CameraState;
+  videoSensing?: VideoSensingState;
+  virtualPadVisible?: boolean;
+  onVirtualPadButton?: (button: string, down: boolean) => void;
+  onVideoMetricsUpdate?: (motion: number, direction: number) => void;
   onSelectSprite: (id: string) => void;
   onSpriteClickedOnStage: (id: string) => void;
   onSpriteMoved: (id: string, x: number, y: number) => void;
@@ -71,6 +79,11 @@ export const StageCanvas = React.forwardRef<StageCanvasHandle, StageCanvasProps>
       selectedWidgetId,
       askState,
       stageToast,
+      camera = { zoom: 100, x: 0, y: 0 },
+      videoSensing = { mode: 'off', transparency: 50, motion: 0, direction: 90 },
+      virtualPadVisible = false,
+      onVirtualPadButton,
+      onVideoMetricsUpdate,
       onSelectSprite,
       onSpriteClickedOnStage,
       onSpriteMoved,
@@ -91,10 +104,15 @@ export const StageCanvas = React.forwardRef<StageCanvasHandle, StageCanvasProps>
     const stageBoxRef = useRef<HTMLDivElement | null>(null);
     const penCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const fxCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const videoElRef = useRef<HTMLVideoElement | null>(null);
     const particlesRef = useRef<Particle[]>([]);
     const shakePowerRef = useRef(0);
     const [shakeOffset, setShakeOffset] = useState({ x: 0, y: 0 });
+    const [flashState, setFlashState] = useState<{ color: string; key: number } | null>(null);
     const [askInput, setAskInput] = useState('');
+    const [webcamStatus, setWebcamStatus] = useState<'off' | 'live' | 'sim'>('off');
+    const lastSimPointerRef = useRef<{ x: number; y: number; t: number } | null>(null);
+    const simMotionDecayRef = useRef(0);
 
     // Drag tracking for sprites or widgets
     const dragRef = useRef<{
@@ -108,9 +126,11 @@ export const StageCanvas = React.forwardRef<StageCanvasHandle, StageCanvasProps>
     } | null>(null);
 
     useImperativeHandle(ref, () => ({
-      drawPenLine(x1, y1, x2, y2, color, size) {
+      drawPenLine(x1, y1, x2, y2, color, size, transparency = 0) {
         const ctx = penCanvasRef.current?.getContext('2d');
         if (!ctx) return;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0.02, Math.min(1, 1 - transparency / 100));
         ctx.strokeStyle = color;
         ctx.lineWidth = size;
         ctx.lineCap = 'round';
@@ -119,6 +139,7 @@ export const StageCanvas = React.forwardRef<StageCanvasHandle, StageCanvasProps>
         ctx.moveTo(hw + x1, hh - y1);
         ctx.lineTo(hw + x2, hh - y2);
         ctx.stroke();
+        ctx.restore();
       },
       stampSprite(sp) {
         const ctx = penCanvasRef.current?.getContext('2d');
@@ -174,7 +195,106 @@ export const StageCanvas = React.forwardRef<StageCanvasHandle, StageCanvasProps>
       shakeScreen(intensity) {
         shakePowerRef.current = Math.max(shakePowerRef.current, intensity);
       },
+      flashScreen(color) {
+        setFlashState({ color, key: Date.now() });
+      },
     }));
+
+    // Video Sensing webcam stream + motion calculation (with graceful optical-flow simulation fallback)
+    useEffect(() => {
+      if (videoSensing.mode === 'off') {
+        setWebcamStatus('off');
+        onVideoMetricsUpdate?.(0, 90);
+        return;
+      }
+
+      let cancelled = false;
+      let stream: MediaStream | null = null;
+      let intervalId: number | null = null;
+
+      const startCamera = async () => {
+        try {
+          if (!navigator.mediaDevices?.getUserMedia) {
+            throw new Error('No getUserMedia');
+          }
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 320, height: 240 },
+            audio: false,
+          });
+          if (cancelled) {
+            stream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          setWebcamStatus('live');
+          if (videoElRef.current) {
+            videoElRef.current.srcObject = stream;
+            await videoElRef.current.play().catch(() => {});
+          }
+
+          const sampleCanvas = document.createElement('canvas');
+          sampleCanvas.width = 48;
+          sampleCanvas.height = 36;
+          const sCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+          let prevFrame: Uint8ClampedArray | null = null;
+
+          intervalId = window.setInterval(() => {
+            const vid = videoElRef.current;
+            if (!vid || !sCtx || vid.readyState < 2) return;
+            sCtx.drawImage(vid, 0, 0, 48, 36);
+            const frame = sCtx.getImageData(0, 0, 48, 36).data;
+            if (prevFrame) {
+              let diffSum = 0;
+              let cxSum = 0;
+              let cySum = 0;
+              let activePx = 0;
+              for (let py = 0; py < 36; py++) {
+                for (let px = 0; px < 48; px++) {
+                  const idx = (py * 48 + px) * 4;
+                  const d =
+                    Math.abs(frame[idx] - prevFrame[idx]) +
+                    Math.abs(frame[idx + 1] - prevFrame[idx + 1]) +
+                    Math.abs(frame[idx + 2] - prevFrame[idx + 2]);
+                  if (d > 70) {
+                    diffSum += d;
+                    cxSum += px - 24;
+                    cySum += 18 - py;
+                    activePx++;
+                  }
+                }
+              }
+              const motionScore = Math.min(100, Math.round((diffSum / (48 * 36 * 65)) * 100));
+              const dir =
+                activePx > 4
+                  ? Math.round(90 - (Math.atan2(cySum / activePx, cxSum / activePx) * 180) / Math.PI)
+                  : 90;
+              onVideoMetricsUpdate?.(motionScore, dir);
+            }
+            prevFrame = new Uint8ClampedArray(frame);
+          }, 90);
+        } catch {
+          if (!cancelled) {
+            setWebcamStatus('sim');
+            intervalId = window.setInterval(() => {
+              if (simMotionDecayRef.current > 0.5) {
+                simMotionDecayRef.current *= 0.82;
+                onVideoMetricsUpdate?.(Math.round(simMotionDecayRef.current), 90);
+              } else if (simMotionDecayRef.current > 0) {
+                simMotionDecayRef.current = 0;
+                onVideoMetricsUpdate?.(0, 90);
+              }
+            }, 90);
+          }
+        }
+      };
+
+      void startCamera();
+
+      return () => {
+        cancelled = true;
+        if (intervalId !== null) clearInterval(intervalId);
+        if (stream) stream.getTracks().forEach((t) => t.stop());
+      };
+    }, [videoSensing.mode, onVideoMetricsUpdate]);
 
     // 60 FPS Particle + Shake animation loop
     useEffect(() => {
@@ -207,7 +327,6 @@ export const StageCanvas = React.forwardRef<StageCanvasHandle, StageCanvasProps>
             ctx.fillStyle = p.color;
 
             if (p.kind === 'stars' || p.kind === 'magic') {
-              // 5-point mini star
               ctx.beginPath();
               for (let s = 0; s < 5; s++) {
                 const outer = (s * 4 * Math.PI) / 5 - Math.PI / 2;
@@ -269,6 +388,24 @@ export const StageCanvas = React.forwardRef<StageCanvasHandle, StageCanvasProps>
       const pt = clientToScratch(e.clientX, e.clientY);
       onPointerUpdate(pt.x, pt.y, e.buttons > 0);
 
+      // Synthetic optical-flow motion sensor when camera hardware is unavailable
+      if (webcamStatus === 'sim') {
+        const now = performance.now();
+        const prev = lastSimPointerRef.current;
+        if (prev && now - prev.t > 8) {
+          const vx = pt.x - prev.x;
+          const vy = pt.y - prev.y;
+          const dist = Math.hypot(vx, vy);
+          const simMotion = Math.min(100, Math.round(dist * 2.4));
+          if (simMotion > 3) {
+            simMotionDecayRef.current = Math.max(simMotionDecayRef.current, simMotion);
+            const dir = Math.round(90 - (Math.atan2(vy, vx) * 180) / Math.PI);
+            onVideoMetricsUpdate?.(simMotionDecayRef.current, dir);
+          }
+        }
+        lastSimPointerRef.current = { x: pt.x, y: pt.y, t: now };
+      }
+
       const d = dragRef.current;
       if (d) {
         const dx = pt.x - d.startMouseX;
@@ -293,6 +430,26 @@ export const StageCanvas = React.forwardRef<StageCanvasHandle, StageCanvasProps>
     };
 
     const orderedSprites = [...sprites].sort((a, b) => a.layerOrder - b.layerOrder);
+    const hasCameraTransform =
+      Math.abs(camera.zoom - 100) > 0.5 || Math.abs(camera.x) > 0.5 || Math.abs(camera.y) > 0.5;
+    const worldTransform = hasCameraTransform
+      ? `scale(${camera.zoom / 100}) translate(${-camera.x}px, ${camera.y}px)`
+      : undefined;
+
+    const bindPadBtn = (btn: string) => ({
+      onPointerDown: (e: React.PointerEvent) => {
+        e.stopPropagation();
+        e.preventDefault();
+        onVirtualPadButton?.(btn, true);
+      },
+      onPointerUp: (e: React.PointerEvent) => {
+        e.stopPropagation();
+        onVirtualPadButton?.(btn, false);
+      },
+      onPointerLeave: () => {
+        onVirtualPadButton?.(btn, false);
+      },
+    });
 
     return (
       <div className={`stage-viewport-wrap mode-${stageMode}`}>
@@ -321,102 +478,151 @@ export const StageCanvas = React.forwardRef<StageCanvasHandle, StageCanvasProps>
         >
           {stageMode === 'mobile' && <div className="phone-notch" aria-hidden="true" />}
 
-          {/* Backdrop */}
-          {backdrop && (
-            <img
-              className="stage-backdrop-img"
-              src={backdrop.dataUrl}
-              alt={backdrop.name}
-              draggable={false}
-            />
-          )}
+          {/* Camera-Transformable Stage World */}
+          <div
+            className="stage-world-container"
+            style={{
+              width: '100%',
+              height: '100%',
+              position: 'absolute',
+              inset: 0,
+              transform: worldTransform,
+              transformOrigin: 'center center',
+              transition: 'transform 140ms ease-out',
+            }}
+          >
+            {/* Backdrop */}
+            {backdrop && (
+              <img
+                className="stage-backdrop-img"
+                src={backdrop.dataUrl}
+                alt={backdrop.name}
+                draggable={false}
+              />
+            )}
 
-          {/* Pen Layer */}
-          <canvas
-            ref={penCanvasRef}
-            className="stage-canvas-layer"
-            width={dim.width}
-            height={dim.height}
-          />
-
-          {/* Sprites Layer */}
-          {orderedSprites.map((sp) => {
-            if (!sp.visible) return null;
-            const costume = sp.costumes[sp.currentCostumeIndex] ?? sp.costumes[0];
-            if (!costume) return null;
-
-            const isHighResCostume =
-              costume.dataUrl.startsWith('/sprites/') || costume.dataUrl.length > 8000;
-            const baseVisualPx = isHighResCostume ? 340 : 120;
-            const pxSize = Math.max(12, (sp.size / 100) * baseVisualPx);
-
-            let rotTransform = '';
-            if (sp.rotationStyle === 'left-right') {
-              if (sp.direction < 0) rotTransform = 'scaleX(-1)';
-            } else if (sp.rotationStyle === 'all around') {
-              rotTransform = `rotate(${sp.direction - 90}deg)`;
-            }
-
-            const filterStr = [
-              sp.effects.color ? `hue-rotate(${sp.effects.color * 1.8}deg)` : '',
-              sp.effects.brightness
-                ? `brightness(${Math.max(0.1, 1 + sp.effects.brightness / 100)})`
-                : '',
-            ]
-              .filter(Boolean)
-              .join(' ');
-
-            const opacity = Math.max(0, Math.min(1, 1 - sp.effects.ghost / 100));
-            const leftPx = hw + sp.x - pxSize / 2;
-            const topPx = hh - sp.y - pxSize / 2;
-
-            return (
-              <React.Fragment key={sp.id}>
-                <div
-                  className={`stage-sprite ${
-                    !sp.isClone && sp.id === selectedSpriteId ? 'selected-outline' : ''
-                  }`}
-                  style={{
-                    width: `${pxSize}px`,
-                    height: `${pxSize}px`,
-                    left: `${leftPx}px`,
-                    top: `${topPx}px`,
-                    transform: rotTransform || undefined,
-                    filter: filterStr || undefined,
-                    opacity,
-                  }}
-                  onPointerDown={(e) => {
-                    e.stopPropagation();
-                    if (!sp.isClone) onSelectSprite(sp.id);
-                    const pt = clientToScratch(e.clientX, e.clientY);
-                    dragRef.current = {
-                      kind: 'sprite',
-                      id: sp.id,
-                      startMouseX: pt.x,
-                      startMouseY: pt.y,
-                      origX: sp.x,
-                      origY: sp.y,
-                      moved: false,
-                    };
-                  }}
-                >
-                  <img src={costume.dataUrl} alt={sp.name} draggable={false} />
-                </div>
-
-                {sp.bubble && (
-                  <div
-                    className={`stage-speech-bubble bubble-${sp.bubble.type}`}
+            {/* Video Sensing Layer */}
+            {videoSensing.mode !== 'off' && (
+              <div
+                className={`stage-video-layer ${webcamStatus === 'sim' ? 'video-sim-wave' : ''}`}
+                style={{
+                  opacity: Math.max(0.05, Math.min(1, 1 - videoSensing.transparency / 100)),
+                }}
+              >
+                {webcamStatus === 'live' && (
+                  <video
+                    ref={videoElRef}
+                    playsInline
+                    muted
                     style={{
-                      left: `${Math.max(54, Math.min(dim.width - 54, hw + sp.x))}px`,
-                      top: `${Math.max(34, hh - sp.y - pxSize * 0.44)}px`,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      transform: videoSensing.mode === 'on-flipped' ? 'scaleX(-1)' : undefined,
+                    }}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Pen Layer */}
+            <canvas
+              ref={penCanvasRef}
+              className="stage-canvas-layer"
+              width={dim.width}
+              height={dim.height}
+            />
+
+            {/* Sprites Layer */}
+            {orderedSprites.map((sp) => {
+              if (!sp.visible) return null;
+              const costume = sp.costumes[sp.currentCostumeIndex] ?? sp.costumes[0];
+              if (!costume) return null;
+
+              const isHighResCostume =
+                costume.dataUrl.startsWith('/sprites/') || costume.dataUrl.length > 8000;
+              const baseVisualPx = isHighResCostume ? 340 : 120;
+              const pxSize = Math.max(12, (sp.size / 100) * baseVisualPx);
+
+              let rotTransform = '';
+              if (sp.rotationStyle === 'left-right') {
+                if (sp.direction < 0) rotTransform = 'scaleX(-1)';
+              } else if (sp.rotationStyle === 'all around') {
+                rotTransform = `rotate(${sp.direction - 90}deg)`;
+              }
+
+              const filterStr = [
+                sp.effects.color ? `hue-rotate(${sp.effects.color * 1.8}deg)` : '',
+                sp.effects.brightness
+                  ? `brightness(${Math.max(0.1, 1 + sp.effects.brightness / 100)})`
+                  : '',
+              ]
+                .filter(Boolean)
+                .join(' ');
+
+              const opacity = Math.max(0, Math.min(1, 1 - sp.effects.ghost / 100));
+              const leftPx = hw + sp.x - pxSize / 2;
+              const topPx = hh - sp.y - pxSize / 2;
+
+              return (
+                <React.Fragment key={sp.id}>
+                  <div
+                    className={`stage-sprite ${
+                      !sp.isClone && sp.id === selectedSpriteId ? 'selected-outline' : ''
+                    }`}
+                    style={{
+                      width: `${pxSize}px`,
+                      height: `${pxSize}px`,
+                      left: `${leftPx}px`,
+                      top: `${topPx}px`,
+                      transform: rotTransform || undefined,
+                      filter: filterStr || undefined,
+                      opacity,
+                    }}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      if (!sp.isClone) onSelectSprite(sp.id);
+                      const pt = clientToScratch(e.clientX, e.clientY);
+                      dragRef.current = {
+                        kind: 'sprite',
+                        id: sp.id,
+                        startMouseX: pt.x,
+                        startMouseY: pt.y,
+                        origX: sp.x,
+                        origY: sp.y,
+                        moved: false,
+                      };
                     }}
                   >
-                    {sp.bubble.text}
+                    <img src={costume.dataUrl} alt={sp.name} draggable={false} />
                   </div>
-                )}
-              </React.Fragment>
-            );
-          })}
+
+                  {sp.bubble && (
+                    <div
+                      className={`stage-speech-bubble bubble-${sp.bubble.type}`}
+                      style={{
+                        left: `${Math.max(54, Math.min(dim.width - 54, hw + sp.x))}px`,
+                        top: `${Math.max(34, hh - sp.y - pxSize * 0.44)}px`,
+                      }}
+                    >
+                      {sp.bubble.text}
+                    </div>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </div>
+
+          {/* Video Sensing HUD Badge */}
+          {videoSensing.mode !== 'off' && (
+            <div className="stage-video-badge">
+              <Camera size={12} />
+              <span>
+                {webcamStatus === 'live' ? 'Webcam Live' : 'Motion Sensor Sim (Wave Mouse)'} ·{' '}
+                <strong>{videoSensing.motion}</strong>
+              </span>
+            </div>
+          )}
 
           {/* Variable Readout Monitors */}
           {variables
@@ -588,6 +794,45 @@ export const StageCanvas = React.forwardRef<StageCanvasHandle, StageCanvasProps>
               </div>
             );
           })}
+
+          {/* On-Stage Arcade Pad Overlay (Gamepad Extension) */}
+          {virtualPadVisible && (
+            <div className="stage-arcade-pad" aria-label="On-stage arcade controller">
+              <div className="arcade-dpad">
+                <button type="button" className="dpad-btn up" {...bindPadBtn('up')}>
+                  ▲
+                </button>
+                <button type="button" className="dpad-btn left" {...bindPadBtn('left')}>
+                  ◀
+                </button>
+                <div className="dpad-center" />
+                <button type="button" className="dpad-btn right" {...bindPadBtn('right')}>
+                  ▶
+                </button>
+                <button type="button" className="dpad-btn down" {...bindPadBtn('down')}>
+                  ▼
+                </button>
+              </div>
+              <div className="arcade-ab">
+                <button type="button" className="ab-btn btn-b" {...bindPadBtn('B')}>
+                  B
+                </button>
+                <button type="button" className="ab-btn btn-a" {...bindPadBtn('A')}>
+                  A
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Screen Flash Overlay */}
+          {flashState && (
+            <div
+              key={flashState.key}
+              className="stage-flash-overlay"
+              style={{ background: flashState.color }}
+              onAnimationEnd={() => setFlashState(null)}
+            />
+          )}
 
           {/* App Notification Toast */}
           {stageToast && <div className="stage-app-toast">{stageToast}</div>}

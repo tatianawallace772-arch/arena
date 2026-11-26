@@ -887,6 +887,168 @@ export function createBlankProject(): ProjectModel {
   };
 }
 
+export function createExtensionsShowcaseTemplate(): ProjectModel {
+  const startHat: BlocklyBlockNode = {
+    type: 'event_whenflagclicked',
+    x: 32,
+    y: 28,
+    next: {
+      block: chain([
+        { type: 'motion_gotoxy', inputs: { X: numInput(0), Y: numInput(70) } },
+        { type: 'physics_set_gravity', inputs: { GRAVITY: numInput(13) } },
+        {
+          type: 'physics_set_bounciness',
+          inputs: { BOUNCE: numInput(58), FRICTION: numInput(12) },
+        },
+        { type: 'physics_enable', fields: { MODE: 'dynamic' } },
+        { type: 'gamepad_show_virtual', fields: { STATE: 'show' } },
+        { type: 'music_setinstrument', fields: { INSTRUMENT: 'marimba' } },
+        {
+          type: 'looks_sayforsecs',
+          inputs: {
+            MESSAGE: blockInput({
+              type: 'translate_gettext',
+              fields: { LANG: 'es' },
+              inputs: { WORDS: strInput('hello friend') },
+            }),
+            SECS: numInput(1.8),
+          },
+        },
+        {
+          type: 'control_forever',
+          inputs: {
+            SUBSTACK: {
+              block: chain([
+                {
+                  type: 'control_if',
+                  inputs: {
+                    CONDITION: blockInput({
+                      type: 'gamepad_button_down',
+                      fields: { BUTTON: 'right' },
+                    }),
+                    SUBSTACK: {
+                      block: chain([
+                        { type: 'motion_pointindirection', fields: { DIRECTION: 90 } },
+                        { type: 'physics_push', inputs: { FX: numInput(1.2), FY: numInput(0) } },
+                      ]),
+                    },
+                  },
+                },
+                {
+                  type: 'control_if',
+                  inputs: {
+                    CONDITION: blockInput({
+                      type: 'gamepad_button_down',
+                      fields: { BUTTON: 'left' },
+                    }),
+                    SUBSTACK: {
+                      block: chain([
+                        { type: 'motion_pointindirection', fields: { DIRECTION: -90 } },
+                        { type: 'physics_push', inputs: { FX: numInput(-1.2), FY: numInput(0) } },
+                      ]),
+                    },
+                  },
+                },
+              ]),
+            },
+          },
+        },
+      ]),
+    },
+  };
+
+  const jumpPadHat: BlocklyBlockNode = {
+    type: 'gamepad_when_button',
+    x: 470,
+    y: 28,
+    fields: { BUTTON: 'A' },
+    next: {
+      block: chain([
+        { type: 'physics_jump', inputs: { POWER: numInput(10.5) } },
+        { type: 'looks_nextcostume' },
+        { type: 'music_playnote', fields: { NOTE: '67' }, inputs: { BEATS: numInput(0.2) } },
+        { type: 'fx_particles', fields: { KIND: 'stars' }, inputs: { COUNT: numInput(16) } },
+      ]),
+    },
+  };
+
+  const beatAndKittenHat: BlocklyBlockNode = {
+    type: 'gamepad_when_button',
+    x: 470,
+    y: 285,
+    fields: { BUTTON: 'B' },
+    next: {
+      block: chain([
+        { type: 'music_playdrum', fields: { DRUM: 'snare' }, inputs: { BEATS: numInput(0.2) } },
+        { type: 'tts_setvoice', fields: { VOICE: 'kitten' } },
+        { type: 'tts_speak', inputs: { TEXT: strInput('super star power') } },
+        {
+          type: 'data_changevariableby',
+          fields: { VARIABLE: 'hops' },
+          inputs: { VALUE: numInput(1) },
+        },
+        {
+          type: 'storage_save',
+          inputs: {
+            VALUE: blockInput({ type: 'data_variable', fields: { VARIABLE: 'hops' } }),
+            KEY: strInput('best_hops'),
+          },
+        },
+      ]),
+    },
+  };
+
+  const ginger = makeBaseSprite('lib-ginger-star', {
+    id: 'sprite-ext-ginger',
+    name: 'Gingerbread Star',
+    x: 0,
+    y: 70,
+    size: 34,
+    workspaceState: {
+      blocks: { languageVersion: 0, blocks: [startHat, jumpPadHat, beatAndKittenHat] },
+    },
+  });
+
+  return {
+    version: '1.1.0',
+    title: 'Scratch Extensions Arcade Lab',
+    author: 'BlockCraft Creator',
+    description:
+      'Showcases 2D Physics Gravity, Arcade D-Pad, Music Synth, Kitten TTS, Translate & Cloud Save!',
+    stageMode: 'classic',
+    tempo: 128,
+    volume: 85,
+    enabledExtensions: [
+      'physics',
+      'gamepad',
+      'music',
+      'tts',
+      'translate',
+      'storage',
+      'fx',
+      'appui',
+    ],
+    backdrops: BACKDROP_LIBRARY.map((b) => ({ ...b })),
+    currentBackdropIndex: 1,
+    sprites: [ginger],
+    widgets: [],
+    variables: [
+      {
+        id: 'var-hops',
+        name: 'hops',
+        value: 0,
+        visible: true,
+        readout: 'normal',
+        sliderMin: 0,
+        sliderMax: 100,
+        x: -180,
+        y: 152,
+      },
+    ],
+    lists: [],
+  };
+}
+
 export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
   {
     id: 'tpl-ginger-quest',
@@ -894,6 +1056,14 @@ export const PROJECT_TEMPLATES: ProjectTemplateMeta[] = [
     badge: 'Featured Mascot',
     description: 'Catch magic stars with arrow keys or trigger poses & spells via App UI buttons.',
     build: createDefaultProject,
+  },
+  {
+    id: 'tpl-extensions-arcade',
+    name: 'Extensions Arcade & Physics Lab',
+    badge: 'NEW · 8 Extensions',
+    description:
+      '2D Physics gravity + bounce, on-stage Arcade Pad, Music drums/marimba, Kitten TTS & Translate!',
+    build: createExtensionsShowcaseTemplate,
   },
   {
     id: 'tpl-mobile-tapper',

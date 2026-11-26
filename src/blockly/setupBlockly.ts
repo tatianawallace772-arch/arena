@@ -2,6 +2,7 @@ import * as Blockly from 'blockly';
 import { registerContinuousToolbox } from '@blockly/continuous-toolbox';
 import { FieldColour, registerFieldColour } from '@blockly/field-colour';
 import { FieldAngle, registerFieldAngle } from '@blockly/field-angle';
+import type { ExtensionId } from '../types/studio';
 
 export interface DynamicMenuContext {
   costumes: [string, string][];
@@ -96,6 +97,32 @@ const BLOCK_STYLES: Record<string, Partial<Blockly.Theme.BlockStyle>> = {
     colourSecondary: '#0DA57A',
     colourTertiary: '#0B8E69',
   },
+  music_blocks: {
+    colourPrimary: '#0FBD8C',
+    colourSecondary: '#0DA57A',
+    colourTertiary: '#0B8E69',
+  },
+  tts_blocks: {
+    colourPrimary: '#0FBD8C',
+    colourSecondary: '#0DA57A',
+    colourTertiary: '#0B8E69',
+  },
+  translate_blocks: {
+    colourPrimary: '#0FBD8C',
+    colourSecondary: '#0DA57A',
+    colourTertiary: '#0B8E69',
+  },
+  video_hat_blocks: {
+    colourPrimary: '#0FBD8C',
+    colourSecondary: '#0DA57A',
+    colourTertiary: '#0B8E69',
+    hat: 'cap',
+  },
+  video_blocks: {
+    colourPrimary: '#0FBD8C',
+    colourSecondary: '#0DA57A',
+    colourTertiary: '#0B8E69',
+  },
   appui_hat_blocks: {
     colourPrimary: '#FF6680',
     colourSecondary: '#FF4D6A',
@@ -106,6 +133,27 @@ const BLOCK_STYLES: Record<string, Partial<Blockly.Theme.BlockStyle>> = {
     colourPrimary: '#FF6680',
     colourSecondary: '#FF4D6A',
     colourTertiary: '#E63956',
+  },
+  storage_blocks: {
+    colourPrimary: '#F59E0B',
+    colourSecondary: '#D97706',
+    colourTertiary: '#B45309',
+  },
+  physics_blocks: {
+    colourPrimary: '#3B82F6',
+    colourSecondary: '#2563EB',
+    colourTertiary: '#1D4ED8',
+  },
+  gamepad_hat_blocks: {
+    colourPrimary: '#EC4899',
+    colourSecondary: '#DB2777',
+    colourTertiary: '#BE185D',
+    hat: 'cap',
+  },
+  gamepad_blocks: {
+    colourPrimary: '#EC4899',
+    colourSecondary: '#DB2777',
+    colourTertiary: '#BE185D',
   },
   fx_blocks: {
     colourPrimary: '#7C3AED',
@@ -123,8 +171,15 @@ const CATEGORY_STYLES: Record<string, Blockly.Theme.CategoryStyle> = {
   sensing_category: { colour: '#5CB1D6' },
   operators_category: { colour: '#59C059' },
   data_category: { colour: '#FF8C1A' },
+  music_category: { colour: '#0FBD8C' },
   pen_category: { colour: '#0FBD8C' },
+  tts_category: { colour: '#0FBD8C' },
+  translate_category: { colour: '#0FBD8C' },
+  video_category: { colour: '#0FBD8C' },
   appui_category: { colour: '#FF6680' },
+  storage_category: { colour: '#F59E0B' },
+  physics_category: { colour: '#3B82F6' },
+  gamepad_category: { colour: '#EC4899' },
   fx_category: { colour: '#7C3AED' },
 };
 
@@ -1295,6 +1350,525 @@ function defineAllBlocks(): void {
     },
   };
 
+  B['pen_changepensizeby'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('SIZE').setCheck('Number').appendField('✏️ change pen size by');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('pen_blocks');
+    },
+  };
+
+  B['pen_setpentransparencyto'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('TRANSPARENCY')
+        .setCheck('Number')
+        .appendField('✏️ set pen transparency to');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('pen_blocks');
+    },
+  };
+
+  // ===================== MUSIC EXTENSION =====================
+  const MUSIC_NOTE_OPTIONS: [string, string][] = [
+    ['Low C (48)', '48'],
+    ['Low D (50)', '50'],
+    ['Low E (52)', '52'],
+    ['Low F (53)', '53'],
+    ['Low G (55)', '55'],
+    ['Low A (57)', '57'],
+    ['Low B (59)', '59'],
+    ['Middle C (60)', '60'],
+    ['C# (61)', '61'],
+    ['D (62)', '62'],
+    ['D# (63)', '63'],
+    ['E (64)', '64'],
+    ['F (65)', '65'],
+    ['F# (66)', '66'],
+    ['G (67)', '67'],
+    ['G# (68)', '68'],
+    ['A (69)', '69'],
+    ['A# (70)', '70'],
+    ['B (71)', '71'],
+    ['High C (72)', '72'],
+    ['High D (74)', '74'],
+    ['High E (76)', '76'],
+    ['High G (79)', '79'],
+  ];
+
+  B['music_playdrum'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('🥁 play drum')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['(1) Snare Drum', 'snare'],
+            ['(2) Bass Drum', 'bass'],
+            ['(3) Side Stick', 'sidestick'],
+            ['(4) Crash Cymbal', 'crash'],
+            ['(5) Open Hi-Hat', 'openhihat'],
+            ['(6) Closed Hi-Hat', 'closedhihat'],
+            ['(7) Tambourine', 'tambourine'],
+            ['(8) Hand Clap', 'clap'],
+          ]),
+          'DRUM'
+        )
+        .appendField('for');
+      this.appendValueInput('BEATS').setCheck('Number');
+      this.appendDummyInput().appendField('beats');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('music_blocks');
+    },
+  };
+
+  B['music_rest'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('BEATS').setCheck('Number').appendField('🎵 rest for');
+      this.appendDummyInput().appendField('beats');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('music_blocks');
+    },
+  };
+
+  B['music_playnote'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('🎵 play note')
+        .appendField(new Blockly.FieldDropdown(MUSIC_NOTE_OPTIONS), 'NOTE')
+        .appendField('for');
+      this.appendValueInput('BEATS').setCheck('Number');
+      this.appendDummyInput().appendField('beats');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('music_blocks');
+    },
+  };
+
+  B['music_setinstrument'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('🎹 set instrument to')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['(1) Acoustic Piano', 'piano'],
+            ['(2) Electric Piano', 'epiano'],
+            ['(3) Organ', 'organ'],
+            ['(4) Guitar', 'guitar'],
+            ['(5) Synth Lead', 'synth'],
+            ['(6) Flute', 'flute'],
+            ['(7) Marimba', 'marimba'],
+            ['(8) Retro Chiptune', 'chiptune'],
+          ]),
+          'INSTRUMENT'
+        );
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('music_blocks');
+    },
+  };
+
+  B['music_settempo'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('TEMPO').setCheck('Number').appendField('🎵 set tempo to');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('music_blocks');
+    },
+  };
+
+  B['music_changetempo'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('TEMPO').setCheck('Number').appendField('🎵 change tempo by');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('music_blocks');
+    },
+  };
+
+  B['music_gettempo'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput().appendField('🎵 tempo');
+      this.setOutput(true, 'Number');
+      this.setStyle('music_blocks');
+    },
+  };
+
+  // ===================== TEXT TO SPEECH EXTENSION =====================
+  B['tts_speak'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('TEXT').appendField('🗣️ speak');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('tts_blocks');
+    },
+  };
+
+  B['tts_setvoice'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('🗣️ set voice to')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['alto', 'alto'],
+            ['tenor', 'tenor'],
+            ['squeak', 'squeak'],
+            ['giant', 'giant'],
+            ['kitten 🐱', 'kitten'],
+          ]),
+          'VOICE'
+        );
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('tts_blocks');
+    },
+  };
+
+  B['tts_setlanguage'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('🗣️ set voice language to')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['English', 'en-US'],
+            ['Spanish (Español)', 'es-ES'],
+            ['French (Français)', 'fr-FR'],
+            ['Japanese (日本語)', 'ja-JP'],
+            ['Korean (한국어)', 'ko-KR'],
+            ['German (Deutsch)', 'de-DE'],
+            ['Italian (Italiano)', 'it-IT'],
+            ['Portuguese (Português)', 'pt-BR'],
+          ]),
+          'LANG'
+        );
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('tts_blocks');
+    },
+  };
+
+  // ===================== TRANSLATE EXTENSION =====================
+  B['translate_gettext'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('WORDS').appendField('🌐 translate');
+      this.appendDummyInput()
+        .appendField('to')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['Spanish (Español)', 'es'],
+            ['French (Français)', 'fr'],
+            ['Japanese (日本語)', 'ja'],
+            ['Korean (한국어)', 'ko'],
+            ['German (Deutsch)', 'de'],
+            ['Italian (Italiano)', 'it'],
+            ['Portuguese (Português)', 'pt'],
+            ['Emoji Speak ✨', 'emoji'],
+          ]),
+          'LANG'
+        );
+      this.setInputsInline(true);
+      this.setOutput(true, 'String');
+      this.setStyle('translate_blocks');
+    },
+  };
+
+  B['translate_getviewerlanguage'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput().appendField('🌐 language');
+      this.setOutput(true, 'String');
+      this.setStyle('translate_blocks');
+    },
+  };
+
+  // ===================== VIDEO SENSING EXTENSION =====================
+  B['video_whenmotiongreaterthan'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('THRESHOLD')
+        .setCheck('Number')
+        .appendField('📹 when video motion >');
+      this.setInputsInline(true);
+      this.setNextStatement(true, null);
+      this.setStyle('video_hat_blocks');
+    },
+  };
+
+  B['video_motion'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('📹 video')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['motion', 'motion'],
+            ['direction', 'direction'],
+          ]),
+          'ATTRIBUTE'
+        )
+        .appendField('on')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['stage', 'stage'],
+            ['this sprite', 'sprite'],
+          ]),
+          'SUBJECT'
+        );
+      this.setOutput(true, 'Number');
+      this.setStyle('video_blocks');
+    },
+  };
+
+  B['video_turn'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('📹 turn video')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['on', 'on'],
+            ['off', 'off'],
+            ['on flipped', 'on-flipped'],
+          ]),
+          'STATE'
+        );
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('video_blocks');
+    },
+  };
+
+  B['video_settransparency'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('TRANSPARENCY')
+        .setCheck('Number')
+        .appendField('📹 set video transparency to');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('video_blocks');
+    },
+  };
+
+  // ===================== CLOUD & LOCAL SAVE EXTENSION =====================
+  B['storage_save'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('VALUE').appendField('💾 save');
+      this.appendValueInput('KEY').appendField('to key');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('storage_blocks');
+    },
+  };
+
+  B['storage_load'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('KEY').appendField('💾 load key');
+      this.setInputsInline(true);
+      this.setOutput(true, null);
+      this.setStyle('storage_blocks');
+    },
+  };
+
+  B['storage_has_key'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('KEY').appendField('💾 saved key');
+      this.appendDummyInput().appendField('exists?');
+      this.setInputsInline(true);
+      this.setOutput(true, 'Boolean');
+      this.setStyle('storage_blocks');
+    },
+  };
+
+  B['storage_delete_key'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('KEY').appendField('💾 delete saved key');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('storage_blocks');
+    },
+  };
+
+  B['storage_clear'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput().appendField('💾 clear all saved data');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('storage_blocks');
+    },
+  };
+
+  // ===================== 2D PHYSICS ENGINE EXTENSION =====================
+  B['physics_enable'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('🪐 set physics mode')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['dynamic body (gravity)', 'dynamic'],
+            ['solid platform', 'platform'],
+            ['off', 'off'],
+          ]),
+          'MODE'
+        );
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('physics_blocks');
+    },
+  };
+
+  B['physics_set_gravity'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('GRAVITY').setCheck('Number').appendField('🪐 set stage gravity to');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('physics_blocks');
+    },
+  };
+
+  B['physics_set_velocity'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('VX').setCheck('Number').appendField('🪐 set velocity vx:');
+      this.appendValueInput('VY').setCheck('Number').appendField('vy:');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('physics_blocks');
+    },
+  };
+
+  B['physics_jump'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('POWER').setCheck('Number').appendField('🪐 jump with power');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('physics_blocks');
+    },
+  };
+
+  B['physics_push'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('FX').setCheck('Number').appendField('🪐 push impulse fx:');
+      this.appendValueInput('FY').setCheck('Number').appendField('fy:');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('physics_blocks');
+    },
+  };
+
+  B['physics_set_bounciness'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('BOUNCE').setCheck('Number').appendField('🪐 set bounce');
+      this.appendValueInput('FRICTION').setCheck('Number').appendField('% friction');
+      this.appendDummyInput().appendField('%');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('physics_blocks');
+    },
+  };
+
+  B['physics_on_ground'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput().appendField('🪐 on ground?');
+      this.setOutput(true, 'Boolean');
+      this.setStyle('physics_blocks');
+    },
+  };
+
+  B['physics_velocity'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('🪐')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['x velocity (vx)', 'vx'],
+            ['y velocity (vy)', 'vy'],
+          ]),
+          'AXIS'
+        );
+      this.setOutput(true, 'Number');
+      this.setStyle('physics_blocks');
+    },
+  };
+
+  // ===================== GAMEPAD & ARCADE PAD EXTENSION =====================
+  const PAD_BUTTON_OPTIONS: [string, string][] = [
+    ['A button', 'A'],
+    ['B button', 'B'],
+    ['D-pad Up', 'up'],
+    ['D-pad Down', 'down'],
+    ['D-pad Left', 'left'],
+    ['D-pad Right', 'right'],
+  ];
+
+  B['gamepad_show_virtual'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('🎮')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['show', 'show'],
+            ['hide', 'hide'],
+          ]),
+          'STATE'
+        )
+        .appendField('on-stage arcade pad');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('gamepad_blocks');
+    },
+  };
+
+  B['gamepad_when_button'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('🎮 when arcade')
+        .appendField(new Blockly.FieldDropdown(PAD_BUTTON_OPTIONS), 'BUTTON')
+        .appendField('pressed');
+      this.setNextStatement(true, null);
+      this.setStyle('gamepad_hat_blocks');
+    },
+  };
+
+  B['gamepad_button_down'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('🎮 arcade')
+        .appendField(new Blockly.FieldDropdown(PAD_BUTTON_OPTIONS), 'BUTTON')
+        .appendField('pressed?');
+      this.setOutput(true, 'Boolean');
+      this.setStyle('gamepad_blocks');
+    },
+  };
+
+  B['gamepad_axis'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('🎮 joystick')
+        .appendField(
+          new Blockly.FieldDropdown([
+            ['horizontal (-1 to 1)', 'horizontal'],
+            ['vertical (-1 to 1)', 'vertical'],
+          ]),
+          'AXIS'
+        );
+      this.setOutput(true, 'Number');
+      this.setStyle('gamepad_blocks');
+    },
+  };
+
   // ===================== APP UI MAKER EXTENSION =====================
   B['appui_when_clicked'] = {
     init(this: Blockly.Block) {
@@ -1423,6 +1997,50 @@ function defineAllBlocks(): void {
       this.setStyle('fx_blocks');
     },
   };
+
+  B['fx_flash'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput()
+        .appendField('⚡ screen flash')
+        .appendField(new FieldColour('#FFFFFF'), 'COLOR');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('fx_blocks');
+    },
+  };
+
+  B['fx_camera_zoom'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('ZOOM')
+        .setCheck('Number')
+        .appendField('🎥 set stage camera zoom to');
+      this.appendDummyInput().appendField('%');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('fx_blocks');
+    },
+  };
+
+  B['fx_camera_pan'] = {
+    init(this: Blockly.Block) {
+      this.appendValueInput('X').setCheck('Number').appendField('🎥 pan stage camera x:');
+      this.appendValueInput('Y').setCheck('Number').appendField('y:');
+      this.setInputsInline(true);
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('fx_blocks');
+    },
+  };
+
+  B['fx_camera_reset'] = {
+    init(this: Blockly.Block) {
+      this.appendDummyInput().appendField('🎥 reset stage camera');
+      this.setPreviousStatement(true, null);
+      this.setNextStatement(true, null);
+      this.setStyle('fx_blocks');
+    },
+  };
 }
 
 function numShadow(n: number) {
@@ -1433,9 +2051,7 @@ function textShadow(t: string) {
   return { shadow: { type: 'text_scratch', fields: { TEXT: t } } };
 }
 
-export const SCRATCH_TOOLBOX_CONFIG: Blockly.utils.toolbox.ToolboxInfo = {
-  kind: 'categoryToolbox',
-  contents: [
+const CORE_TOOLBOX_CATEGORIES: Blockly.utils.toolbox.ToolboxItemInfo[] = [
     {
       kind: 'category',
       name: 'Motion',
@@ -1618,50 +2234,199 @@ export const SCRATCH_TOOLBOX_CONFIG: Blockly.utils.toolbox.ToolboxInfo = {
         { kind: 'block', type: 'data_hidevariable' },
       ],
     },
-    {
-      kind: 'category',
-      name: 'Pen',
-      categorystyle: 'pen_category',
-      contents: [
-        { kind: 'block', type: 'pen_clear' },
-        { kind: 'block', type: 'pen_stamp' },
-        { kind: 'block', type: 'pen_pendown' },
-        { kind: 'block', type: 'pen_penup' },
-        { kind: 'block', type: 'pen_setpencolorto' },
-        { kind: 'block', type: 'pen_changepenhueby', inputs: { HUE: numShadow(10) } },
-        { kind: 'block', type: 'pen_setpensizeto', inputs: { SIZE: numShadow(4) } },
-      ],
-    },
-    {
-      kind: 'category',
-      name: 'App UI',
-      categorystyle: 'appui_category',
-      contents: [
-        { kind: 'block', type: 'appui_when_clicked' },
-        {
-          kind: 'block',
-          type: 'appui_set_text',
-          inputs: { TEXT: textShadow('⭐ Stars: 10') },
-        },
-        { kind: 'block', type: 'appui_set_value', inputs: { VALUE: numShadow(50) } },
-        { kind: 'block', type: 'appui_get_value' },
-        { kind: 'block', type: 'appui_set_visible' },
-        {
-          kind: 'block',
-          type: 'appui_create_button',
-          inputs: { LABEL: textShadow('Click Me'), X: numShadow(0), Y: numShadow(-120) },
-        },
-        { kind: 'block', type: 'appui_toast', inputs: { MESSAGE: textShadow('Level Up! 🎉') } },
-      ],
-    },
-    {
-      kind: 'category',
-      name: 'Juice FX',
-      categorystyle: 'fx_category',
-      contents: [
-        { kind: 'block', type: 'fx_particles', inputs: { COUNT: numShadow(20) } },
-        { kind: 'block', type: 'fx_screenshake', inputs: { INTENSITY: numShadow(8) } },
-      ],
-    },
-  ],
+];
+
+export type ScratchExtensionCategoryDef = Blockly.utils.toolbox.ToolboxItemInfo & {
+  kind: 'category';
+  name: string;
+  categorystyle: string;
+  contents: Blockly.utils.toolbox.ToolboxItemInfo[];
 };
+
+export const EXTENSION_TOOLBOX_CATEGORIES: Record<ExtensionId, ScratchExtensionCategoryDef> = {
+  music: {
+    kind: 'category',
+    name: 'Music',
+    categorystyle: 'music_category',
+    contents: [
+      { kind: 'block', type: 'music_playdrum', inputs: { BEATS: numShadow(0.25) } },
+      { kind: 'block', type: 'music_rest', inputs: { BEATS: numShadow(0.25) } },
+      { kind: 'block', type: 'music_playnote', inputs: { BEATS: numShadow(0.5) } },
+      { kind: 'block', type: 'music_setinstrument' },
+      { kind: 'block', type: 'music_settempo', inputs: { TEMPO: numShadow(120) } },
+      { kind: 'block', type: 'music_changetempo', inputs: { TEMPO: numShadow(20) } },
+      { kind: 'block', type: 'music_gettempo' },
+    ],
+  },
+  pen: {
+    kind: 'category',
+    name: 'Pen',
+    categorystyle: 'pen_category',
+    contents: [
+      { kind: 'block', type: 'pen_clear' },
+      { kind: 'block', type: 'pen_stamp' },
+      { kind: 'block', type: 'pen_pendown' },
+      { kind: 'block', type: 'pen_penup' },
+      { kind: 'block', type: 'pen_setpencolorto' },
+      { kind: 'block', type: 'pen_changepenhueby', inputs: { HUE: numShadow(10) } },
+      { kind: 'block', type: 'pen_setpensizeto', inputs: { SIZE: numShadow(4) } },
+      { kind: 'block', type: 'pen_changepensizeby', inputs: { SIZE: numShadow(1) } },
+      {
+        kind: 'block',
+        type: 'pen_setpentransparencyto',
+        inputs: { TRANSPARENCY: numShadow(0) },
+      },
+    ],
+  },
+  tts: {
+    kind: 'category',
+    name: 'Text to Speech',
+    categorystyle: 'tts_category',
+    contents: [
+      { kind: 'block', type: 'tts_speak', inputs: { TEXT: textShadow('Hello creator!') } },
+      { kind: 'block', type: 'tts_setvoice' },
+      { kind: 'block', type: 'tts_setlanguage' },
+    ],
+  },
+  translate: {
+    kind: 'category',
+    name: 'Translate',
+    categorystyle: 'translate_category',
+    contents: [
+      { kind: 'block', type: 'translate_gettext', inputs: { WORDS: textShadow('hello friend') } },
+      { kind: 'block', type: 'translate_getviewerlanguage' },
+    ],
+  },
+  video: {
+    kind: 'category',
+    name: 'Video Sensing',
+    categorystyle: 'video_category',
+    contents: [
+      {
+        kind: 'block',
+        type: 'video_whenmotiongreaterthan',
+        inputs: { THRESHOLD: numShadow(20) },
+      },
+      { kind: 'block', type: 'video_motion' },
+      { kind: 'block', type: 'video_turn' },
+      {
+        kind: 'block',
+        type: 'video_settransparency',
+        inputs: { TRANSPARENCY: numShadow(50) },
+      },
+    ],
+  },
+  appui: {
+    kind: 'category',
+    name: 'App UI',
+    categorystyle: 'appui_category',
+    contents: [
+      { kind: 'block', type: 'appui_when_clicked' },
+      {
+        kind: 'block',
+        type: 'appui_set_text',
+        inputs: { TEXT: textShadow('⭐ Stars: 10') },
+      },
+      { kind: 'block', type: 'appui_set_value', inputs: { VALUE: numShadow(50) } },
+      { kind: 'block', type: 'appui_get_value' },
+      { kind: 'block', type: 'appui_set_visible' },
+      {
+        kind: 'block',
+        type: 'appui_create_button',
+        inputs: { LABEL: textShadow('Click Me'), X: numShadow(0), Y: numShadow(-120) },
+      },
+      { kind: 'block', type: 'appui_toast', inputs: { MESSAGE: textShadow('Level Up! 🎉') } },
+    ],
+  },
+  storage: {
+    kind: 'category',
+    name: 'Cloud Save',
+    categorystyle: 'storage_category',
+    contents: [
+      {
+        kind: 'block',
+        type: 'storage_save',
+        inputs: { VALUE: numShadow(100), KEY: textShadow('high_score') },
+      },
+      { kind: 'block', type: 'storage_load', inputs: { KEY: textShadow('high_score') } },
+      { kind: 'block', type: 'storage_has_key', inputs: { KEY: textShadow('high_score') } },
+      { kind: 'block', type: 'storage_delete_key', inputs: { KEY: textShadow('high_score') } },
+      { kind: 'block', type: 'storage_clear' },
+    ],
+  },
+  physics: {
+    kind: 'category',
+    name: '2D Physics',
+    categorystyle: 'physics_category',
+    contents: [
+      { kind: 'block', type: 'physics_enable' },
+      { kind: 'block', type: 'physics_set_gravity', inputs: { GRAVITY: numShadow(12) } },
+      { kind: 'block', type: 'physics_jump', inputs: { POWER: numShadow(10) } },
+      {
+        kind: 'block',
+        type: 'physics_set_velocity',
+        inputs: { VX: numShadow(0), VY: numShadow(8) },
+      },
+      {
+        kind: 'block',
+        type: 'physics_push',
+        inputs: { FX: numShadow(4), FY: numShadow(6) },
+      },
+      {
+        kind: 'block',
+        type: 'physics_set_bounciness',
+        inputs: { BOUNCE: numShadow(65), FRICTION: numShadow(12) },
+      },
+      { kind: 'block', type: 'physics_on_ground' },
+      { kind: 'block', type: 'physics_velocity' },
+    ],
+  },
+  gamepad: {
+    kind: 'category',
+    name: 'Gamepad',
+    categorystyle: 'gamepad_category',
+    contents: [
+      { kind: 'block', type: 'gamepad_show_virtual' },
+      { kind: 'block', type: 'gamepad_when_button' },
+      { kind: 'block', type: 'gamepad_button_down' },
+      { kind: 'block', type: 'gamepad_axis' },
+    ],
+  },
+  fx: {
+    kind: 'category',
+    name: 'Juice FX',
+    categorystyle: 'fx_category',
+    contents: [
+      { kind: 'block', type: 'fx_particles', inputs: { COUNT: numShadow(20) } },
+      { kind: 'block', type: 'fx_screenshake', inputs: { INTENSITY: numShadow(8) } },
+      { kind: 'block', type: 'fx_flash' },
+      { kind: 'block', type: 'fx_camera_zoom', inputs: { ZOOM: numShadow(125) } },
+      {
+        kind: 'block',
+        type: 'fx_camera_pan',
+        inputs: { X: numShadow(0), Y: numShadow(0) },
+      },
+      { kind: 'block', type: 'fx_camera_reset' },
+    ],
+  },
+};
+
+export function buildScratchToolbox(
+  enabledExtensions: ExtensionId[] = ['appui', 'fx', 'pen']
+): Blockly.utils.toolbox.ToolboxInfo {
+  const uniqueIds = Array.from(new Set(enabledExtensions));
+  const extCategories = uniqueIds
+    .map((id) => EXTENSION_TOOLBOX_CATEGORIES[id])
+    .filter((c): c is ScratchExtensionCategoryDef => Boolean(c));
+
+  return {
+    kind: 'categoryToolbox',
+    contents: [...CORE_TOOLBOX_CATEGORIES, ...extCategories],
+  };
+}
+
+export const SCRATCH_TOOLBOX_CONFIG: Blockly.utils.toolbox.ToolboxInfo = buildScratchToolbox([
+  'appui',
+  'fx',
+  'pen',
+]);

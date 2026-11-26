@@ -6,6 +6,40 @@ export const STAGE_DIMENSIONS: Record<StageMode, { width: number; height: number
   widescreen: { width: 640, height: 360, label: '16:9 Widescreen' },
 };
 
+export type ExtensionId =
+  | 'music'
+  | 'pen'
+  | 'tts'
+  | 'translate'
+  | 'video'
+  | 'appui'
+  | 'physics'
+  | 'storage'
+  | 'fx'
+  | 'gamepad';
+
+export type MusicInstrument =
+  | 'piano'
+  | 'epiano'
+  | 'organ'
+  | 'guitar'
+  | 'synth'
+  | 'flute'
+  | 'chiptune'
+  | 'marimba';
+
+export type DrumKind =
+  | 'snare'
+  | 'bass'
+  | 'sidestick'
+  | 'crash'
+  | 'openhihat'
+  | 'closedhihat'
+  | 'tambourine'
+  | 'clap';
+
+export type TTSVoice = 'alto' | 'tenor' | 'squeak' | 'giant' | 'kitten';
+
 export type RotationStyle = 'all around' | 'left-right' | "don't rotate";
 
 export interface Costume {
@@ -60,13 +94,17 @@ export interface PenState {
   color: string;
   size: number;
   hue: number;
+  transparency?: number;
 }
 
 export interface PhysicsState {
+  mode?: 'off' | 'dynamic' | 'platform';
   vx: number;
   vy: number;
   gravity: number;
   bounce: number;
+  friction?: number;
+  onGround?: boolean;
 }
 
 export interface SpriteModel {
@@ -165,6 +203,7 @@ export interface ProjectModel {
   stageMode: StageMode;
   tempo: number;
   volume: number;
+  enabledExtensions?: ExtensionId[];
   backdrops: BackdropModel[];
   currentBackdropIndex: number;
   sprites: SpriteModel[];

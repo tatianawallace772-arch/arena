@@ -29,6 +29,7 @@ import { AppUIDesigner } from './components/AppUIDesigner';
 import { BlocklyEditor } from './components/BlocklyEditor';
 import { CodePreviewPanel } from './components/CodePreviewPanel';
 import { CostumeEditor } from './components/CostumeEditor';
+import { ExtensionGalleryModal } from './components/ExtensionGalleryModal';
 import { SoundStudio } from './components/SoundStudio';
 import { StageCanvas, type StageCanvasHandle } from './components/StageCanvas';
 import {
@@ -39,6 +40,11 @@ import {
   VariableModal,
 } from './components/StudioModals';
 import { BUILTIN_SOUNDS, type LibrarySpriteItem } from './data/assets';
+import {
+  DEFAULT_ENABLED_EXTENSIONS,
+  detectProjectExtensions,
+  SCRATCH_EXTENSIONS,
+} from './data/extensions';
 import { createDefaultProject, type ProjectTemplateMeta } from './data/templates';
 import { ScratchAppVM } from './engine/vm';
 import type {
@@ -46,6 +52,7 @@ import type {
   AppWidgetType,
   BackdropModel,
   Costume,
+  ExtensionId,
   ProjectModel,
   SoundAsset,
   SpriteModel,
@@ -54,9 +61,23 @@ import type {
 } from './types/studio';
 
 type StudioTab = 'code' | 'costumes' | 'sounds' | 'appui' | 'preview';
-type ActiveModal = 'sprites' | 'backdrops' | 'variables' | 'templates' | 'publish' | null;
+type ActiveModal =
+  | 'sprites'
+  | 'backdrops'
+  | 'variables'
+  | 'templates'
+  | 'publish'
+  | 'extensions'
+  | null;
 
 const STORAGE_KEY = 'blockcraft_studio_project_v1';
+
+function normalizeProjectExtensions(proj: ProjectModel): ProjectModel {
+  const detected = detectProjectExtensions(proj);
+  const base = proj.enabledExtensions ?? DEFAULT_ENABLED_EXTENSIONS;
+  const merged = Array.from(new Set<ExtensionId>([...base, ...detected]));
+  return { ...proj, enabledExtensions: merged };
+}
 
 function loadInitialProject(): ProjectModel {
   try {
@@ -64,13 +85,13 @@ function loadInitialProject(): ProjectModel {
     if (saved) {
       const parsed = JSON.parse(saved) as ProjectModel;
       if (parsed && Array.isArray(parsed.sprites) && parsed.sprites.length > 0) {
-        return parsed;
+        return normalizeProjectExtensions(parsed);
       }
     }
   } catch {
     // ignore storage parse failure
   }
-  return createDefaultProject();
+  return normalizeProjectExtensions(createDefaultProject());
 }
 
 export function App() {
@@ -102,6 +123,15 @@ export function App() {
   projectRef.current = project;
 
   const [workspaceRevision, setWorkspaceRevision] = useState<number>(0);
+  const [focusExtensionTrigger, setFocusExtensionTrigger] = useState<{
+    id: ExtensionId;
+    seq: number;
+  } | null>(null);
+
+  const enabledExtensions = useMemo(
+    () => project.enabledExtensions ?? DEFAULT_ENABLED_EXTENSIONS,
+    [project.enabledExtensions]
+  );
 
   const activeSprite = useMemo(
     () => project.sprites.find((s) => s.id === selectedSpriteId) ?? project.sprites[0],
@@ -151,8 +181,8 @@ export function App() {
       onStateChange: () => {
         setVmTick((n) => (n + 1) % 1_000_000);
       },
-      onPenLine: (x1, y1, x2, y2, color, size) => {
-        stageRef.current?.drawPenLine(x1, y1, x2, y2, color, size);
+      onPenLine: (x1, y1, x2, y2, color, size, transparency) => {
+        stageRef.current?.drawPenLine(x1, y1, x2, y2, color, size, transparency);
       },
       onPenStamp: (sp) => {
         stageRef.current?.stampSprite(sp);
@@ -165,6 +195,9 @@ export function App() {
       },
       onScreenShake: (power) => {
         stageRef.current?.shakeScreen(power);
+      },
+      onScreenFlash: (color) => {
+        stageRef.current?.flashScreen(color);
       },
       onToast: (msg) => {
         setStageToast(msg);
@@ -228,6 +261,7 @@ export function App() {
       }
       const alreadyDown = vm.pressedKeys.has(e.key);
       vm.pressedKeys.add(e.key);
+      vm.pressedKeys.add(e.key.toLowerCase());
       if (!alreadyDown) {
         vm.triggerKeyPressed(e.key);
       }
@@ -235,6 +269,7 @@ export function App() {
 
     const onKeyUp = (e: KeyboardEvent) => {
       vmRef.current?.pressedKeys.delete(e.key);
+      vmRef.current?.pressedKeys.delete(e.key.toLowerCase());
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -443,13 +478,38 @@ export function App() {
   const handleLoadTemplate = (tpl: ProjectTemplateMeta) => {
     vmRef.current?.stopAll();
     stageRef.current?.clearPen();
-    const fresh = tpl.build();
+    const fresh = normalizeProjectExtensions(tpl.build());
     setProject(fresh);
     setSelectedSpriteId(fresh.sprites[0]?.id ?? '');
     setSelectedWidgetId(fresh.widgets[0]?.id ?? null);
     setWorkspaceRevision((r) => r + 1);
     setActiveTab('code');
   };
+
+  const handleAddAndFocusExtension = useCallback((id: ExtensionId) => {
+    setProject((prev) => {
+      const cur = prev.enabledExtensions ?? DEFAULT_ENABLED_EXTENSIONS;
+      if (cur.includes(id)) return prev;
+      return { ...prev, enabledExtensions: [...cur, id] };
+    });
+    setActiveModal(null);
+    setActiveTab('code');
+    setFocusExtensionTrigger((prev) => ({ id, seq: (prev?.seq ?? 0) + 1 }));
+  }, []);
+
+  const handleRemoveExtension = useCallback((id: ExtensionId) => {
+    setProject((prev) => {
+      const cur = prev.enabledExtensions ?? DEFAULT_ENABLED_EXTENSIONS;
+      return { ...prev, enabledExtensions: cur.filter((x) => x !== id) };
+    });
+  }, []);
+
+  const handleEnableAllExtensions = useCallback(() => {
+    const allIds = SCRATCH_EXTENSIONS.map((e) => e.id);
+    setProject((prev) => ({ ...prev, enabledExtensions: allIds }));
+    setActiveModal(null);
+    setActiveTab('code');
+  }, []);
 
   const allStageSprites = vmRef.current
     ? [...project.sprites, ...vmRef.current.clones]
@@ -484,6 +544,14 @@ export function App() {
         />
 
         <nav className="topbar-actions">
+          <button
+            type="button"
+            className="top-nav-btn ext-pill-btn"
+            onClick={() => setActiveModal('extensions')}
+          >
+            <Blocks size={15} />
+            <span>Extensions ({enabledExtensions.length})</span>
+          </button>
           <button
             type="button"
             className="top-nav-btn"
@@ -587,6 +655,9 @@ export function App() {
                   activeSprite={activeSprite}
                   projectRevision={workspaceRevision}
                   darkMode={darkMode}
+                  enabledExtensions={enabledExtensions}
+                  focusExtensionTrigger={focusExtensionTrigger}
+                  onOpenExtensionsModal={() => setActiveModal('extensions')}
                   onWorkspaceChange={handleWorkspaceChange}
                   onCreateVariable={() => setActiveModal('variables')}
                   onRunSelectedStack={(block: BlocklyBlockNode) =>
@@ -802,6 +873,13 @@ export function App() {
                 : null
             }
             stageToast={stageToast}
+            camera={vmRef.current?.camera}
+            videoSensing={vmRef.current?.video}
+            virtualPadVisible={vmRef.current?.virtualPadVisible}
+            onVirtualPadButton={(btn, down) => vmRef.current?.setVirtualPadButton(btn, down)}
+            onVideoMetricsUpdate={(motion, dir) =>
+              vmRef.current?.updateVideoMetrics(motion, dir)
+            }
             onSelectSprite={setSelectedSpriteId}
             onSpriteClickedOnStage={(id) => vmRef.current?.triggerSpriteClicked(id)}
             onSpriteMoved={(id, x, y) => {
@@ -1064,6 +1142,15 @@ export function App() {
         />
       )}
 
+      <ExtensionGalleryModal
+        isOpen={activeModal === 'extensions'}
+        enabledExtensions={enabledExtensions}
+        onClose={() => setActiveModal(null)}
+        onAddAndFocus={handleAddAndFocusExtension}
+        onRemoveExtension={handleRemoveExtension}
+        onEnableAll={handleEnableAllExtensions}
+      />
+
       {activeModal === 'publish' && (
         <PublishGitHubModal
           project={project}
@@ -1071,9 +1158,10 @@ export function App() {
           onImportProjectJson={(imported) => {
             vmRef.current?.stopAll();
             stageRef.current?.clearPen();
-            setProject(imported);
-            setSelectedSpriteId(imported.sprites[0]?.id ?? '');
-            setSelectedWidgetId(imported.widgets[0]?.id ?? null);
+            const normalized = normalizeProjectExtensions(imported);
+            setProject(normalized);
+            setSelectedSpriteId(normalized.sprites[0]?.id ?? '');
+            setSelectedWidgetId(normalized.widgets[0]?.id ?? null);
             setWorkspaceRevision((r) => r + 1);
           }}
         />

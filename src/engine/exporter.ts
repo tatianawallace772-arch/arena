@@ -229,6 +229,23 @@ export async function buildStandaloneHtmlApp(project: ProjectModel): Promise<str
           const w = PROJECT.widgets.find(x => x.id === f.WIDGET);
           return w ? w.value : '';
         }
+        case 'music_gettempo': return PROJECT.tempo || 120;
+        case 'translate_gettext': return String(evalVal(sp, getInp(n,'WORDS')));
+        case 'translate_getviewerlanguage': return (navigator.language || 'en').split('-')[0];
+        case 'storage_load': return localStorage.getItem('blockcraft.cloudsave.' + evalVal(sp, getInp(n,'KEY'))) || '';
+        case 'storage_has_key': return localStorage.getItem('blockcraft.cloudsave.' + evalVal(sp, getInp(n,'KEY'))) !== null;
+        case 'physics_on_ground': return Boolean(sp.physics?.onGround);
+        case 'physics_velocity': return f.AXIS === 'vy' ? (sp.physics?.vy || 0) : (sp.physics?.vx || 0);
+        case 'gamepad_button_down': {
+          const b = f.BUTTON;
+          if (b === 'A') return keys.has(' ') || keys.has('z');
+          if (b === 'B') return keys.has('x') || keys.has('Shift');
+          if (b === 'up') return keys.has('ArrowUp') || keys.has('w');
+          if (b === 'down') return keys.has('ArrowDown') || keys.has('s');
+          if (b === 'left') return keys.has('ArrowLeft') || keys.has('a');
+          if (b === 'right') return keys.has('ArrowRight') || keys.has('d');
+          return false;
+        }
         case 'operator_add': return Number(evalVal(sp, getInp(n,'NUM1'))) + Number(evalVal(sp, getInp(n,'NUM2')));
         case 'operator_subtract': return Number(evalVal(sp, getInp(n,'NUM1'))) - Number(evalVal(sp, getInp(n,'NUM2')));
         case 'operator_multiply': return Number(evalVal(sp, getInp(n,'NUM1'))) * Number(evalVal(sp, getInp(n,'NUM2')));
@@ -317,6 +334,36 @@ export async function buildStandaloneHtmlApp(project: ProjectModel): Promise<str
             break;
           }
           case 'fx_particles': spawnBurst(sp.x, sp.y, Number(evalVal(sp, getInp(cur,'COUNT')) || 16)); break;
+          case 'music_playnote': {
+            const midi = Number(f.NOTE || 60);
+            const beats = Number(evalVal(sp, getInp(cur,'BEATS')) || 0.25);
+            const dur = (60 / (PROJECT.tempo || 120)) * beats;
+            playBeep(440 * Math.pow(2, (midi - 69) / 12), dur);
+            await waitSec(dur);
+            break;
+          }
+          case 'music_playdrum': {
+            const beats = Number(evalVal(sp, getInp(cur,'BEATS')) || 0.25);
+            const dur = (60 / (PROJECT.tempo || 120)) * beats;
+            playBeep(f.DRUM === 'bass' ? 95 : 220, 0.09);
+            await waitSec(dur);
+            break;
+          }
+          case 'music_rest': await waitSec((60 / (PROJECT.tempo || 120)) * Number(evalVal(sp, getInp(cur,'BEATS')) || 0.25)); break;
+          case 'tts_speak': {
+            const txt = String(evalVal(sp, getInp(cur,'TEXT')));
+            sp.bubble = { text: txt };
+            if ('speechSynthesis' in window) speechSynthesis.speak(new SpeechSynthesisUtterance(txt));
+            await waitSec(1.1);
+            sp.bubble = null;
+            break;
+          }
+          case 'storage_save': localStorage.setItem('blockcraft.cloudsave.' + evalVal(sp, getInp(cur,'KEY')), String(evalVal(sp, getInp(cur,'VALUE')))); break;
+          case 'storage_delete_key': localStorage.removeItem('blockcraft.cloudsave.' + evalVal(sp, getInp(cur,'KEY'))); break;
+          case 'physics_enable': sp.physics = Object.assign(sp.physics || { vx: 0, vy: 0, bounce: 0.5 }, { mode: f.MODE || 'dynamic' }); break;
+          case 'physics_jump': sp.physics = Object.assign(sp.physics || { vx: 0, vy: 0, bounce: 0.5 }, { mode: 'dynamic', vy: Number(evalVal(sp, getInp(cur,'POWER')) || 10) }); break;
+          case 'physics_push': sp.physics = sp.physics || { vx: 0, vy: 0, bounce: 0.5, mode: 'dynamic' }; sp.physics.vx += Number(evalVal(sp, getInp(cur,'FX'))); sp.physics.vy += Number(evalVal(sp, getInp(cur,'FY'))); break;
+          case 'physics_set_velocity': sp.physics = Object.assign(sp.physics || { bounce: 0.5 }, { mode: 'dynamic', vx: Number(evalVal(sp, getInp(cur,'VX'))), vy: Number(evalVal(sp, getInp(cur,'VY'))) }); break;
           case 'control_wait': await waitSec(Number(evalVal(sp, getInp(cur,'DURATION')))); break;
           case 'control_repeat': {
             const n = Number(evalVal(sp, getInp(cur,'TIMES')));
@@ -437,6 +484,16 @@ export async function buildStandaloneHtmlApp(project: ProjectModel): Promise<str
     }
 
     function loop() {
+      for (const sp of PROJECT.sprites) {
+        if (sp.physics?.mode === 'dynamic') {
+          sp.physics.vy = (sp.physics.vy || 0) - 0.52;
+          sp.physics.vx = (sp.physics.vx || 0) * 0.96;
+          let nx = sp.x + sp.physics.vx, ny = sp.y + sp.physics.vy;
+          if (ny < -HH + 32) { ny = -HH + 32; sp.physics.vy = Math.abs(sp.physics.vy) > 1.5 ? Math.abs(sp.physics.vy) * (sp.physics.bounce || 0.45) : 0; sp.physics.onGround = sp.physics.vy === 0; }
+          else sp.physics.onGround = false;
+          moveTo(sp, nx, ny);
+        }
+      }
       renderStage();
       fxCtx.clearRect(0, 0, W, H);
       for (let i = particles.length - 1; i >= 0; i--) {

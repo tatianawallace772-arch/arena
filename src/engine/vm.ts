@@ -1,22 +1,48 @@
 import { type BlocklyBlockNode, getInputBlock, getTopBlocks } from '../blockly/astTypes';
 import { BUILTIN_SOUNDS } from '../data/assets';
+import { translateScratchText } from '../data/extensions';
 import { audioEngine } from './audio';
 import {
   type AppWidget,
+  type DrumKind,
+  type MusicInstrument,
   type ParticleKind,
   STAGE_DIMENSIONS,
   type SpriteModel,
   type StageMode,
+  type TTSVoice,
   type VariableModel,
 } from '../types/studio';
 
+export interface CameraState {
+  zoom: number;
+  x: number;
+  y: number;
+}
+
+export interface VideoSensingState {
+  mode: 'off' | 'on' | 'on-flipped';
+  transparency: number;
+  motion: number;
+  direction: number;
+}
+
 export interface VMCallbacks {
   onStateChange: () => void;
-  onPenLine: (x1: number, y1: number, x2: number, y2: number, color: string, size: number) => void;
+  onPenLine: (
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    color: string,
+    size: number,
+    transparency?: number
+  ) => void;
   onPenStamp: (sprite: SpriteModel) => void;
   onPenClear: () => void;
   onSpawnParticles: (kind: ParticleKind, count: number, x: number, y: number) => void;
   onScreenShake: (intensity: number) => void;
+  onScreenFlash?: (color: string) => void;
   onToast: (message: string) => void;
   onAskPrompt: (question: string, spriteName: string) => Promise<string>;
   onSwitchBackdrop: (nameOrNext: string, isNext: boolean) => void;
@@ -28,6 +54,8 @@ interface ThreadHandle {
   epoch: number;
   alive: boolean;
 }
+
+const STORAGE_PREFIX = 'blockcraft.cloudsave.';
 
 function hslToHex(h: number, s = 85, l = 55): string {
   const hue = ((h % 360) + 360) % 360;
@@ -52,6 +80,24 @@ export class ScratchAppVM {
   public turboMode = false;
   public isRunning = false;
 
+  // Extension runtime states
+  public musicInstrument: MusicInstrument = 'piano';
+  public ttsVoice: TTSVoice = 'alto';
+  public ttsLanguage = 'en-US';
+  public stageGravity = 12;
+  public camera: CameraState = { zoom: 100, x: 0, y: 0 };
+  public video: VideoSensingState = {
+    mode: 'off',
+    transparency: 50,
+    motion: 0,
+    direction: 90,
+  };
+  public virtualPadVisible = false;
+  public virtualPadButtons = new Set<string>();
+  private prevHardwareButtons = new Set<string>();
+  private videoHatCooldowns = new Map<string, number>();
+  private memoryStorage = new Map<string, string>();
+
   // Live sensing state
   public pressedKeys = new Set<string>();
   public mouseX = 0;
@@ -72,37 +118,329 @@ export class ScratchAppVM {
   }
 
   private startLoop(): void {
+    const requestFrame =
+      typeof requestAnimationFrame === 'function'
+        ? requestAnimationFrame
+        : (cb: FrameRequestCallback) => setTimeout(() => cb(performance.now()), 16) as unknown as number;
+
     const tick = () => {
       const now = performance.now();
-      // Expire speech bubbles
       let changed = false;
+
+      // Expire speech bubbles
       for (const sp of this.getAllSprites()) {
         if (sp.bubble?.expiresAt && now >= sp.bubble.expiresAt) {
           sp.bubble = null;
           changed = true;
         }
       }
+
+      // Poll hardware Gamepad API if connected
+      this.pollHardwareGamepad();
+
+      // Step 2D Physics Engine when active
+      if (this.stepPhysics()) {
+        changed = true;
+      }
+
+      // Check Video Sensing motion hats when video is enabled
+      if (this.video.mode !== 'off' && this.video.motion > 2) {
+        this.checkVideoMotionHats(now);
+      }
+
       if (this.frameResolvers.length > 0) {
         const pending = this.frameResolvers.splice(0, this.frameResolvers.length);
         for (const resolve of pending) resolve();
         changed = true;
       }
-      // Clean finished threads
-      if (this.isRunning && this.threads.size === 0) {
+
+      // Clean finished threads (keep running if physics bodies or video hats are active)
+      const hasActivePhysics = this.getAllSprites().some(
+        (s) => s.physics.mode === 'dynamic'
+      );
+      if (this.isRunning && this.threads.size === 0 && !hasActivePhysics && this.video.mode === 'off') {
         this.isRunning = false;
         changed = true;
       }
+
       if (changed) {
         this.callbacks.onStateChange();
       }
-      this.rafId = requestAnimationFrame(tick);
+      this.rafId = requestFrame(tick);
     };
-    this.rafId = requestAnimationFrame(tick);
+    this.rafId = requestFrame(tick);
   }
 
   destroy(): void {
     this.stopAll();
-    if (this.rafId !== null) cancelAnimationFrame(this.rafId);
+    if (this.rafId !== null) {
+      if (typeof cancelAnimationFrame === 'function') {
+        cancelAnimationFrame(this.rafId);
+      } else {
+        clearTimeout(this.rafId);
+      }
+    }
+  }
+
+  private pollHardwareGamepad(): void {
+    if (typeof navigator === 'undefined' || typeof navigator.getGamepads !== 'function') return;
+    const pads = navigator.getGamepads();
+    const gp = pads?.[0];
+    if (!gp) return;
+
+    const active = new Set<string>();
+    if (gp.buttons[0]?.pressed) active.add('A');
+    if (gp.buttons[1]?.pressed || gp.buttons[2]?.pressed) active.add('B');
+    if (gp.buttons[12]?.pressed || (gp.axes[1] ?? 0) < -0.45) active.add('up');
+    if (gp.buttons[13]?.pressed || (gp.axes[1] ?? 0) > 0.45) active.add('down');
+    if (gp.buttons[14]?.pressed || (gp.axes[0] ?? 0) < -0.45) active.add('left');
+    if (gp.buttons[15]?.pressed || (gp.axes[0] ?? 0) > 0.45) active.add('right');
+
+    for (const btn of active) {
+      if (!this.prevHardwareButtons.has(btn)) {
+        this.triggerGamepadButton(btn);
+      }
+    }
+    this.prevHardwareButtons = active;
+  }
+
+  public setVirtualPadButton(button: string, down: boolean): void {
+    if (down) {
+      const wasDown = this.virtualPadButtons.has(button);
+      this.virtualPadButtons.add(button);
+      if (!wasDown) {
+        this.triggerGamepadButton(button);
+      }
+    } else {
+      this.virtualPadButtons.delete(button);
+    }
+    this.callbacks.onStateChange();
+  }
+
+  public triggerGamepadButton(button: string): void {
+    for (const sp of this.getAllSprites()) {
+      const tops = getTopBlocks(sp.workspaceState);
+      for (const top of tops) {
+        if (top.type === 'gamepad_when_button' && top.next?.block) {
+          if (String(top.fields?.BUTTON ?? 'A') === button) {
+            this.isRunning = true;
+            void this.spawnThread(sp, top.next.block);
+          }
+        }
+      }
+    }
+  }
+
+  public isPadButtonDown(button: string): boolean {
+    if (this.virtualPadButtons.has(button) || this.prevHardwareButtons.has(button)) {
+      return true;
+    }
+    // Convenient keyboard mirror so arcade games also respond to arrows + Z/X
+    switch (button) {
+      case 'A':
+        return this.pressedKeys.has(' ') || this.pressedKeys.has('z');
+      case 'B':
+        return this.pressedKeys.has('x') || this.pressedKeys.has('shift');
+      case 'up':
+        return this.pressedKeys.has('arrowup') || this.pressedKeys.has('w');
+      case 'down':
+        return this.pressedKeys.has('arrowdown') || this.pressedKeys.has('s');
+      case 'left':
+        return this.pressedKeys.has('arrowleft') || this.pressedKeys.has('a');
+      case 'right':
+        return this.pressedKeys.has('arrowright') || this.pressedKeys.has('d');
+      default:
+        return false;
+    }
+  }
+
+  public getGamepadAxis(axis: 'horizontal' | 'vertical'): number {
+    if (typeof navigator !== 'undefined' && typeof navigator.getGamepads === 'function') {
+      const gp = navigator.getGamepads()?.[0];
+      if (gp) {
+        const raw = axis === 'horizontal' ? (gp.axes[0] ?? 0) : -(gp.axes[1] ?? 0);
+        if (Math.abs(raw) > 0.12) return Math.round(raw * 100) / 100;
+      }
+    }
+    if (axis === 'horizontal') {
+      return (this.isPadButtonDown('right') ? 1 : 0) - (this.isPadButtonDown('left') ? 1 : 0);
+    }
+    return (this.isPadButtonDown('up') ? 1 : 0) - (this.isPadButtonDown('down') ? 1 : 0);
+  }
+
+  public updateVideoMetrics(motion: number, direction: number): void {
+    this.video.motion = Math.max(0, Math.min(100, Math.round(motion)));
+    this.video.direction = Math.round(direction);
+  }
+
+  private checkVideoMotionHats(now: number): void {
+    for (const sp of this.getAllSprites()) {
+      const tops = getTopBlocks(sp.workspaceState);
+      for (const top of tops) {
+        if (top.type === 'video_whenmotiongreaterthan' && top.next?.block) {
+          const threshold = Number(this.evalValue(sp, getInputBlock(top, 'THRESHOLD')));
+          if (this.video.motion > threshold) {
+            const key = `${sp.id}:${top.id ?? 'vidhat'}`;
+            const last = this.videoHatCooldowns.get(key) ?? 0;
+            if (now - last > 420) {
+              this.videoHatCooldowns.set(key, now);
+              this.isRunning = true;
+              void this.spawnThread(sp, top.next.block);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  public stepPhysics(): boolean {
+    if (!this.isRunning) return false;
+    const all = this.getAllSprites();
+    const platforms = all.filter((s) => s.visible && s.physics.mode === 'platform');
+    const { hw, hh } = this.stageHalfSize;
+    let moved = false;
+
+    for (const sp of all) {
+      if (sp.physics.mode !== 'dynamic') continue;
+
+      const rawBounce = sp.physics.bounce <= 1 ? sp.physics.bounce * 100 : sp.physics.bounce;
+      const bounceFactor = Math.max(0, Math.min(0.98, rawBounce / 100));
+      const frictionFactor = Math.max(0, Math.min(0.35, (sp.physics.friction ?? 12) / 350));
+
+      sp.physics.vy -= this.stageGravity * 0.045;
+      sp.physics.vx *= 1 - frictionFactor;
+      if (Math.abs(sp.physics.vx) < 0.02) sp.physics.vx = 0;
+
+      let nx = sp.x + sp.physics.vx;
+      let ny = sp.y + sp.physics.vy;
+      const r = Math.min(38, this.getSpriteHitRadius(sp));
+      let grounded = false;
+
+      // Stage walls
+      if (nx - r < -hw) {
+        nx = -hw + r;
+        sp.physics.vx = Math.abs(sp.physics.vx) * bounceFactor;
+      } else if (nx + r > hw) {
+        nx = hw - r;
+        sp.physics.vx = -Math.abs(sp.physics.vx) * bounceFactor;
+      }
+
+      // Stage floor & ceiling
+      const floorY = -hh + r;
+      const ceilY = hh - r;
+      if (ny <= floorY) {
+        ny = floorY;
+        if (Math.abs(sp.physics.vy) > 1.45 && bounceFactor > 0.08) {
+          sp.physics.vy = Math.abs(sp.physics.vy) * bounceFactor;
+        } else {
+          sp.physics.vy = 0;
+          grounded = true;
+        }
+      } else if (ny >= ceilY) {
+        ny = ceilY;
+        sp.physics.vy = -Math.abs(sp.physics.vy) * bounceFactor;
+      }
+
+      // Platform sprite collisions (top landing)
+      if (sp.physics.vy <= 0) {
+        for (const plat of platforms) {
+          if (plat.id === sp.id) continue;
+          const pr = this.getSpriteHitRadius(plat);
+          const halfW = pr * 1.45;
+          const topSurface = plat.y + pr * 0.45 + r * 0.75;
+          if (
+            Math.abs(nx - plat.x) <= halfW + r * 0.4 &&
+            sp.y >= topSurface - 12 &&
+            ny <= topSurface
+          ) {
+            ny = topSurface;
+            if (Math.abs(sp.physics.vy) > 1.8 && bounceFactor > 0.2) {
+              sp.physics.vy = Math.abs(sp.physics.vy) * bounceFactor;
+            } else {
+              sp.physics.vy = 0;
+              grounded = true;
+            }
+          }
+        }
+      }
+
+      sp.physics.onGround = grounded;
+      if (Math.abs(nx - sp.x) > 0.01 || Math.abs(ny - sp.y) > 0.01) {
+        this.moveSpriteTo(sp, nx, ny);
+        moved = true;
+      }
+    }
+    return moved;
+  }
+
+  private saveStorageKey(key: string, value: string): void {
+    const cleanKey = String(key).trim() || 'default';
+    this.memoryStorage.set(cleanKey, value);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(STORAGE_PREFIX + cleanKey, value);
+      }
+    } catch {
+      // Ignore storage quota / sandbox restrictions
+    }
+  }
+
+  private loadStorageKey(key: string): string | number {
+    const cleanKey = String(key).trim() || 'default';
+    let raw: string | null | undefined = this.memoryStorage.get(cleanKey);
+    if (raw === undefined) {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          raw = localStorage.getItem(STORAGE_PREFIX + cleanKey);
+        }
+      } catch {
+        raw = null;
+      }
+    }
+    if (raw === null || raw === undefined) return '';
+    const asNum = Number(raw);
+    return raw !== '' && !Number.isNaN(asNum) ? asNum : raw;
+  }
+
+  private hasStorageKey(key: string): boolean {
+    const cleanKey = String(key).trim() || 'default';
+    if (this.memoryStorage.has(cleanKey)) return true;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        return localStorage.getItem(STORAGE_PREFIX + cleanKey) !== null;
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  }
+
+  private deleteStorageKey(key: string): void {
+    const cleanKey = String(key).trim() || 'default';
+    this.memoryStorage.delete(cleanKey);
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(STORAGE_PREFIX + cleanKey);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  private clearStorageKeys(): void {
+    this.memoryStorage.clear();
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const toRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith(STORAGE_PREFIX)) toRemove.push(k);
+        }
+        for (const k of toRemove) localStorage.removeItem(k);
+      }
+    } catch {
+      // ignore
+    }
   }
 
   get stageHalfSize(): { hw: number; hh: number } {
@@ -149,6 +487,8 @@ export class ScratchAppVM {
     this.clones = [];
     for (const sp of this.sprites) {
       sp.bubble = null;
+      sp.physics.vx = 0;
+      sp.physics.vy = 0;
     }
     this.isRunning = false;
     audioEngine.stopAll();
@@ -181,12 +521,13 @@ export class ScratchAppVM {
   triggerGreenFlag(): void {
     this.stopAll();
     this.resetTimer();
+    this.camera = { zoom: 100, x: 0, y: 0 };
     this.isRunning = true;
     for (const sp of this.sprites) {
       const tops = getTopBlocks(sp.workspaceState);
       for (const top of tops) {
         if (top.type === 'event_whenflagclicked' && top.next?.block) {
-          this.spawnThread(sp, top.next.block);
+          void this.spawnThread(sp, top.next.block);
         }
       }
     }
@@ -201,7 +542,7 @@ export class ScratchAppVM {
           const wanted = String(top.fields?.KEY ?? ' ');
           if (wanted === 'any' || wanted.toLowerCase() === key.toLowerCase() || wanted === key) {
             this.isRunning = true;
-            this.spawnThread(sp, top.next.block);
+            void this.spawnThread(sp, top.next.block);
           }
         }
       }
@@ -215,13 +556,13 @@ export class ScratchAppVM {
     for (const top of tops) {
       if (top.type === 'event_whenthisspriteclicked' && top.next?.block) {
         this.isRunning = true;
-        this.spawnThread(target, top.next.block);
+        void this.spawnThread(target, top.next.block);
       }
     }
   }
 
   triggerWidgetClicked(widgetId: string): void {
-    audioEngine.playPreset('click', 1, 1);
+    void audioEngine.playPreset('click', 1, 1);
     for (const sp of this.getAllSprites()) {
       const tops = getTopBlocks(sp.workspaceState);
       for (const top of tops) {
@@ -229,7 +570,7 @@ export class ScratchAppVM {
           const wanted = String(top.fields?.WIDGET ?? '');
           if (wanted === widgetId) {
             this.isRunning = true;
-            this.spawnThread(sp, top.next.block);
+            void this.spawnThread(sp, top.next.block);
           }
         }
       }
@@ -256,9 +597,13 @@ export class ScratchAppVM {
 
   runBlockStackPreview(sprite: SpriteModel, startBlock: BlocklyBlockNode): void {
     this.isRunning = true;
-    const first = startBlock.type.startsWith('event_') || startBlock.type === 'control_start_as_clone' || startBlock.type === 'appui_when_clicked'
-      ? startBlock.next?.block
-      : startBlock;
+    const isHat =
+      startBlock.type.startsWith('event_') ||
+      startBlock.type === 'control_start_as_clone' ||
+      startBlock.type === 'appui_when_clicked' ||
+      startBlock.type === 'video_whenmotiongreaterthan' ||
+      startBlock.type === 'gamepad_when_button';
+    const first = isHat ? startBlock.next?.block : startBlock;
     if (first) {
       void this.spawnThread(sprite, first);
     }
@@ -297,14 +642,18 @@ export class ScratchAppVM {
         clampedX,
         clampedY,
         sprite.pen.color,
-        sprite.pen.size
+        sprite.pen.size,
+        sprite.pen.transparency ?? 0
       );
     }
     sprite.x = clampedX;
     sprite.y = clampedY;
   }
 
-  private evalValue(sprite: SpriteModel, node: BlocklyBlockNode | undefined): string | number | boolean {
+  public evalValue(
+    sprite: SpriteModel,
+    node: BlocklyBlockNode | undefined
+  ): string | number | boolean {
     if (!node) return 0;
     const f = node.fields ?? {};
 
@@ -363,12 +712,60 @@ export class ScratchAppVM {
         const asNum = Number(w.value);
         return w.value !== '' && !Number.isNaN(asNum) ? asNum : w.value;
       }
+
+      // ---- EXTENSION REPORTERS ----
+      case 'music_gettempo':
+        return Math.round(this.tempo);
+      case 'translate_gettext': {
+        const words = String(this.evalValue(sprite, getInputBlock(node, 'WORDS')));
+        const lang = String(f.LANG ?? 'es');
+        return translateScratchText(words, lang);
+      }
+      case 'translate_getviewerlanguage':
+        return typeof navigator !== 'undefined' && navigator.language
+          ? navigator.language.split('-')[0]
+          : 'en';
+      case 'video_motion': {
+        const attr = String(f.ATTRIBUTE ?? 'motion');
+        return attr === 'direction' ? this.video.direction : this.video.motion;
+      }
+      case 'storage_load': {
+        const key = String(this.evalValue(sprite, getInputBlock(node, 'KEY')));
+        return this.loadStorageKey(key);
+      }
+      case 'storage_has_key': {
+        const key = String(this.evalValue(sprite, getInputBlock(node, 'KEY')));
+        return this.hasStorageKey(key);
+      }
+      case 'physics_on_ground':
+        return Boolean(sprite.physics.onGround);
+      case 'physics_velocity': {
+        const axis = String(f.AXIS ?? 'vx');
+        return Math.round((axis === 'vy' ? sprite.physics.vy : sprite.physics.vx) * 100) / 100;
+      }
+      case 'gamepad_button_down':
+        return this.isPadButtonDown(String(f.BUTTON ?? 'A'));
+      case 'gamepad_axis': {
+        const axis = String(f.AXIS ?? 'horizontal') === 'vertical' ? 'vertical' : 'horizontal';
+        return this.getGamepadAxis(axis);
+      }
+
+      // ---- OPERATORS ----
       case 'operator_add':
-        return Number(this.evalValue(sprite, getInputBlock(node, 'NUM1'))) + Number(this.evalValue(sprite, getInputBlock(node, 'NUM2')));
+        return (
+          Number(this.evalValue(sprite, getInputBlock(node, 'NUM1'))) +
+          Number(this.evalValue(sprite, getInputBlock(node, 'NUM2')))
+        );
       case 'operator_subtract':
-        return Number(this.evalValue(sprite, getInputBlock(node, 'NUM1'))) - Number(this.evalValue(sprite, getInputBlock(node, 'NUM2')));
+        return (
+          Number(this.evalValue(sprite, getInputBlock(node, 'NUM1'))) -
+          Number(this.evalValue(sprite, getInputBlock(node, 'NUM2')))
+        );
       case 'operator_multiply':
-        return Number(this.evalValue(sprite, getInputBlock(node, 'NUM1'))) * Number(this.evalValue(sprite, getInputBlock(node, 'NUM2')));
+        return (
+          Number(this.evalValue(sprite, getInputBlock(node, 'NUM1'))) *
+          Number(this.evalValue(sprite, getInputBlock(node, 'NUM2')))
+        );
       case 'operator_divide': {
         const denom = Number(this.evalValue(sprite, getInputBlock(node, 'NUM2')));
         return denom === 0 ? 0 : Number(this.evalValue(sprite, getInputBlock(node, 'NUM1'))) / denom;
@@ -403,13 +800,22 @@ export class ScratchAppVM {
         return String(a).toLowerCase() === String(b).toLowerCase() || Number(a) === Number(b);
       }
       case 'operator_and':
-        return Boolean(this.evalValue(sprite, getInputBlock(node, 'OPERAND1'))) && Boolean(this.evalValue(sprite, getInputBlock(node, 'OPERAND2')));
+        return (
+          Boolean(this.evalValue(sprite, getInputBlock(node, 'OPERAND1'))) &&
+          Boolean(this.evalValue(sprite, getInputBlock(node, 'OPERAND2')))
+        );
       case 'operator_or':
-        return Boolean(this.evalValue(sprite, getInputBlock(node, 'OPERAND1'))) || Boolean(this.evalValue(sprite, getInputBlock(node, 'OPERAND2')));
+        return (
+          Boolean(this.evalValue(sprite, getInputBlock(node, 'OPERAND1'))) ||
+          Boolean(this.evalValue(sprite, getInputBlock(node, 'OPERAND2')))
+        );
       case 'operator_not':
         return !this.evalValue(sprite, getInputBlock(node, 'OPERAND'));
       case 'operator_join':
-        return String(this.evalValue(sprite, getInputBlock(node, 'STRING1'))) + String(this.evalValue(sprite, getInputBlock(node, 'STRING2')));
+        return (
+          String(this.evalValue(sprite, getInputBlock(node, 'STRING1'))) +
+          String(this.evalValue(sprite, getInputBlock(node, 'STRING2')))
+        );
       case 'operator_round':
         return Math.round(Number(this.evalValue(sprite, getInputBlock(node, 'NUM'))));
       case 'operator_mathop': {
@@ -438,10 +844,9 @@ export class ScratchAppVM {
   }
 
   private getSpriteHitRadius(sp: SpriteModel): number {
-    // Visual width on stage is roughly (size / 100) * 110 px for 512px sprites or ~75px for SVG sprites
     const isLargeSheet = sp.costumes[sp.currentCostumeIndex]?.dataUrl.startsWith('/sprites/');
     const basePx = isLargeSheet ? 220 : 95;
-    return Math.max(14, ((sp.size / 100) * basePx) * 0.36);
+    return Math.max(14, (sp.size / 100) * basePx * 0.36);
   }
 
   private checkTouching(sprite: SpriteModel, target: string): boolean {
@@ -462,7 +867,10 @@ export class ScratchAppVM {
     }
 
     const candidates = this.getAllSprites().filter(
-      (s) => s.id !== sprite.id && s.visible && (s.name === target || s.id === target || s.parentId === target)
+      (s) =>
+        s.id !== sprite.id &&
+        s.visible &&
+        (s.name === target || s.id === target || s.parentId === target)
     );
     for (const other of candidates) {
       const r2 = this.getSpriteHitRadius(other);
@@ -489,7 +897,11 @@ export class ScratchAppVM {
         case 'motion_movesteps': {
           const steps = Number(this.evalValue(sprite, getInputBlock(cur, 'STEPS')));
           const rad = ((90 - sprite.direction) * Math.PI) / 180;
-          this.moveSpriteTo(sprite, sprite.x + Math.cos(rad) * steps, sprite.y + Math.sin(rad) * steps);
+          this.moveSpriteTo(
+            sprite,
+            sprite.x + Math.cos(rad) * steps,
+            sprite.y + Math.sin(rad) * steps
+          );
           break;
         }
         case 'motion_turnright': {
@@ -560,13 +972,21 @@ export class ScratchAppVM {
           break;
         }
         case 'motion_changexby':
-          this.moveSpriteTo(sprite, sprite.x + Number(this.evalValue(sprite, getInputBlock(cur, 'DX'))), sprite.y);
+          this.moveSpriteTo(
+            sprite,
+            sprite.x + Number(this.evalValue(sprite, getInputBlock(cur, 'DX'))),
+            sprite.y
+          );
           break;
         case 'motion_setx':
           this.moveSpriteTo(sprite, Number(this.evalValue(sprite, getInputBlock(cur, 'X'))), sprite.y);
           break;
         case 'motion_changeyby':
-          this.moveSpriteTo(sprite, sprite.x, sprite.y + Number(this.evalValue(sprite, getInputBlock(cur, 'DY'))));
+          this.moveSpriteTo(
+            sprite,
+            sprite.x,
+            sprite.y + Number(this.evalValue(sprite, getInputBlock(cur, 'DY')))
+          );
           break;
         case 'motion_sety':
           this.moveSpriteTo(sprite, sprite.x, Number(this.evalValue(sprite, getInputBlock(cur, 'Y'))));
@@ -636,10 +1056,16 @@ export class ScratchAppVM {
           this.callbacks.onSwitchBackdrop('', true);
           break;
         case 'looks_changesizeby':
-          sprite.size = Math.max(5, Math.min(400, sprite.size + Number(this.evalValue(sprite, getInputBlock(cur, 'CHANGE')))));
+          sprite.size = Math.max(
+            5,
+            Math.min(400, sprite.size + Number(this.evalValue(sprite, getInputBlock(cur, 'CHANGE'))))
+          );
           break;
         case 'looks_setsizeto':
-          sprite.size = Math.max(5, Math.min(400, Number(this.evalValue(sprite, getInputBlock(cur, 'SIZE')))));
+          sprite.size = Math.max(
+            5,
+            Math.min(400, Number(this.evalValue(sprite, getInputBlock(cur, 'SIZE'))))
+          );
           break;
         case 'looks_changeeffectby': {
           const eff = String(f.EFFECT ?? 'color') as keyof SpriteModel['effects'];
@@ -654,7 +1080,14 @@ export class ScratchAppVM {
           break;
         }
         case 'looks_cleargraphiceffects':
-          sprite.effects = { color: 0, brightness: 0, ghost: 0, fisheye: 0, whirl: 0, pixelate: 0 };
+          sprite.effects = {
+            color: 0,
+            brightness: 0,
+            ghost: 0,
+            fisheye: 0,
+            whirl: 0,
+            pixelate: 0,
+          };
           break;
         case 'looks_show':
           sprite.visible = true;
@@ -668,8 +1101,12 @@ export class ScratchAppVM {
         case 'sound_playuntildone': {
           const sndKey = String(f.SOUND ?? 'magic');
           const asset =
-            sprite.sounds.find((s) => s.name === sndKey || s.id === sndKey || s.preset === sndKey) ??
-            BUILTIN_SOUNDS.find((s) => s.name === sndKey || s.id === sndKey || s.preset === sndKey) ??
+            sprite.sounds.find(
+              (s) => s.name === sndKey || s.id === sndKey || s.preset === sndKey
+            ) ??
+            BUILTIN_SOUNDS.find(
+              (s) => s.name === sndKey || s.id === sndKey || s.preset === sndKey
+            ) ??
             BUILTIN_SOUNDS[0];
           const p = audioEngine.playAsset(asset);
           if (cur.type === 'sound_playuntildone') {
@@ -680,6 +1117,7 @@ export class ScratchAppVM {
         case 'sound_playnote': {
           const note = Number(f.NOTE ?? 60);
           const beats = Number(this.evalValue(sprite, getInputBlock(cur, 'BEATS')));
+          audioEngine.setInstrument(this.musicInstrument);
           await audioEngine.playMidiNote(note, beats, this.tempo);
           break;
         }
@@ -687,6 +1125,8 @@ export class ScratchAppVM {
           const text = String(this.evalValue(sprite, getInputBlock(cur, 'TEXT')));
           sprite.bubble = { type: 'say', text, expiresAt: performance.now() + 2200 };
           this.callbacks.onStateChange();
+          audioEngine.setVoice(this.ttsVoice);
+          audioEngine.setLanguage(this.ttsLanguage);
           await audioEngine.speak(text);
           break;
         }
@@ -695,6 +1135,150 @@ export class ScratchAppVM {
           break;
         case 'sound_stopallsounds':
           audioEngine.stopAll();
+          break;
+
+        // ---- MUSIC EXTENSION ----
+        case 'music_playdrum': {
+          const drum = (String(f.DRUM ?? 'snare') as DrumKind) || 'snare';
+          const beats = Number(this.evalValue(sprite, getInputBlock(cur, 'BEATS')));
+          await audioEngine.playDrum(drum, beats, this.tempo);
+          break;
+        }
+        case 'music_rest': {
+          const beats = Math.max(0.02, Number(this.evalValue(sprite, getInputBlock(cur, 'BEATS'))));
+          const secs = (60 / Math.max(20, this.tempo)) * beats;
+          await this.waitSeconds(secs, thread);
+          break;
+        }
+        case 'music_playnote': {
+          const note = Number(f.NOTE ?? 60);
+          const beats = Number(this.evalValue(sprite, getInputBlock(cur, 'BEATS')));
+          audioEngine.setInstrument(this.musicInstrument);
+          await audioEngine.playMidiNote(note, beats, this.tempo);
+          break;
+        }
+        case 'music_setinstrument':
+          this.musicInstrument = (String(f.INSTRUMENT ?? 'piano') as MusicInstrument) || 'piano';
+          audioEngine.setInstrument(this.musicInstrument);
+          break;
+        case 'music_settempo':
+          this.tempo = Math.max(
+            20,
+            Math.min(300, Number(this.evalValue(sprite, getInputBlock(cur, 'TEMPO'))))
+          );
+          break;
+        case 'music_changetempo':
+          this.tempo = Math.max(
+            20,
+            Math.min(300, this.tempo + Number(this.evalValue(sprite, getInputBlock(cur, 'TEMPO'))))
+          );
+          break;
+
+        // ---- TEXT TO SPEECH EXTENSION ----
+        case 'tts_speak': {
+          const text = String(this.evalValue(sprite, getInputBlock(cur, 'TEXT')));
+          const display =
+            this.ttsVoice === 'kitten'
+              ? `🐱 ${text
+                  .trim()
+                  .split(/\s+/)
+                  .filter(Boolean)
+                  .map(() => 'meow')
+                  .join(' ')}!`
+              : text;
+          sprite.bubble = { type: 'say', text: display, expiresAt: performance.now() + 2400 };
+          this.callbacks.onStateChange();
+          audioEngine.setVoice(this.ttsVoice);
+          audioEngine.setLanguage(this.ttsLanguage);
+          await audioEngine.speak(text);
+          break;
+        }
+        case 'tts_setvoice':
+          this.ttsVoice = (String(f.VOICE ?? 'alto') as TTSVoice) || 'alto';
+          audioEngine.setVoice(this.ttsVoice);
+          break;
+        case 'tts_setlanguage':
+          this.ttsLanguage = String(f.LANG ?? 'en-US');
+          audioEngine.setLanguage(this.ttsLanguage);
+          break;
+
+        // ---- VIDEO SENSING EXTENSION ----
+        case 'video_turn': {
+          const state = String(f.STATE ?? 'on');
+          this.video.mode =
+            state === 'off' ? 'off' : state === 'on-flipped' ? 'on-flipped' : 'on';
+          this.callbacks.onStateChange();
+          break;
+        }
+        case 'video_settransparency': {
+          const tr = Number(this.evalValue(sprite, getInputBlock(cur, 'TRANSPARENCY')));
+          this.video.transparency = Math.max(0, Math.min(100, tr));
+          this.callbacks.onStateChange();
+          break;
+        }
+
+        // ---- CLOUD & LOCAL SAVE EXTENSION ----
+        case 'storage_save': {
+          const val = String(this.evalValue(sprite, getInputBlock(cur, 'VALUE')));
+          const key = String(this.evalValue(sprite, getInputBlock(cur, 'KEY')));
+          this.saveStorageKey(key, val);
+          break;
+        }
+        case 'storage_delete_key': {
+          const key = String(this.evalValue(sprite, getInputBlock(cur, 'KEY')));
+          this.deleteStorageKey(key);
+          break;
+        }
+        case 'storage_clear':
+          this.clearStorageKeys();
+          break;
+
+        // ---- 2D PHYSICS EXTENSION ----
+        case 'physics_enable': {
+          const mode = String(f.MODE ?? 'dynamic') as 'off' | 'dynamic' | 'platform';
+          sprite.physics.mode = mode;
+          if (mode !== 'dynamic') {
+            sprite.physics.vx = 0;
+            sprite.physics.vy = 0;
+          }
+          break;
+        }
+        case 'physics_set_gravity':
+          this.stageGravity = Number(this.evalValue(sprite, getInputBlock(cur, 'GRAVITY')));
+          break;
+        case 'physics_set_velocity': {
+          sprite.physics.mode = 'dynamic';
+          sprite.physics.vx = Number(this.evalValue(sprite, getInputBlock(cur, 'VX')));
+          sprite.physics.vy = Number(this.evalValue(sprite, getInputBlock(cur, 'VY')));
+          break;
+        }
+        case 'physics_jump': {
+          sprite.physics.mode = 'dynamic';
+          sprite.physics.vy = Number(this.evalValue(sprite, getInputBlock(cur, 'POWER')));
+          sprite.physics.onGround = false;
+          break;
+        }
+        case 'physics_push': {
+          sprite.physics.mode = 'dynamic';
+          sprite.physics.vx += Number(this.evalValue(sprite, getInputBlock(cur, 'FX')));
+          sprite.physics.vy += Number(this.evalValue(sprite, getInputBlock(cur, 'FY')));
+          break;
+        }
+        case 'physics_set_bounciness': {
+          sprite.physics.bounce =
+            Math.max(0, Math.min(100, Number(this.evalValue(sprite, getInputBlock(cur, 'BOUNCE'))))) /
+            100;
+          sprite.physics.friction = Math.max(
+            0,
+            Math.min(100, Number(this.evalValue(sprite, getInputBlock(cur, 'FRICTION'))))
+          );
+          break;
+        }
+
+        // ---- GAMEPAD & ARCADE PAD EXTENSION ----
+        case 'gamepad_show_virtual':
+          this.virtualPadVisible = f.STATE !== 'hide';
+          this.callbacks.onStateChange();
           break;
 
         // ---- EVENTS ----
@@ -712,7 +1296,10 @@ export class ScratchAppVM {
           break;
         }
         case 'control_repeat': {
-          const times = Math.max(0, Math.floor(Number(this.evalValue(sprite, getInputBlock(cur, 'TIMES')))));
+          const times = Math.max(
+            0,
+            Math.floor(Number(this.evalValue(sprite, getInputBlock(cur, 'TIMES'))))
+          );
           const substack = getInputBlock(cur, 'SUBSTACK');
           for (let i = 0; i < times && thread.alive && thread.epoch === this.epoch; i++) {
             if (substack) await this.executeStack(sprite, substack, thread);
@@ -880,7 +1467,22 @@ export class ScratchAppVM {
           break;
         }
         case 'pen_setpensizeto':
-          sprite.pen.size = Math.max(1, Math.min(80, Number(this.evalValue(sprite, getInputBlock(cur, 'SIZE')))));
+          sprite.pen.size = Math.max(
+            1,
+            Math.min(80, Number(this.evalValue(sprite, getInputBlock(cur, 'SIZE'))))
+          );
+          break;
+        case 'pen_changepensizeby':
+          sprite.pen.size = Math.max(
+            1,
+            Math.min(80, sprite.pen.size + Number(this.evalValue(sprite, getInputBlock(cur, 'SIZE'))))
+          );
+          break;
+        case 'pen_setpentransparencyto':
+          sprite.pen.transparency = Math.max(
+            0,
+            Math.min(100, Number(this.evalValue(sprite, getInputBlock(cur, 'TRANSPARENCY'))))
+          );
           break;
 
         // ---- APP UI MAKER ----
@@ -941,16 +1543,47 @@ export class ScratchAppVM {
           break;
         }
 
-        // ---- JUICE FX ----
+        // ---- JUICE, CAMERA & FX ----
         case 'fx_particles': {
           const kind = (String(f.KIND ?? 'stars') as ParticleKind) || 'stars';
-          const count = Math.max(1, Math.min(80, Number(this.evalValue(sprite, getInputBlock(cur, 'COUNT')))));
+          const count = Math.max(
+            1,
+            Math.min(80, Number(this.evalValue(sprite, getInputBlock(cur, 'COUNT'))))
+          );
           this.callbacks.onSpawnParticles(kind, count, sprite.x, sprite.y);
           break;
         }
         case 'fx_screenshake': {
-          const intensity = Math.max(1, Math.min(25, Number(this.evalValue(sprite, getInputBlock(cur, 'INTENSITY')))));
+          const intensity = Math.max(
+            1,
+            Math.min(25, Number(this.evalValue(sprite, getInputBlock(cur, 'INTENSITY'))))
+          );
           this.callbacks.onScreenShake(intensity);
+          break;
+        }
+        case 'fx_flash': {
+          const color = String(f.COLOR ?? '#FFFFFF');
+          this.callbacks.onScreenFlash?.(color);
+          break;
+        }
+        case 'fx_camera_zoom': {
+          const zoom = Math.max(
+            40,
+            Math.min(280, Number(this.evalValue(sprite, getInputBlock(cur, 'ZOOM'))))
+          );
+          this.camera.zoom = zoom;
+          this.callbacks.onStateChange();
+          break;
+        }
+        case 'fx_camera_pan': {
+          this.camera.x = Number(this.evalValue(sprite, getInputBlock(cur, 'X')));
+          this.camera.y = Number(this.evalValue(sprite, getInputBlock(cur, 'Y')));
+          this.callbacks.onStateChange();
+          break;
+        }
+        case 'fx_camera_reset': {
+          this.camera = { zoom: 100, x: 0, y: 0 };
+          this.callbacks.onStateChange();
           break;
         }
       }

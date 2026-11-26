@@ -39,6 +39,26 @@ function evalExprJS(node: BlocklyBlockNode | undefined): string {
       return `vars[${JSON.stringify(String(f.VARIABLE ?? 'score'))}]`;
     case 'appui_get_value':
       return `ui.getValue(${JSON.stringify(String(f.WIDGET ?? 'widget'))})`;
+    case 'music_gettempo':
+      return 'music.tempo';
+    case 'translate_gettext':
+      return `translate.text(${evalExprJS(getInputBlock(node, 'WORDS'))}, ${JSON.stringify(String(f.LANG ?? 'es'))})`;
+    case 'translate_getviewerlanguage':
+      return 'translate.viewerLanguage';
+    case 'video_motion':
+      return `video.get(${JSON.stringify(String(f.ATTRIBUTE ?? 'motion'))}, ${JSON.stringify(String(f.SUBJECT ?? 'stage'))})`;
+    case 'storage_load':
+      return `cloudSave.load(${evalExprJS(getInputBlock(node, 'KEY'))})`;
+    case 'storage_has_key':
+      return `cloudSave.hasKey(${evalExprJS(getInputBlock(node, 'KEY'))})`;
+    case 'physics_on_ground':
+      return 'sprite.physics.onGround';
+    case 'physics_velocity':
+      return `sprite.physics.${String(f.AXIS ?? 'vx')}`;
+    case 'gamepad_button_down':
+      return `gamepad.isPressed(${JSON.stringify(String(f.BUTTON ?? 'A'))})`;
+    case 'gamepad_axis':
+      return `gamepad.axis(${JSON.stringify(String(f.AXIS ?? 'horizontal'))})`;
     case 'operator_add':
       return `(${evalExprJS(getInputBlock(node, 'NUM1'))} + ${evalExprJS(getInputBlock(node, 'NUM2'))})`;
     case 'operator_subtract':
@@ -284,6 +304,101 @@ function emitStackJS(first: BlocklyBlockNode | undefined, indent: string): strin
       case 'pen_setpensizeto':
         lines.push(`${indent}sprite.penSize = ${evalExprJS(getInputBlock(cur, 'SIZE'))};`);
         break;
+      case 'pen_changepensizeby':
+        lines.push(`${indent}sprite.penSize += ${evalExprJS(getInputBlock(cur, 'SIZE'))};`);
+        break;
+      case 'pen_setpentransparencyto':
+        lines.push(`${indent}sprite.penTransparency = ${evalExprJS(getInputBlock(cur, 'TRANSPARENCY'))};`);
+        break;
+      case 'music_playdrum':
+        lines.push(
+          `${indent}await music.playDrum(${JSON.stringify(String(f.DRUM ?? 'snare'))}, ${evalExprJS(getInputBlock(cur, 'BEATS'))});`
+        );
+        break;
+      case 'music_rest':
+        lines.push(`${indent}await music.rest(${evalExprJS(getInputBlock(cur, 'BEATS'))});`);
+        break;
+      case 'music_playnote':
+        lines.push(
+          `${indent}await music.playNote(${Number(f.NOTE ?? 60)}, ${evalExprJS(getInputBlock(cur, 'BEATS'))});`
+        );
+        break;
+      case 'music_setinstrument':
+        lines.push(`${indent}music.setInstrument(${JSON.stringify(String(f.INSTRUMENT ?? 'piano'))});`);
+        break;
+      case 'music_settempo':
+        lines.push(`${indent}music.tempo = ${evalExprJS(getInputBlock(cur, 'TEMPO'))};`);
+        break;
+      case 'music_changetempo':
+        lines.push(`${indent}music.tempo += ${evalExprJS(getInputBlock(cur, 'TEMPO'))};`);
+        break;
+      case 'tts_speak':
+        lines.push(`${indent}await tts.speak(${evalExprJS(getInputBlock(cur, 'TEXT'))});`);
+        break;
+      case 'tts_setvoice':
+        lines.push(`${indent}tts.setVoice(${JSON.stringify(String(f.VOICE ?? 'alto'))});`);
+        break;
+      case 'tts_setlanguage':
+        lines.push(`${indent}tts.setLanguage(${JSON.stringify(String(f.LANG ?? 'en-US'))});`);
+        break;
+      case 'video_turn':
+        lines.push(`${indent}video.setMode(${JSON.stringify(String(f.STATE ?? 'on'))});`);
+        break;
+      case 'video_settransparency':
+        lines.push(`${indent}video.setTransparency(${evalExprJS(getInputBlock(cur, 'TRANSPARENCY'))});`);
+        break;
+      case 'storage_save':
+        lines.push(
+          `${indent}cloudSave.save(${evalExprJS(getInputBlock(cur, 'KEY'))}, ${evalExprJS(getInputBlock(cur, 'VALUE'))});`
+        );
+        break;
+      case 'storage_delete_key':
+        lines.push(`${indent}cloudSave.deleteKey(${evalExprJS(getInputBlock(cur, 'KEY'))});`);
+        break;
+      case 'storage_clear':
+        lines.push(`${indent}cloudSave.clear();`);
+        break;
+      case 'physics_enable':
+        lines.push(`${indent}sprite.physics.setMode(${JSON.stringify(String(f.MODE ?? 'dynamic'))});`);
+        break;
+      case 'physics_set_gravity':
+        lines.push(`${indent}stage.physics.gravity = ${evalExprJS(getInputBlock(cur, 'GRAVITY'))};`);
+        break;
+      case 'physics_set_velocity':
+        lines.push(
+          `${indent}sprite.physics.setVelocity(${evalExprJS(getInputBlock(cur, 'VX'))}, ${evalExprJS(getInputBlock(cur, 'VY'))});`
+        );
+        break;
+      case 'physics_jump':
+        lines.push(`${indent}sprite.physics.jump(${evalExprJS(getInputBlock(cur, 'POWER'))});`);
+        break;
+      case 'physics_push':
+        lines.push(
+          `${indent}sprite.physics.impulse(${evalExprJS(getInputBlock(cur, 'FX'))}, ${evalExprJS(getInputBlock(cur, 'FY'))});`
+        );
+        break;
+      case 'physics_set_bounciness':
+        lines.push(
+          `${indent}sprite.physics.setMaterial(${evalExprJS(getInputBlock(cur, 'BOUNCE'))}, ${evalExprJS(getInputBlock(cur, 'FRICTION'))});`
+        );
+        break;
+      case 'gamepad_show_virtual':
+        lines.push(`${indent}gamepad.showOverlay(${f.STATE !== 'hide'});`);
+        break;
+      case 'fx_flash':
+        lines.push(`${indent}fx.flash(${JSON.stringify(String(f.COLOR ?? '#FFFFFF'))});`);
+        break;
+      case 'fx_camera_zoom':
+        lines.push(`${indent}stage.camera.setZoom(${evalExprJS(getInputBlock(cur, 'ZOOM'))});`);
+        break;
+      case 'fx_camera_pan':
+        lines.push(
+          `${indent}stage.camera.panTo(${evalExprJS(getInputBlock(cur, 'X'))}, ${evalExprJS(getInputBlock(cur, 'Y'))});`
+        );
+        break;
+      case 'fx_camera_reset':
+        lines.push(`${indent}stage.camera.reset();`);
+        break;
       case 'appui_set_text':
         lines.push(
           `${indent}ui.setLabel(${JSON.stringify(String(f.WIDGET ?? ''))}, ${evalExprJS(getInputBlock(cur, 'TEXT'))});`
@@ -356,6 +471,16 @@ export function generateSpriteJavaScript(sprite: SpriteModel): string {
       case 'appui_when_clicked':
         sections.push(`ui.onButtonClick(${JSON.stringify(String(f.WIDGET ?? 'btn'))}, async () => {\n${body}\n});\n`);
         break;
+      case 'video_whenmotiongreaterthan':
+        sections.push(
+          `video.onMotionGreaterThan(${evalExprJS(getInputBlock(top, 'THRESHOLD'))}, async () => {\n${body}\n});\n`
+        );
+        break;
+      case 'gamepad_when_button':
+        sections.push(
+          `gamepad.onButtonPressed(${JSON.stringify(String(f.BUTTON ?? 'A'))}, async () => {\n${body}\n});\n`
+        );
+        break;
       default:
         // Loose stack preview
         sections.push(`// Unattached stack:\nasync function snippet() {\n${emitStackJS(top, '  ')}\n}\n`);
@@ -388,6 +513,14 @@ export function generateProjectPython(sprites: SpriteModel[]): string {
         out.push(`\n@${safeName}.when_clicked\ndef on_click_${idx}(sprite):`);
       } else if (top.type === 'appui_when_clicked') {
         out.push(`\n@ui.when_button_clicked(${JSON.stringify(String(f.WIDGET ?? 'btn'))})\ndef on_ui_${idx}():`);
+      } else if (top.type === 'video_whenmotiongreaterthan') {
+        out.push(
+          `\n@video.when_motion_greater_than(${evalExprJS(getInputBlock(top, 'THRESHOLD'))})\ndef on_video_${idx}(sprite):`
+        );
+      } else if (top.type === 'gamepad_when_button') {
+        out.push(
+          `\n@gamepad.when_button_pressed(${JSON.stringify(String(f.BUTTON ?? 'A'))})\ndef on_pad_${idx}(sprite):`
+        );
       } else {
         continue;
       }
