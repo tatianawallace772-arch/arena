@@ -19,6 +19,8 @@ export const EVENT_COLOR_KEYS = Object.keys(EVENT_COLORS) as EventColor[];
 export const ART_STICKERS: Sticker[] = [
   { id: 'nova-hero', name: 'Starr Nova — Hero Pose', kind: 'art', src: '/stickers/nova-hero.png', base: 168 },
   { id: 'nova-card', name: 'Starr Nova — Staff Pose', kind: 'art', src: '/stickers/nova-card.png', base: 152 },
+  { id: 'nova-gesture', name: 'Starr Nova — Cheer Pose', kind: 'art', src: '/stickers/nova-gesture.png', base: 162 },
+  { id: 'nova-candycane', name: 'Starr Nova — Peace Pose', kind: 'art', src: '/stickers/nova-candycane.png', base: 160 },
 ];
 
 export const GLYPH_STICKERS: Sticker[] = [

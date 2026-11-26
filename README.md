@@ -11,7 +11,7 @@ sticker art; countdowns; confetti; and everything saved locally in the browser.
 | Feature | Notes |
 | --- | --- |
 | **Five views** | Month canvas, week time-grid, single-day sheet, grouped agenda and a 12-month cookie year. |
-| **Sticker art** | The two supplied Starr Nova illustrations are matted to transparent PNGs and render on any day at any size/tilt. 16 cookie glyph stickers round out the sheet. |
+| **Sticker art** | Four Starr Nova poses (including the two newly added supplied illustrations) are cut out to transparent PNG stickers and render on any day at any size/tilt. 16 cookie glyph stickers round out the sheet. |
 | **Drag & drop stickers** | Unlock “Editing” on the month canvas, then drag a sticker to move it (even between days) or grab its corner to resize. Double-click tilts it 15°. |
 | **Events** | Title, date, start/end time, icing colour, optional sticker badge, notes and a done toggle. Double-click a day to add one. |
 | **Holidays** | 18 baked-in holidays flagged with a dashed cookie outline and glyph (can be toggled off). |
@@ -49,9 +49,10 @@ Node 20+ recommended. There is no backend — all state is client-side.
 
 ## Sticker assets
 
-`public/stickers/nova-hero.png` and `public/stickers/nova-card.png` are the
-character cut out of the supplied artwork with a threshold + largest-component
-matte, so they can sit on the gingerbread paper without a coloured halo.
+`public/stickers/nova-hero.png`, `nova-card.png`, `nova-gesture.png` and
+`nova-candycane.png` are transparent character cut-outs from the supplied artwork,
+ready to sit on the gingerbread paper. Each has a small tray thumbnail in
+`public/stickers/tray/`.
 `public/img/poster.jpg` is the promotional art used for the pinboard banner.
 
 ## Sound design
