@@ -1,1017 +1,194 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Info, Shield as ShieldIcon } from 'lucide-react';
-import MapView, { type MapViewHandle } from './components/MapView';
-import SearchBar from './components/SearchBar';
-import SearchResults from './components/SearchResults';
-import ExitCard from './components/ExitCard';
-import PlaceCard from './components/PlaceCard';
-import LocationCard from './components/LocationCard';
-import DirectionsPanel from './components/DirectionsPanel';
-import DriveMode from './components/DriveMode';
-import MapControls from './components/MapControls';
-import LoadingScreen from './components/LoadingScreen';
-import AboutModal from './components/AboutModal';
-import Toast from './components/Toast';
-import { CATEGORY_META } from './components/Icons';
-import {
-  parseEax,
-  parseEac,
-  fetchBuffer,
-  fetchJson,
-  type Corridor,
-  type DiscoverFile,
-  type DiscoverPlace,
-  type LinkRecord,
-  type RestArea,
-  type RestAreasFile,
-  type StationInfo,
-  type StationsFile,
-} from './data/parser';
-import {
-  InterstateIndex,
-  type ExitSearchHit,
-  type PlaceSearchHit,
-} from './data/index';
-import { corridorBounds } from './lib/corridor';
-import { buildGpx, fetchRoute, geocode, loadDemoRoute, matchExitsToRoute, reverseGeocode, type GeocodeResult, type TravelMode } from './lib/routing';
-import { formatCoordinate, downloadFile } from './lib/geo';
-import type { LayerState, MapStyle, UserLocation } from './lib/types';
-import { DEFAULT_MAP_STYLE } from './lib/mapConfig';
-import {
-  loadRecent,
-  loadSaved,
-  persistSaved,
-  saveRecent,
-  type FlatItem,
-  type RecentItem,
-  type RouteState,
-  type SavedItem,
-  type Waypoint,
-} from './lib/ui';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { ArrowRight, Check, ChevronDown, CircleHelp, Code2, ExternalLink, EyeOff, FileText, Globe, Layers3, Menu, MessageCircle, Mic, Square, Volume2, MoreHorizontal, Plus, Settings2, ShieldCheck, Sparkles, Terminal, X, Zap } from 'lucide-react';
+import './styles/playground.css';
 
-type PanelMode = 'home' | 'exit' | 'place' | 'location' | 'directions';
-
-interface SearchState {
-  exits: ExitSearchHit[];
-  places: PlaceSearchHit[];
-  locations: GeocodeResult[];
-}
-
-const IDLE_ROUTE: RouteState = { status: 'idle', routes: [], selected: 0, routeExits: [] };
-
-export default function App() {
-  // ---------- Data ----------
-  const [dataStatus, setDataStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [progress, setProgress] = useState(0);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [loadAttempt, setLoadAttempt] = useState(0);
-  const [index, setIndex] = useState<InterstateIndex | null>(null);
-  const [corridors, setCorridors] = useState<Corridor[]>([]);
-  const [restAreas, setRestAreas] = useState<RestArea[]>([]);
-  const [stations, setStations] = useState<Map<string, StationInfo>>(new Map());
-  const [discover, setDiscover] = useState<DiscoverPlace[]>([]);
-
-  // ---------- Map ----------
-  const mapRef = useRef<MapViewHandle>(null);
-  const mapCenterRef = useRef<{ lat: number; lon: number } | null>(null);
-  const [mapStyle, setMapStyle] = useState<MapStyle>(DEFAULT_MAP_STYLE);
-  const [layers, setLayers] = useState<LayerState>({
-    showCorridors: true,
-    showExits: true,
-    showPlaces: false,
-    showRestAreas: false,
-    showDiscover: false,
-    categoryFilter: null,
-  });
-  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [locating, setLocating] = useState(false);
-
-  // ---------- UI ----------
-  const [mode, setMode] = useState<PanelMode>('home');
+type SpeechRecognitionResultEvent = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+type SpeechRecognitionInstance = { lang: string; interimResults: boolean; onresult: ((event: SpeechRecognitionResultEvent) => void) | null; onerror: ((event: { error: string }) => void) | null; onend: (() => void) | null; start: () => void; stop: () => void };
+type SpeechWindow = Window & { SpeechRecognition?: new () => SpeechRecognitionInstance; webkitSpeechRecognition?: new () => SpeechRecognitionInstance };
+type Message = { role: 'user' | 'assistant'; content: string };
+type Model = { id: string; name: string; created: number; description?: string; context_length?: number; pricing?: { prompt: string; completion: string } };
+const fallbackModel: Model = { id: 'openrouter/auto', name: 'OpenRouter Auto', created: 0 };
+const category = (m: Model) => m.id.startsWith('stealth/') ? 'STEALTH' : m.id.startsWith('recursive/') ? 'RECURSIVE' : m.id.endsWith(':free') ? 'FREE' : 'LATEST';
+const shortContext = (n?: number) => n ? `${Math.round(n / 1000)}K context` : 'OpenRouter model';
+const suggestions = [
+  { icon: Sparkles, title: 'Spark an idea', text: 'Help me brainstorm something magical' },
+  { icon: Code2, title: 'Build something', text: 'Help me write and debug code' },
+  { icon: FileText, title: 'Make it better', text: 'Help me polish my writing' },
+  { icon: Globe, title: 'Learn anything', text: 'Explain a topic in a simple way' },
+];
+function App() {
+  const [model, setModel] = useState<Model>(fallbackModel);
+  const [models, setModels] = useState<Model[]>([]);
+  const [catalogState, setCatalogState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [catalogAttempt, setCatalogAttempt] = useState(0);
+  const [browserOpen, setBrowserOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const [searchFocused, setSearchFocused] = useState(false);
-  const [searchState, setSearchState] = useState<SearchState>({ exits: [], places: [], locations: [] });
-  const [searching, setSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [recent, setRecent] = useState<RecentItem[]>(() => loadRecent());
-  const [saved, setSaved] = useState<SavedItem[]>(() => loadSaved());
-  const [toast, setToast] = useState<string | null>(null);
-  const [aboutOpen, setAboutOpen] = useState(false);
-
-  const [selectedExitIndex, setSelectedExitIndex] = useState<number | null>(null);
-  const [selectedPlaceIndex, setSelectedPlaceIndex] = useState<number | null>(null);
-  const [selectedLink, setSelectedLink] = useState<LinkRecord | undefined>(undefined);
-  const [pin, setPin] = useState<{ lat: number; lon: number } | null>(null);
-  const [pinAddress, setPinAddress] = useState('');
-  const [pinLoading, setPinLoading] = useState(false);
-
-  // ---------- Directions ----------
-  const [startPoint, setStartPoint] = useState<Waypoint | null>(null);
-  const [endPoint, setEndPoint] = useState<Waypoint | null>(null);
-  const [startText, setStartText] = useState('');
-  const [endText, setEndText] = useState('');
-  const [travelMode, setTravelMode] = useState<TravelMode>('driving');
-  const [routeState, setRouteState] = useState<RouteState>(IDLE_ROUTE);
-  const lastRouteKeyRef = useRef<string | null>(null);
-  const skipAutoRouteRef = useRef(false);
-
-  // ---------- Drive mode ----------
-  const [driveOpen, setDriveOpen] = useState(false);
-  const [highlightCorridor, setHighlightCorridor] = useState<Corridor | null>(null);
-
-  const showToast = useCallback((message: string) => setToast(message), []);
-
-  // ---------- Load datasets ----------
+  const [filter, setFilter] = useState('All');
   useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      setDataStatus('loading');
-      setLoadError(null);
-      setProgress(0);
-      try {
-        const eaxBuf = await fetchBuffer('/data/interstates.eax', (loaded, total) => {
-          if (cancelled) return;
-          setProgress(0.62 * Math.min(1, loaded / (total ?? 11_600_000)));
-        });
-        if (cancelled) return;
-        setProgress(0.7);
-        await new Promise((r) => setTimeout(r, 25));
-        const eax = parseEax(eaxBuf);
-        if (cancelled) return;
-        setProgress(0.76);
-        const [eacBuf, restFile, stationsFile, discoverFile] = await Promise.all([
-          fetchBuffer('/data/corridors.eac', (loaded, total) => {
-            if (cancelled) return;
-            setProgress(0.76 + 0.12 * Math.min(1, loaded / (total ?? 2_400_000)));
-          }),
-          fetchJson<RestAreasFile>('/data/restareas.json'),
-          fetchJson<StationsFile>('/data/stations.json'),
-          fetchJson<DiscoverFile>('/data/discover.json'),
-        ]);
-        if (cancelled) return;
-        setProgress(0.92);
-        await new Promise((r) => setTimeout(r, 20));
-        const eac = parseEac(eacBuf);
-        const idx = new InterstateIndex(eax);
-        if (cancelled) return;
-        setIndex(idx);
-        setCorridors(eac.corridors);
-        setRestAreas(restFile.items);
-        setStations(new Map(Object.entries(stationsFile.items)));
-        setDiscover(discoverFile.items);
-        setProgress(1);
-        setDataStatus('ready');
-      } catch (err) {
-        if (cancelled) return;
-        setLoadError((err as Error).message || 'The interstate data could not be loaded.');
-        setDataStatus('error');
-      }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [loadAttempt]);
-
-  // ---------- Recent / saved ----------
-  const addRecent = useCallback((item: RecentItem) => {
-    setRecent((prev) => {
-      const deduped = prev.filter(
-        (x) => !(x.type === item.type && x.label === item.label && Math.abs(x.lat - item.lat) < 0.001),
-      );
-      const next = [item, ...deduped].slice(0, 6);
-      saveRecent(next);
-      return next;
-    });
+    const controller = new AbortController();
+    setCatalogState('loading');
+    fetch('https://openrouter.ai/api/v1/models', { signal: controller.signal })
+      .then(response => { if (!response.ok) throw new Error('Catalog unavailable'); return response.json(); })
+      .then(data => {
+        if (!Array.isArray(data.data)) throw new Error('Invalid catalog');
+        const available: Model[] = data.data.filter((m: Model) => m.id && m.name).sort((a: Model, b: Model) => (b.created || 0) - (a.created || 0));
+        setModels(available); setCatalogState('ready');
+      }).catch(() => { if (!controller.signal.aborted) setCatalogState('error'); });
+    return () => controller.abort();
+  }, [catalogAttempt]);
+  const filteredModels = models.filter(m => (filter === 'All' || (filter === 'Stealth' ? m.id.startsWith('stealth/') : filter === 'Recursive' ? m.id.startsWith('recursive/') : m.id.endsWith(':free'))) && `${m.name} ${m.id}`.toLowerCase().includes(query.toLowerCase()));
+  const featuredModels = [...models.filter(m => m.id.startsWith('stealth/') || m.id.startsWith('recursive/')), ...models.filter(m => !m.id.startsWith('stealth/') && !m.id.startsWith('recursive/'))].slice(0, 4);
+  const selectModel = (m: Model) => { setModel(m); setMenu(false); setBrowserOpen(false); };
+  const [menu, setMenu] = useState(false);
+  const [settings, setSettings] = useState(false);
+  const [apiKey, setApiKey] = useState('');
+  const [fishKey, setFishKey] = useState('');
+  const [voiceId, setVoiceId] = useState('805bcacfee884b78a1e70ce753346454');
+  const [autoSpeak, setAutoSpeak] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [listening, setListening] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [inputProvider, setInputProvider] = useState<'browser' | 'fish'>('browser');
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const mountedRef = useRef(true);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlRef = useRef<string | null>(null);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; recognitionRef.current?.stop(); if (recorderRef.current?.state === 'recording') recorderRef.current.stop(); streamRef.current?.getTracks().forEach(track => track.stop()); audioRef.current?.pause(); if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current); };
   }, []);
-
-  const isSaved = (id: string) => saved.some((s) => s.id === id);
-
-  const toggleSave = () => {
-    if (selectedExitIndex !== null) {
-      const e = index!.exits[selectedExitIndex];
-      const id = `exit:${e.id}`;
-      if (isSaved(id)) {
-        const next = saved.filter((s) => s.id !== id);
-        setSaved(next);
-        persistSaved(next);
-        showToast('Removed from saved');
-      } else {
-        const item: SavedItem = {
-          type: 'exit',
-          id,
-          label: e.label ? `Exit ${e.label}` : 'Interstate exit',
-          sublabel: e.highways,
-          lat: e.lat,
-          lon: e.lon,
-          exitIndex: selectedExitIndex,
-        };
-        const next = [item, ...saved];
-        setSaved(next);
-        persistSaved(next);
-        showToast('Exit saved');
-      }
-    } else if (selectedPlaceIndex !== null) {
-      const p = index!.places[selectedPlaceIndex];
-      const id = `place:${p.osmId}`;
-      if (isSaved(id)) {
-        const next = saved.filter((s) => s.id !== id);
-        setSaved(next);
-        persistSaved(next);
-        showToast('Removed from saved');
-      } else {
-        const item: SavedItem = {
-          type: 'place',
-          id,
-          label: p.brand || p.name,
-          sublabel: CATEGORY_META[p.category]?.label,
-          lat: p.lat,
-          lon: p.lon,
-          placeIndex: selectedPlaceIndex,
-        };
-        const next = [item, ...saved];
-        setSaved(next);
-        persistSaved(next);
-        showToast('Place saved');
-      }
-    }
-  };
-
-  // ---------- Selection ----------
-  const openExit = useCallback(
-    (i: number, remember = true) => {
-      const e = index?.exits[i];
-      if (!e) return;
-      setSelectedExitIndex(i);
-      setSelectedPlaceIndex(null);
-      setSelectedLink(undefined);
-      setPin(null);
-      setMode('exit');
-      setSearchFocused(false);
-      setQuery('');
-      mapRef.current?.flyTo(e.lat, e.lon, 15);
-      if (remember) {
-        addRecent({
-          type: 'exit',
-          label: e.label ? `Exit ${e.label}` : 'Interstate exit',
-          sublabel: `${e.highways.split(';')[0]}${e.name ? ` · ${e.name}` : ''}`,
-          lat: e.lat,
-          lon: e.lon,
-          exitIndex: i,
-        });
-      }
-    },
-    [index, addRecent],
-  );
-
-  const openPlace = useCallback(
-    (placeIndex: number, exitIndex?: number, link?: LinkRecord, remember = true) => {
-      const p = index?.places[placeIndex];
-      if (!p) return;
-      let ei = exitIndex;
-      let lk = link;
-      if (ei === undefined) {
-        const nearest = index?.nearestExitForPlace(placeIndex);
-        if (nearest) {
-          ei = nearest.exitIndex;
-          lk = nearest.link;
-        }
-      }
-      setSelectedPlaceIndex(placeIndex);
-      setSelectedExitIndex(ei ?? null);
-      setSelectedLink(lk);
-      setPin(null);
-      setMode('place');
-      setSearchFocused(false);
-      setQuery('');
-      mapRef.current?.flyTo(p.lat, p.lon, 16);
-      if (remember) {
-        const exit = ei !== undefined ? index?.exits[ei] : null;
-        addRecent({
-          type: 'place',
-          label: p.brand || p.name,
-          sublabel: `${CATEGORY_META[p.category]?.label ?? 'Place'}${exit?.label ? ` · Exit ${exit.label}` : ''}`,
-          lat: p.lat,
-          lon: p.lon,
-          placeIndex,
-        });
-      }
-    },
-    [index, addRecent],
-  );
-
-  const openLocation = useCallback(
-    (lat: number, lon: number, name?: string, fly = true) => {
-      setPin({ lat, lon });
-      setPinAddress(name ?? '');
-      setPinLoading(!name);
-      setSelectedExitIndex(null);
-      setSelectedPlaceIndex(null);
-      setMode('location');
-      setSearchFocused(false);
-      setQuery('');
-      if (fly) mapRef.current?.flyTo(lat, lon, 16);
-      if (name) {
-        addRecent({ type: 'location', label: name, lat, lon });
-      }
-    },
-    [addRecent],
-  );
-
-  const handleMapClick = useCallback((lat: number, lon: number) => {
-    setPin({ lat, lon });
-    setPinAddress('');
-    setPinLoading(true);
-    setSelectedExitIndex(null);
-    setSelectedPlaceIndex(null);
-    setMode('location');
-    setSearchFocused(false);
-    setQuery('');
-  }, []);
-
-  // Reverse geocode dropped pins.
-  useEffect(() => {
-    if (!pin || !pinLoading) return;
-    const ctrl = new AbortController();
-    reverseGeocode(pin.lat, pin.lon, ctrl.signal)
-      .then((addr) => {
-        setPinAddress(addr);
-        setPinLoading(false);
-      })
-      .catch(() => setPinLoading(false));
-    return () => ctrl.abort();
-  }, [pin, pinLoading]);
-
-  // ---------- Search ----------
-  useEffect(() => {
-    if (!index) return;
-    const q = query.trim();
-    if (!q) {
-      setSearchState({ exits: [], places: [], locations: [] });
-      setSearching(false);
-      setHasSearched(false);
-      setActiveIndex(0);
-      return;
-    }
-    const exits = index.searchExits(q, 5);
-    const places = index.searchPlaces(q, 5);
-    setSearchState({ exits, places, locations: [] });
-    setActiveIndex(0);
-    const shouldGeocode = q.length >= 3 && !/(^|\s)exit(\s|$)/i.test(q) && !/^i-?\d/i.test(q);
-    if (!shouldGeocode) {
-      setSearching(false);
-      setHasSearched(true);
-      return;
-    }
-    setSearching(true);
-    const ctrl = new AbortController();
-    const t = window.setTimeout(async () => {
-      try {
-        const geo = await geocode(q, ctrl.signal, mapCenterRef.current ?? undefined);
-        if (!ctrl.signal.aborted) {
-          setSearchState((prev) => ({ ...prev, locations: geo }));
-        }
-      } catch {
-        /* geocoding is best effort */
-      } finally {
-        if (!ctrl.signal.aborted) {
-          setSearching(false);
-          setHasSearched(true);
-        }
-      }
-    }, 300);
-    return () => {
-      window.clearTimeout(t);
-      ctrl.abort();
-    };
-  }, [query, index]);
-
-  const flatItems = useMemo<FlatItem[]>(() => {
-    if (!query.trim()) {
-      return recent.map((item, i) => ({ kind: 'recent' as const, index: i, item }));
-    }
-    const exitItems: FlatItem[] = searchState.exits.map((h) => ({ kind: 'exit', index: h.index, exit: h.exit }));
-    const placeItems: FlatItem[] = searchState.places.map((h) => ({ kind: 'place', index: h.index, place: h.place }));
-    const locationItems: FlatItem[] = searchState.locations.map((r, i) => ({ kind: 'location', index: i, result: r }));
-    const q = query.trim().toLowerCase();
-    const exitMax = searchState.exits.reduce((m, h) => Math.max(m, h.score), 0);
-    const placeMax = searchState.places.reduce((m, h) => Math.max(m, h.score), 0);
-    const locationMax = searchState.locations.reduce((m, r) => {
-      const name = r.name.toLowerCase();
-      return Math.max(m, name === q ? 110 : name.startsWith(q) ? 90 : 60);
-    }, 0);
-    const groups: Array<{ items: FlatItem[]; score: number }> = [
-      { items: exitItems, score: exitMax },
-      { items: placeItems, score: placeMax },
-      { items: locationItems, score: locationMax },
-    ].filter((g) => g.items.length > 0);
-    groups.sort((a, b) => b.score - a.score);
-    return groups.flatMap((g) => g.items);
-  }, [query, searchState, recent]);
-
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [query]);
-
-  const selectFlat = (item: FlatItem) => {
-    if (item.kind === 'exit') openExit(item.index);
-    else if (item.kind === 'place') openPlace(item.index);
-    else if (item.kind === 'location') openLocation(item.result.lat, item.result.lon, item.result.name);
-    else {
-      const r = item.item;
-      if (r.type === 'exit' && r.exitIndex !== undefined) openExit(r.exitIndex, false);
-      else if (r.type === 'place' && r.placeIndex !== undefined) openPlace(r.placeIndex, undefined, undefined, false);
-      else openLocation(r.lat, r.lon, r.label, true);
-    }
-  };
-
-  useEffect(() => {
-    if (!searchFocused) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setActiveIndex((i) => Math.min(flatItems.length - 1, i + 1));
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setActiveIndex((i) => Math.max(0, i - 1));
-      } else if (e.key === 'Enter' && flatItems[activeIndex]) {
-        e.preventDefault();
-        selectFlat(flatItems[activeIndex]);
-      } else if (e.key === 'Escape') {
-        setSearchFocused(false);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchFocused, flatItems, activeIndex]);
-
-  const submitSearch = () => {
-    if (flatItems[activeIndex]) {
-      selectFlat(flatItems[activeIndex]);
-    } else if (searchState.locations[0]) {
-      const r = searchState.locations[0];
-      openLocation(r.lat, r.lon, r.name);
-    } else if (searchState.exits[0]) {
-      openExit(searchState.exits[0].index);
-    } else if (searchState.places[0]) {
-      openPlace(searchState.places[0].index);
-    } else if (query.trim()) {
-      showToast(`No results for “${query.trim()}”`);
-    }
-  };
-
-  // ---------- Directions ----------
-  const waypointFromExit = (i: number): Waypoint | null => {
-    const e = index?.exits[i];
-    if (!e) return null;
-    return {
-      label: `Exit ${e.label || ''} · ${e.highways.split(';')[0]}`.replace('Exit  ·', 'Interstate exit ·'),
-      lat: e.lat,
-      lon: e.lon,
-      exitIndex: i,
-    };
-  };
-
-  const openDirections = useCallback((from?: Waypoint, to?: Waypoint) => {
-    setMode('directions');
-    setSearchFocused(false);
-    setQuery('');
-    if (from) {
-      setStartPoint(from);
-      setStartText(from.label);
-    }
-    if (to) {
-      setEndPoint(to);
-      setEndText(to.label);
-    }
-    if (from || to) {
-      setRouteState((s) => ({ ...s, status: 'idle', routes: [], routeExits: [], error: undefined }));
-      lastRouteKeyRef.current = null;
-    }
-  }, []);
-
-  const computeRoute = useCallback(
-    async (start: Waypoint, end: Waypoint, modeValue: TravelMode) => {
-      const key = `${start.lat.toFixed(5)},${start.lon.toFixed(5)}|${end.lat.toFixed(5)},${end.lon.toFixed(5)}|${modeValue}`;
-      if (lastRouteKeyRef.current === key) return;
-      lastRouteKeyRef.current = key;
-      setRouteState({ status: 'loading', routes: [], selected: 0, routeExits: [] });
-      try {
-        const res = await fetchRoute(modeValue, [
-          [start.lon, start.lat],
-          [end.lon, end.lat],
-        ]);
-        const route = res.routes[0];
-        const exits = modeValue === 'driving' && index ? matchExitsToRoute(index, route.geometry) : [];
-        setRouteState({ status: 'ready', routes: res.routes, selected: 0, routeExits: exits, source: 'osrm' });
-      } catch (err) {
-        setRouteState({
-          status: 'error',
-          routes: [],
-          selected: 0,
-          routeExits: [],
-          error: (err as Error).message || 'Routing is unavailable right now.',
-        });
-      }
-    },
-    [index],
-  );
-
-  useEffect(() => {
-    if (skipAutoRouteRef.current) {
-      skipAutoRouteRef.current = false;
-      return;
-    }
-    if (!startPoint || !endPoint) {
-      lastRouteKeyRef.current = null;
-      setRouteState((s) => (s.status === 'idle' ? s : { ...IDLE_ROUTE }));
-      return;
-    }
-    computeRoute(startPoint, endPoint, travelMode);
-  }, [startPoint, endPoint, travelMode, computeRoute]);
-
-  const handleSelectRoute = (i: number) => {
-    setRouteState((prev) => {
-      const r = prev.routes[i];
-      const exits = r && index && travelMode === 'driving' ? matchExitsToRoute(index, r.geometry) : [];
-      return { ...prev, selected: i, routeExits: exits };
-    });
-  };
-
-  const handleSwap = () => {
-    setStartPoint(endPoint);
-    setEndPoint(startPoint);
-    setStartText(endText);
-    setEndText(startText);
-  };
-
-  const handleDemo = useCallback(async () => {
-    if (!index) return;
-    skipAutoRouteRef.current = true;
-    setStartPoint({ label: 'Miami, FL', lat: 25.7617, lon: -80.1918 });
-    setEndPoint({ label: 'Manhattan, New York', lat: 40.7831, lon: -73.9712 });
-    setStartText('Miami, FL');
-    setEndText('Manhattan, New York');
-    setRouteState({ status: 'loading', routes: [], selected: 0, routeExits: [] });
+  const speak = async (text: string) => {
+    if (!fishKey.trim()) { setError('Add your Fish Audio API key in settings to hear Nova.'); setSettings(true); return; }
+    if (!voiceId.trim()) { setError('Add a Fish Audio voice ID in settings.'); setSettings(true); return; }
+    setError(''); setSpeaking(true);
     try {
-      const demo = await loadDemoRoute();
-      const exits = matchExitsToRoute(index, demo.geometry);
-      setRouteState({ status: 'ready', routes: [demo], selected: 0, routeExits: exits, source: 'demo' });
-      lastRouteKeyRef.current = 'demo';
-    } catch (err) {
-      setRouteState({
-        status: 'error',
-        routes: [],
-        selected: 0,
-        routeExits: [],
-        error: (err as Error).message || 'The demo route is unavailable.',
-      });
-    }
-  }, [index]);
-
-  const handleUseLocation = () => {
-    if (!navigator.geolocation) {
-      showToast('Geolocation is not available in this browser.');
+      audioRef.current?.pause();
+      const response = await fetch('https://api.fish.audio/v1/tts', { method: 'POST', headers: { Authorization: `Bearer ${fishKey.trim()}`, 'Content-Type': 'application/json', model: 's2.1-pro-free' }, body: JSON.stringify({ text, reference_id: voiceId.trim(), format: 'mp3' }) });
+      if (!response.ok) throw new Error(`Fish Audio could not generate speech (${response.status}). Check your key, voice access, and free-tier limits.`);
+      const blob = await response.blob();
+      if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
+      const url = URL.createObjectURL(blob); audioUrlRef.current = url;
+      const audio = new Audio(url); audioRef.current = audio;
+      audio.onended = () => setSpeaking(false);
+      audio.onerror = () => { setSpeaking(false); setError('Audio playback failed.'); };
+      await audio.play();
+    } catch (err) { setSpeaking(false); setError(err instanceof Error ? err.message : 'Voice playback failed.'); }
+  };
+  const toggleMic = async () => {
+    if (listening) {
+      if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
+      else recognitionRef.current?.stop();
       return;
     }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const loc = {
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
+    setError('');
+    if (inputProvider === 'fish') {
+      if (!fishKey.trim()) { setError('Add a Fish Audio API key in settings to use Fish transcription.'); setSettings(true); return; }
+      if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') { setError('Recording is unavailable here. Open this app in a secure browser tab or choose browser speech in settings.'); return; }
+      let stream: MediaStream | null = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        if (!mountedRef.current) { stream.getTracks().forEach(track => track.stop()); return; }
+        streamRef.current = stream;
+        const recorder = new MediaRecorder(stream); recorderRef.current = recorder;
+        const chunks: Blob[] = [];
+        recorder.ondataavailable = event => { if (event.data.size) chunks.push(event.data); };
+        recorder.onerror = () => { stream?.getTracks().forEach(track => track.stop()); setListening(false); setError('Recording failed. Check that your microphone is available and try again.'); };
+        recorder.onstop = async () => {
+          stream?.getTracks().forEach(track => track.stop()); streamRef.current = null; recorderRef.current = null;
+          if (!mountedRef.current) return;
+          setListening(false);
+          if (!chunks.length) { setError('No audio was recorded. Try again and speak before stopping.'); return; }
+          setTranscribing(true);
+          try {
+            const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+            const form = new FormData(); form.append('audio', blob, recorder.mimeType.includes('mp4') ? 'recording.mp4' : recorder.mimeType.includes('ogg') ? 'recording.ogg' : 'recording.webm');
+            const response = await fetch('https://api.fish.audio/v1/asr', { method: 'POST', headers: { Authorization: `Bearer ${fishKey.trim()}`, model: 'transcribe-1' }, body: form });
+            if (!response.ok) throw new Error(`Fish transcription failed (${response.status}). Check your key, account access, and billing.`);
+            const data = await response.json();
+            if (!data.text?.trim()) throw new Error('No speech was detected. Try recording again.');
+            if (mountedRef.current) setInput(previous => previous ? `${previous} ${data.text.trim()}` : data.text.trim());
+          } catch (err) { if (mountedRef.current) setError(err instanceof TypeError ? 'Could not reach Fish Audio. Check your connection or try browser speech in settings.' : err instanceof Error ? err.message : 'Transcription failed.'); }
+          finally { if (mountedRef.current) setTranscribing(false); }
         };
-        setUserLocation(loc);
-        setLocating(false);
-        const wp: Waypoint = { label: 'My location', lat: loc.lat, lon: loc.lon };
-        setStartPoint(wp);
-        setStartText('My location');
-        mapRef.current?.flyTo(loc.lat, loc.lon, 14);
-      },
-      () => {
-        setLocating(false);
-        showToast('Could not get your location. Check your browser permissions.');
-      },
-      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
-    );
-  };
-
-  const handleLocate = () => {
-    if (!navigator.geolocation) {
-      showToast('Geolocation is not available in this browser.');
-      return;
-    }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const loc = {
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-          accuracy: pos.coords.accuracy,
-        };
-        setUserLocation(loc);
-        setLocating(false);
-        mapRef.current?.flyTo(loc.lat, loc.lon, 15);
-      },
-      () => {
-        setLocating(false);
-        showToast('Could not get your location. Check your browser permissions.');
-      },
-      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
-    );
-  };
-
-  const handleDownloadGpx = () => {
-    const route = routeState.routes[routeState.selected];
-    if (!route) return;
-    const gpx = buildGpx('Interstate route', route);
-    downloadFile('interstate-route.gpx', gpx);
-    showToast('GPX downloaded');
-  };
-
-  // ---------- Drive mode ----------
-  const handleCorridorFocus = useCallback((corridor: Corridor) => {
-    setHighlightCorridor(corridor);
-    const b = corridorBounds(corridor);
-    if (b) {
-      mapRef.current?.fitBounds(
-        [
-          [b.minLat, b.minLon],
-          [b.maxLat, b.maxLon],
-        ],
-        { padding: [90, 90], maxZoom: 9, animate: true, duration: 0.8 },
-      );
-    }
-  }, []);
-
-  const handleExitGuide = () => {
-    setDriveOpen(true);
-    setSearchFocused(false);
-    setQuery('');
-    setMode('home');
-  };
-
-  // ---------- Share ----------
-  const handleShare = async () => {
-    const params = new URLSearchParams();
-    if (selectedExitIndex !== null && index) {
-      const e = index.exits[selectedExitIndex];
-      params.set('exit', String(e.id));
-      params.set('lat', e.lat.toFixed(5));
-      params.set('lon', e.lon.toFixed(5));
-      params.set('zoom', '15');
-    } else if (selectedPlaceIndex !== null && index) {
-      const p = index.places[selectedPlaceIndex];
-      params.set('place', p.osmId);
-      params.set('lat', p.lat.toFixed(5));
-      params.set('lon', p.lon.toFixed(5));
-      params.set('zoom', '16');
-    } else if (pin) {
-      params.set('lat', pin.lat.toFixed(5));
-      params.set('lon', pin.lon.toFixed(5));
-      params.set('zoom', '16');
-    } else {
-      const view = mapRef.current?.getView();
-      if (view) {
-        params.set('lat', view.lat.toFixed(5));
-        params.set('lon', view.lon.toFixed(5));
-        params.set('zoom', String(view.zoom));
+        recorder.start(); setListening(true);
+      } catch (err) {
+        stream?.getTracks().forEach(track => track.stop()); streamRef.current = null; recorderRef.current = null;
+        const name = err instanceof Error ? err.name : '';
+        setError(name === 'NotAllowedError' || name === 'SecurityError' ? 'Microphone access was blocked. Allow microphone access for this site in your browser settings, then try again.' : name === 'NotFoundError' ? 'No microphone was found. Connect one and try again.' : 'Could not start recording. Check your microphone and browser permissions.');
       }
+      return;
     }
-    const url = `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+    const SpeechRecognition = (window as SpeechWindow).SpeechRecognition || (window as SpeechWindow).webkitSpeechRecognition;
+    if (!SpeechRecognition) { setError('Browser speech recognition is unavailable. Choose Fish Audio transcription in settings instead.'); return; }
+    const recognition = new SpeechRecognition(); recognitionRef.current = recognition;
+    recognition.lang = 'en-US'; recognition.interimResults = false;
+    recognition.onresult = event => { const text = Array.from(event.results).map(result => result[0].transcript).join(' '); setInput(previous => previous ? `${previous} ${text}` : text); };
+    recognition.onerror = event => {
+      const errors: Record<string, string> = {
+        'not-allowed': 'Microphone or speech recognition access was blocked. Allow microphone access for this site in your browser settings.',
+        'service-not-allowed': 'Your browser blocked its speech recognition service. Try Fish Audio transcription in settings.',
+        'network': 'The browser speech service could not connect. Check your connection or try Fish Audio transcription in settings.',
+        'audio-capture': 'No microphone is available. Connect one and check your device permissions.',
+        'no-speech': 'No speech was detected. Try again and speak clearly.',
+        'language-not-supported': 'This language is not supported by your browser speech service. Try Fish Audio transcription in settings.',
+      };
+      if (event.error !== 'aborted') setError(errors[event.error] || `Browser speech recognition failed (${event.error}). Try Fish Audio transcription in settings.`);
+      setListening(false);
+    };
+    recognition.onend = () => { recognitionRef.current = null; setListening(false); };
+    try { recognition.start(); setListening(true); } catch { setError('Could not start browser speech recognition. Try Fish Audio transcription in settings.'); }
+  };
+  const [input, setInput] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [sidebar, setSidebar] = useState(false);
+  const [temperature, setTemperature] = useState('0.7');
+  const [systemPrompt, setSystemPrompt] = useState('You are Nova, a friendly and helpful AI assistant.');
+  const send = async (text = input) => {
+    if (!text.trim() || loading) return;
+    if (!apiKey.trim()) { setError('Add your OpenRouter API key in settings to start chatting.'); setSettings(true); return; }
+    const next: Message[] = [...messages, { role: 'user', content: text.trim() }];
+    setMessages(next); setInput(''); setError(''); setLoading(true);
     try {
-      await navigator.clipboard.writeText(url);
-      showToast('Link copied to clipboard');
-    } catch {
-      showToast('Copy this link: ' + url);
-    }
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', { method: 'POST', headers: { Authorization: `Bearer ${apiKey.trim()}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ model: model.id, messages: [{ role: 'system', content: systemPrompt }, ...next], temperature: Number(temperature) }) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error?.message || 'Something went wrong. Please try again.');
+      const reply = data.choices?.[0]?.message?.content || 'No response was returned.';
+      setMessages([...next, { role: 'assistant', content: reply }]);
+      if (autoSpeak && fishKey.trim()) void speak(reply);
+    } catch (err) { setError(err instanceof Error ? err.message : 'Could not connect to OpenRouter.'); }
+    finally { setLoading(false); }
   };
-
-  // ---------- Deep links ----------
-  useEffect(() => {
-    if (dataStatus !== 'ready' || !index) return;
-    const params = new URLSearchParams(window.location.search);
-    const exitId = params.get('exit');
-    const placeId = params.get('place');
-    if (exitId) {
-      const i = index.exits.findIndex((e) => String(e.id) === exitId);
-      if (i >= 0) {
-        openExit(i, false);
-        return;
-      }
-    }
-    if (placeId) {
-      const i = index.places.findIndex((p) => p.osmId === placeId);
-      if (i >= 0) {
-        openPlace(i, undefined, undefined, false);
-        return;
-      }
-    }
-    const lat = params.get('lat');
-    const lon = params.get('lon');
-    const zoom = params.get('zoom');
-    if (lat && lon) {
-      mapRef.current?.flyTo(Number(lat), Number(lon), zoom ? Number(zoom) : 14);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataStatus, index]);
-
-  // ---------- Back / clear ----------
-  const handleBack = () => {
-    if (mode === 'directions') {
-      setMode('home');
-      return;
-    }
-    setMode('home');
-    setSelectedExitIndex(null);
-    setSelectedPlaceIndex(null);
-    setPin(null);
-    setQuery('');
-    setSearchFocused(false);
-  };
-
-  const handleClearSearch = () => {
-    setQuery('');
-    setSearchState({ exits: [], places: [], locations: [] });
-    setHasSearched(false);
-    setActiveIndex(0);
-    setSearchFocused(true);
-  };
-
-  const handleQuickCategory = (category: number) => {
-    setLayers((l) => ({
-      ...l,
-      showPlaces: true,
-      categoryFilter: l.categoryFilter === category ? null : category,
-    }));
-    showToast(
-      layers.categoryFilter === category
-        ? `Showing all places`
-        : `Showing ${CATEGORY_META[category]?.plural.toLowerCase() ?? 'places'}`,
-    );
-  };
-
-  const handleToggleRestAreas = () => {
-    setLayers((l) => ({ ...l, showRestAreas: !l.showRestAreas }));
-    showToast(layers.showRestAreas ? 'Rest areas hidden' : 'Showing rest areas and welcome centers');
-  };
-
-  const selectedStation =
-    selectedPlaceIndex !== null && index
-      ? stations.get(index.places[selectedPlaceIndex].osmId)
-      : undefined;
-
-  const cardSaved =
-    (selectedExitIndex !== null && index && isSaved(`exit:${index.exits[selectedExitIndex].id}`)) ||
-    (selectedPlaceIndex !== null && index && isSaved(`place:${index.places[selectedPlaceIndex].osmId}`));
-
-  return (
-    <>
-      <MapView
-        ref={mapRef}
-        index={index}
-        corridors={corridors}
-        restAreas={restAreas}
-        discover={discover}
-        selectedExitIndex={selectedExitIndex}
-        selectedPlaceIndex={selectedPlaceIndex}
-        route={routeState.routes[routeState.selected] ?? null}
-        routeExits={routeState.routeExits}
-        mapStyle={mapStyle}
-        layers={layers}
-        userLocation={userLocation}
-        pin={pin}
-        highlightCorridor={highlightCorridor}
-        onExitClick={(i) => openExit(i)}
-        onPlaceClick={(i) => openPlace(i)}
-        onMapClick={handleMapClick}
-        onRestAreaClick={(r) => openLocation(r.lat, r.lon, `${r.name || 'Rest area'}${r.road ? ` · ${r.road}` : ''}`)}
-        onDiscoverClick={(d) => openLocation(d.lat, d.lon, d.name)}
-        onMoveEnd={(center) => {
-          mapCenterRef.current = center;
-        }}
-      />
-
-      <LoadingScreen
-        progress={progress}
-        error={loadError}
-        onRetry={() => setLoadAttempt((n) => n + 1)}
-        done={dataStatus === 'ready'}
-      />
-
-      {!driveOpen && (
-        <div className="ui-layer">
-          {mode === 'directions' ? (
-            <div className="top-panel">
-              <DirectionsPanel
-                index={index!}
-                startPoint={startPoint}
-                endPoint={endPoint}
-                startText={startText}
-                endText={endText}
-                onStartTextChange={(t) => {
-                  setStartText(t);
-                  if (startPoint && t !== startPoint.label) setStartPoint(null);
-                }}
-                onEndTextChange={(t) => {
-                  setEndText(t);
-                  if (endPoint && t !== endPoint.label) setEndPoint(null);
-                }}
-                onStartSelect={(w) => {
-                  setStartPoint(w);
-                  setStartText(w.label);
-                }}
-                onEndSelect={(w) => {
-                  setEndPoint(w);
-                  setEndText(w.label);
-                }}
-                onSwap={handleSwap}
-                travelMode={travelMode}
-                onTravelModeChange={setTravelMode}
-                routeState={routeState}
-                onBack={() => setMode('home')}
-                onSelectRoute={handleSelectRoute}
-                onOpenExit={(i) => openExit(i)}
-                onDemo={handleDemo}
-                onRetry={() => {
-                  if (startPoint && endPoint) {
-                    lastRouteKeyRef.current = null;
-                    computeRoute(startPoint, endPoint, travelMode);
-                  }
-                }}
-                onUseLocation={handleUseLocation}
-                onDownloadGpx={handleDownloadGpx}
-                mapCenter={mapCenterRef.current}
-              />
-            </div>
-          ) : (
-            <SearchBar
-              query={query}
-              onQueryChange={(q) => {
-                setQuery(q);
-                setSearchFocused(true);
-              }}
-              onSubmit={submitSearch}
-              onClear={handleClearSearch}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-              focused={searchFocused}
-              onDirections={() => openDirections()}
-              onExitGuide={handleExitGuide}
-              onQuickCategory={handleQuickCategory}
-              activeCategory={layers.categoryFilter}
-              onToggleRestAreas={handleToggleRestAreas}
-              restAreasOn={layers.showRestAreas}
-            >
-              {searchFocused && (query.trim() || flatItems.length > 0) ? (
-                <SearchResults
-                  items={flatItems}
-                  activeIndex={activeIndex}
-                  searching={searching}
-                  query={query}
-                  hasSearched={hasSearched}
-                  onHover={setActiveIndex}
-                  onSelect={selectFlat}
-                  onClearRecent={() => {
-                    setRecent([]);
-                    saveRecent([]);
-                  }}
-                />
-              ) : mode === 'exit' && selectedExitIndex !== null && index ? (
-                <ExitCard
-                  index={index}
-                  exitIndex={selectedExitIndex}
-                  onBack={handleBack}
-                  onDirections={() => {
-                    const wp = waypointFromExit(selectedExitIndex);
-                    if (wp) openDirections(undefined, wp);
-                  }}
-                  onPlaceClick={(pi, ei, link) => openPlace(pi, ei, link)}
-                  onExitClick={(i) => openExit(i)}
-                  onSave={toggleSave}
-                  onShare={handleShare}
-                  saved={!!cardSaved}
-                />
-              ) : mode === 'place' && selectedPlaceIndex !== null && index ? (
-                <PlaceCard
-                  index={index}
-                  placeIndex={selectedPlaceIndex}
-                  exitIndex={selectedExitIndex ?? undefined}
-                  link={selectedLink}
-                  station={selectedStation}
-                  onBack={handleBack}
-                  onDirections={() => {
-                    const p = index.places[selectedPlaceIndex];
-                    openDirections(undefined, { label: p.brand || p.name, lat: p.lat, lon: p.lon, placeIndex: selectedPlaceIndex });
-                  }}
-                  onExitClick={(i) => openExit(i)}
-                  onSave={toggleSave}
-                  onShare={handleShare}
-                  saved={!!cardSaved}
-                />
-              ) : mode === 'location' && pin ? (
-                <LocationCard
-                  lat={pin.lat}
-                  lon={pin.lon}
-                  address={pinAddress}
-                  loadingAddress={pinLoading}
-                  index={index}
-                  onBack={handleBack}
-                  onDirectionsFrom={() =>
-                    openDirections({ label: pinAddress || formatCoordinate(pin.lat, pin.lon), lat: pin.lat, lon: pin.lon }, undefined)
-                  }
-                  onDirectionsTo={() =>
-                    openDirections(undefined, { label: pinAddress || formatCoordinate(pin.lat, pin.lon), lat: pin.lat, lon: pin.lon })
-                  }
-                  onClear={() => {
-                    setPin(null);
-                    setMode('home');
-                  }}
-                  onExitClick={(i) => openExit(i)}
-                />
-              ) : query.trim() ? (
-                <SearchResults
-                  items={flatItems}
-                  activeIndex={activeIndex}
-                  searching={searching}
-                  query={query}
-                  hasSearched={hasSearched}
-                  onHover={setActiveIndex}
-                  onSelect={selectFlat}
-                />
-              ) : null}
-            </SearchBar>
-          )}
-
-          <MapControls
-            onZoomIn={() => mapRef.current?.zoomIn()}
-            onZoomOut={() => mapRef.current?.zoomOut()}
-            onLocate={handleLocate}
-            locating={locating}
-            userLocation={userLocation}
-            mapStyle={mapStyle}
-            onMapStyle={setMapStyle}
-            layers={layers}
-            onLayers={setLayers}
-          />
-
-          <div className="top-right">
-            <button type="button" className="pill-btn" onClick={handleExitGuide} title="Browse exits along an interstate">
-              <ShieldIcon size={16} style={{ color: '#1a73e8' }} />
-              <span>Exit guide</span>
-            </button>
-            <button type="button" className="pill-btn" onClick={() => setAboutOpen(true)} aria-label="About Interstate" title="About & data sources">
-              <Info size={16} />
-            </button>
-          </div>
-
-          <div className="map-attribution">
-            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap contributors</a>
-            <span>·</span>
-            <a href="https://openinterstate.org/" target="_blank" rel="noreferrer">OpenInterstate</a>
-            <span>·</span>
-            {mapStyle === 'carto' ? (
-              <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">© CARTO</a>
-            ) : (
-              <span>{mapStyle === 'satellite' ? 'Imagery © Esri' : mapStyle === 'terrain' ? 'Terrain © OpenTopoMap' : 'OpenStreetMap tiles'}</span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {driveOpen && index && (
-        <DriveMode
-          index={index}
-          corridors={corridors}
-          onClose={() => {
-            setDriveOpen(false);
-            setHighlightCorridor(null);
-          }}
-          onCorridorFocus={handleCorridorFocus}
-          onExitFocus={(i) => {
-            const e = index.exits[i];
-            mapRef.current?.flyTo(e.lat, e.lon, 15);
-          }}
-          onOpenExit={(i) => {
-            setDriveOpen(false);
-            setHighlightCorridor(null);
-            openExit(i);
-          }}
-          onDirections={(i) => {
-            setDriveOpen(false);
-            setHighlightCorridor(null);
-            const wp = waypointFromExit(i);
-            if (wp) openDirections(undefined, wp);
-          }}
-        />
-      )}
-
-      {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
-      <Toast message={toast} onDismiss={() => setToast(null)} />
-    </>
-  );
+  const newChat = () => { setMessages([]); setInput(''); setError(''); setSidebar(false); };
+  const submit = (e: FormEvent) => { e.preventDefault(); void send(); };
+  return <div className="app-shell">
+    <aside className={`sidebar ${sidebar ? 'open' : ''}`}>
+      <div className="brand"><div className="brand-icon"><Sparkles size={19}/></div><div><strong>starr<span>nova</span></strong><small>AI PLAYGROUND</small></div><button className="mobile-close icon-button" onClick={() => setSidebar(false)} aria-label="Close menu"><X size={18}/></button></div>
+      <button className="new-chat" onClick={newChat}><Plus size={17}/> New chat <span>⌘ K</span></button>
+      <div className="side-label">WORKSPACE</div>
+      <button className="nav-item active" onClick={newChat}><MessageCircle size={17}/> Playground <span className="nav-dot"/></button>
+      <button className="nav-item" onClick={() => setBrowserOpen(true)}><Layers3 size={17}/> Models <span className="nav-badge">{models.length || "…"}</span></button>
+      <button className="nav-item" onClick={() => setSettings(true)}><Settings2 size={17}/> Settings</button>
+      <div className="side-divider"/>
+      <div className="side-label recent-label">RECENTS <MoreHorizontal size={17}/></div>
+      <div className="empty-recent"><span>✦</span><p>Your conversations<br/>will appear here</p></div>
+      <div className="sidebar-bottom"><div className="side-note"><span className="note-spark">✦</span><div><strong>A little more magic ✨</strong><p>Bring your ideas to life with Nova by your side.</p></div></div><button className="profile" onClick={() => setSettings(true)}><div className="avatar">N</div><div><strong>Nova explorer</strong><small>Personal workspace</small></div><MoreHorizontal size={19}/></button></div>
+    </aside>
+    <main className="main">
+      <header className="topbar"><button className="menu-button icon-button" onClick={() => setSidebar(true)} aria-label="Open menu"><Menu size={20}/></button><div className="breadcrumb">Workspace <span>/</span> <strong>Playground</strong></div><div className="top-actions"><span className="status"><i/> {catalogState === "ready" ? "Live model catalog" : catalogState === "loading" ? "Loading models" : "Catalog unavailable"}</span><button className="icon-button help" onClick={() => setSettings(true)} aria-label="Help and settings"><CircleHelp size={19}/></button><button className="top-avatar" onClick={() => setSettings(true)}>N</button></div></header>
+      <div className="content"><div className="page-heading"><div className="hero-copy"><div className="eyebrow"><span>✦</span> YOUR CREATIVE SPACE</div><h1>A little magic for<br/><em>your big ideas.</em> <span>✦</span></h1><p>Meet your creative sidekick and bring something wonderful to life.</p><div className="hero-badge"><span>✦</span> YOUR IMAGINATION, UNLIMITED</div></div><button className="settings-button" onClick={() => setSettings(true)}><Settings2 size={16}/> Playground settings</button></div>
+        <div className="workspace-label"><div><span>✦</span> YOUR PLAYGROUND <small> / &nbsp; CREATE SOMETHING WONDERFUL</small></div><span className="workspace-label-right">THE POSSIBILITIES ARE ENDLESS ✳</span></div><div className="workspace"><section className="chat-panel"><div className="panel-header"><div className="panel-title"><span className="panel-icon"><MessageCircle size={17}/></span><div><strong>New conversation</strong><small>Your next great idea starts here</small></div></div><div className="header-tools"><span className="private"><EyeOff size={13}/> Private session</span><button className="icon-button" onClick={newChat} aria-label="New conversation"><Plus size={19}/></button></div></div>
+          <div className="chat-body">{messages.length === 0 ? <div className="welcome"><div className="star star-one">✦</div><div className="star star-two">✧</div><div className="nova-frame"><img src="/images/nova.jpg" alt="Gingerbread Starr Nova"/></div><div className="welcome-tag">✦ &nbsp; A LITTLE MAGIC, JUST FOR YOU &nbsp; ✦</div><h2>Hi, I'm Nova! <span>✦</span></h2><p>Think of me as your little creative sidekick.<br/>Ask me anything, or let's make something wonderful together.</p><div className="suggestions">{suggestions.map(({icon: Icon,title,text}) => <button key={title} onClick={() => setInput(text)}><span className="suggestion-icon"><Icon size={17}/></span><span><strong>{title}</strong><small>{text}</small></span><ArrowRight className="suggestion-arrow" size={15}/></button>)}</div></div> : <div className="message-list">{messages.map((m,i) => <div className={`message ${m.role}`} key={i}><div className="message-avatar">{m.role === 'assistant' ? '✦' : 'N'}</div><div><strong>{m.role === 'assistant' ? 'Nova' : 'You'}</strong><p>{m.content}</p>{m.role === 'assistant' && <button className="speak-button" onClick={() => void speak(m.content)} disabled={speaking}><Volume2 size={14}/> {speaking ? 'Playing…' : 'Listen'}</button>}</div></div>)}{loading && <div className="message assistant"><div className="message-avatar">✦</div><div><strong>Nova</strong><p>Thinking up something good…</p></div></div>}</div>}</div>
+          <div className="composer-wrap">{error && <div className="error">{error}</div>}<form className="composer" onSubmit={submit}><textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => {if(e.key === 'Enter' && !e.shiftKey){e.preventDefault(); void send();}}} placeholder="Message Nova..." rows={2}/><div className="composer-bottom"><div className="model-picker"><button type="button" onClick={() => setMenu(!menu)}><span className="model-mini">✳</span> {model.name} <ChevronDown size={14}/></button>{menu && <div className="model-menu"><div className="menu-caption">RECENTLY ADDED</div>{featuredModels.map(m => <button type="button" key={m.id} onClick={() => selectModel(m)}>{m.name}{model.id === m.id && <Check size={14}/>}</button>)}<button type="button" className="menu-browse" onClick={() => {setMenu(false);setBrowserOpen(true);}}>Browse all models <ArrowRight size={14}/></button></div>}</div><div className="send-group"><button type="button" className={`mic-button ${listening ? 'listening' : ''}`} onClick={() => void toggleMic()} disabled={transcribing} aria-label={listening ? 'Stop listening' : 'Speak a message'} title={listening ? 'Stop listening' : 'Speak a message'}>{listening ? <Square size={15}/> : <Mic size={16}/>}</button><span>{transcribing ? 'Transcribing…' : listening ? (inputProvider === 'fish' ? 'Recording · tap to stop' : 'Listening…') : '↵ to send'}</span><button className="send" disabled={loading || !input.trim()} aria-label="Send message"><ArrowRight size={19}/></button></div></div></form><div className="composer-foot"><span><ShieldCheck size={13}/> Your conversations stay yours</span><span>Nova can make mistakes. Double-check important info.</span></div></div>
+        </section><aside className="right-panel"><div className="right-heading"><div><span className="eyebrow">THE MAGIC BEHIND IT</span><h3>Find your spark <span>✦</span></h3><p>A whole universe of minds, all in one place.</p></div></div><div className="model-list">{catalogState === 'loading' && <p className="catalog-message">Finding the newest models…</p>}{catalogState === 'error' && <p className="catalog-message">Couldn't load the live catalog. <button onClick={() => setCatalogAttempt(n => n + 1)}>Try again</button></p>}{catalogState === 'ready' && featuredModels.map((m,i) => <button className={`model-card ${model.id === m.id ? 'selected' : ''}`} key={m.id} onClick={() => selectModel(m)}><span className={`model-icon ${['orange','green','blue','purple'][i % 4]}`}>{i === 0 ? '✳' : i === 1 ? '✺' : i === 2 ? '✦' : '◉'}</span><span className="model-info"><span className="model-name">{m.name} {model.id === m.id && <Check size={13}/>}</span><small>{shortContext(m.context_length)}</small><em>{category(m)}</em></span><ArrowRight className="card-arrow" size={15}/></button>)}</div><button className="browse" onClick={() => setBrowserOpen(true)}>Explore all {models.length || ''} models <ArrowRight size={15}/></button><div className="power-card"><div className="power-icon"><Zap size={17}/></div><div><strong>Powered by possibilities</strong><p>One playground, lots of brilliant minds. Connect your API key to get started.</p><button onClick={() => setSettings(true)}>Connect a provider <ArrowRight size={13}/></button></div></div><div className="provider-label">PROVIDERS</div><div className="providers"><span><span className="provider-mark">◈</span> OpenRouter</span><span><Terminal size={15}/> OpenCode</span></div></aside></div>
+        <footer><span>Made with <span className="heart">♥</span> and a little stardust</span><span>Dream big. Stay curious. <span className="footer-star">✦</span></span></footer>
+      </div>
+    </main>
+    {browserOpen && <div className="modal-backdrop" onClick={() => setBrowserOpen(false)}><div className="modal model-browser" onClick={e => e.stopPropagation()}><div className="modal-header"><div><span className="eyebrow">LIVE FROM OPENROUTER</span><h2>Explore models</h2></div><button className="icon-button" onClick={() => setBrowserOpen(false)} aria-label="Close model browser"><X size={20}/></button></div><p>Discover the latest available models, including stealth previews and Recursive. Availability and pricing can change.</p><input className="model-search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Search models or providers..." aria-label="Search models"/><div className="model-filters">{['All', 'Stealth', 'Recursive', 'Free'].map(f => <button key={f} className={filter === f ? 'on' : ''} onClick={() => setFilter(f)}>{f}</button>)}</div><div className="browser-summary">{catalogState === 'ready' ? `${filteredModels.length} models · newest first` : catalogState === 'loading' ? 'Loading the live catalog…' : 'Could not load the OpenRouter catalog.'}{catalogState === 'error' && <button onClick={() => setCatalogAttempt(n => n + 1)}>Retry</button>}</div><div className="browser-list">{catalogState === 'ready' && filteredModels.length === 0 && <p className="catalog-message">No matching models are currently listed. Stealth previews may be temporary.</p>}{filteredModels.map(m => <button key={m.id} className="browser-model" onClick={() => selectModel(m)}><span><strong>{m.name}</strong><small>{m.id} · {shortContext(m.context_length)}</small></span><em>{category(m)}</em>{model.id === m.id && <Check size={15}/>}</button>)}</div></div></div>}
+    {settings && <div className="modal-backdrop" onClick={() => setSettings(false)}><div className="modal" onClick={e => e.stopPropagation()}><div className="modal-header"><div><span className="eyebrow">MAKE IT YOURS</span><h2>Playground settings</h2></div><button className="icon-button" onClick={() => setSettings(false)} aria-label="Close settings"><X size={20}/></button></div><p>Connect OpenRouter to chat with your favorite models. Your key stays in this browser session and is sent directly to OpenRouter.</p><label>OpenRouter API key<input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="sk-or-v1-..." autoComplete="off"/></label><a href="https://openrouter.ai/keys" target="_blank" rel="noreferrer">Get an OpenRouter key <ExternalLink size={13}/></a><div className="voice-settings"><div className="voice-title"><Volume2 size={16}/><div><strong>Nova's voice</strong><small>Fish Audio · s2.1-pro-free</small></div></div><label>Fish Audio API key<input type="password" value={fishKey} onChange={e => setFishKey(e.target.value)} placeholder="Enter your Fish Audio key" autoComplete="off"/></label><label>Voice reference ID<input value={voiceId} onChange={e => setVoiceId(e.target.value)} placeholder="Fish Audio voice ID"/></label><label>Microphone transcription<select value={inputProvider} onChange={e => setInputProvider(e.target.value as 'browser' | 'fish')} disabled={listening || transcribing}><option value="browser">Browser speech recognition</option><option value="fish">Fish Audio transcription</option></select></label><label className="voice-toggle"><input type="checkbox" checked={autoSpeak} onChange={e => setAutoSpeak(e.target.checked)}/> Read new replies aloud</label><p>Keys stay in memory for this session. Browser speech uses your browser's speech service. Fish transcription sends recorded audio to Fish Audio and may incur separate charges; tap the microphone again to stop recording. Fish TTS free-tier limits and voice access apply.</p></div><label>System prompt<textarea value={systemPrompt} onChange={e => setSystemPrompt(e.target.value)} rows={3}/></label><label>Temperature <span>{temperature}</span><input type="range" min="0" max="2" step="0.1" value={temperature} onChange={e => setTemperature(e.target.value)}/></label><div className="opencode-note"><Terminal size={17}/><div><strong>OpenCode console</strong><p>Use OpenCode separately for coding workflows. This playground connects to OpenRouter for chat.</p></div></div><button className="done" onClick={() => setSettings(false)}>Done <Check size={16}/></button></div></div>}
+  </div>;
 }
-
+export default App;
